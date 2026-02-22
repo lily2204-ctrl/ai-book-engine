@@ -84,22 +84,23 @@
 
       try {
         const res = await fetch(`${API_BASE}/create-book`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(payload)
+});
 
-        const data = await res.json();
-        document.getElementById("story").textContent = data.story_text || "";
+const data = await res.json().catch(() => ({}));
 
-        statusEl.textContent = "Story generated successfully ✨";
-        statusEl.className = "ok";
-        console.log("Server response:", data);
-      } catch (e) {
-        statusEl.textContent = "Error ❌ " + (e?.message || e);
-        statusEl.className = "err";
-      }
-    });
+if (!res.ok || data.status === "error") {
+  statusEl.textContent = "Error ❌ " + (data.message || "Request failed");
+  statusEl.className = "err";
+  document.getElementById("story").textContent = JSON.stringify(data, null, 2);
+  return;
+}
+
+statusEl.textContent = "Story generated successfully ✨";
+statusEl.className = "ok";
+document.getElementById("story").textContent = data.story_text || "";
   </script>
 </body>
 </html>
