@@ -1,155 +1,248 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Create Your Book</title>
-  <style>
-    body{font-family:Arial,Helvetica,sans-serif;max-width:820px;margin:40px auto;padding:0 16px;background:#fafafa}
-    h1{font-size:26px;margin:0 0 8px}
-    p{margin:0 0 18px;color:#444}
-    .card{background:#fff;border:1px solid #eee;border-radius:18px;padding:22px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
-    label{display:block;margin:14px 0 6px;font-weight:700}
-    input,select,textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:12px;font-size:15px;background:#fff}
-    textarea{min-height:110px;resize:vertical}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    button{margin-top:18px;padding:12px 16px;border:0;border-radius:12px;cursor:pointer;font-weight:800;font-size:15px}
-    button:disabled{opacity:.6;cursor:not-allowed}
-    .small{font-size:13px;color:#666;margin-top:8px}
-    .ok{color:#0a7a2f;font-weight:800;margin-top:14px}
-    .err{color:#b00020;font-weight:800;margin-top:14px}
-    .out{margin-top:18px;border-top:1px solid #eee;padding-top:16px}
-    pre{white-space:pre-wrap;background:#0b1020;color:#e9eefc;border-radius:14px;padding:14px;overflow:auto}
-    .hint{font-size:12px;color:#666;margin-top:6px}
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Book Creator</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6ff;
+  margin: 0;
+  padding: 40px;
+  text-align: center;
+}
+
+input, select {
+  padding: 10px;
+  margin: 6px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.primary { background: #111; color: white; }
+.secondary { background: #eee; }
+
+.book-stage {
+  margin-top: 40px;
+  perspective: 2000px;
+  display: flex;
+  justify-content: center;
+}
+
+.flipbook {
+  position: relative;
+  width: 800px;
+  height: 500px;
+  transform-style: preserve-3d;
+}
+
+.page {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transform-origin: left;
+  transition: transform 0.7s ease;
+}
+
+.page.flipped {
+  transform: rotateY(-180deg);
+}
+
+.sheet {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  backface-visibility: hidden;
+}
+
+.front { background: white; }
+.back { background: white; transform: rotateY(180deg); }
+
+.cover {
+  background: linear-gradient(135deg, #ff7eb3, #6a5cff);
+  color: white;
+}
+
+.cover-content {
+  padding: 60px;
+}
+
+.cover h1 { font-size: 40px; margin-bottom: 10px; }
+.cover p { font-size: 18px; }
+
+.paper-content {
+  padding: 50px;
+  font-family: Georgia, serif;
+  line-height: 1.7;
+}
+
+.page-num {
+  position: absolute;
+  bottom: 20px;
+  right: 30px;
+  font-size: 13px;
+  color: rgba(0,0,0,0.5);
+}
+
+.shadow {
+  position: absolute;
+  bottom: -20px;
+  width: 70%;
+  height: 30px;
+  left: 15%;
+  background: rgba(0,0,0,0.3);
+  filter: blur(15px);
+  border-radius: 50%;
+}
+.controls {
+  margin-top: 20px;
+}
+</style>
 </head>
+
 <body>
-  <h1>MVP Wizard</h1>
-  <p>Fill the form and generate a story via your AI Book Engine.</p>
 
-  <div class="card">
-    <div class="row">
-      <div>
-        <label for="child_name">Child name</label>
-        <input id="child_name" placeholder="Noa" />
-      </div>
+<h2>Create Your AI Book</h2>
 
-      <div>
-        <label for="age">Age</label>
-        <select id="age">
-          <option value="3">3</option>
-          <option value="4">4</option>
-          <option value="5" selected>5</option>
-          <option value="6">6</option>
-          <option value="7">7</option>
-          <option value="8">8</option>
-        </select>
+<input id="child_name" placeholder="Child name" />
+<select id="age">
+  <option>5</option>
+  <option>6</option>
+  <option>7</option>
+</select>
+
+<select id="story_type">
+  <option>Magical Forest</option>
+  <option>Space Adventure</option>
+</select>
+
+<button class="primary" onclick="createBook()">Create Book</button>
+
+<div class="book-stage">
+  <div id="flipbook" class="flipbook"></div>
+  <div class="shadow"></div>
+</div>
+
+<div class="controls">
+  <button class="secondary" onclick="prevPage()">Previous</button>
+  <span id="indicator">Page 0 of 0</span>
+  <button class="primary" onclick="nextPage()">Next</button>
+</div>
+
+<script>
+
+const API_BASE = "https://romantic-patience-production.up.railway.app";
+
+let pages = [];
+let currentIndex = 0;
+
+async function createBook() {
+
+  const payload = {
+    child_name: document.getElementById("child_name").value,
+    age: document.getElementById("age").value,
+    story_type: document.getElementById("story_type").value
+  };
+
+  const res = await fetch(`${API_BASE}/create-book`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+
+  if (!data.story) return;
+
+  buildFlipbook(data.story);
+}
+
+function buildFlipbook(storyText) {
+
+  const flipbook = document.getElementById("flipbook");
+  flipbook.innerHTML = "";
+
+  const paragraphs = storyText.split("\n").filter(p => p.trim() !== "");
+
+  pages = [];
+  currentIndex = 0;
+
+  // Cover
+  const coverPage = document.createElement("div");
+  coverPage.className = "page";
+  coverPage.innerHTML = `
+    <div class="sheet cover front">
+      <div class="cover-content">
+        <h1>My Magical Story</h1>
+        <p>A Personalized Adventure</p>
       </div>
     </div>
+    <div class="sheet cover back"></div>
+  `;
+  flipbook.appendChild(coverPage);
+  pages.push(coverPage);
 
-    <label for="story_type">Story type</label>
-    <select id="story_type">
-      <option value="Magical Forest" selected>Magical Forest</option>
-      <option value="Space Adventure">Space Adventure</option>
-      <option value="Underwater Quest">Underwater Quest</option>
-      <option value="Superhero Day">Superhero Day</option>
-      <option value="Dinosaur Discovery">Dinosaur Discovery</option>
-    </select>
+  // Paper Pages
+  for (let i = 0; i < paragraphs.length; i += 2) {
 
-    <label for="illustration_style">Illustration style</label>
-    <select id="illustration_style">
-      <option value="Soft Watercolor" selected>Soft Watercolor</option>
-      <option value="3D Pixar-like">3D Pixar-like</option>
-      <option value="Classic Storybook">Classic Storybook</option>
-      <option value="Cute Anime">Cute Anime</option>
-      <option value="Minimal Flat">Minimal Flat</option>
-    </select>
+    const page = document.createElement("div");
+    page.className = "page";
 
-    <label for="traits">Traits (comma separated)</label>
-    <input id="traits" placeholder="brave, curious" />
+    page.innerHTML = `
+      <div class="sheet front">
+        <div class="paper-content">
+          ${paragraphs[i] || ""}
+          <div class="page-num">Page ${i+1}</div>
+        </div>
+      </div>
+      <div class="sheet back">
+        <div class="paper-content">
+          ${paragraphs[i+1] || ""}
+          <div class="page-num">Page ${i+2}</div>
+        </div>
+      </div>
+    `;
 
-    <label for="reference_images">Reference image URLs (comma separated) - TEMP for MVP</label>
-    <input id="reference_images" placeholder="https://..." />
-    <div class="hint">For now we use URLs. Next step we’ll add real upload.</div>
+    flipbook.appendChild(page);
+    pages.push(page);
+  }
 
-    <button id="btn">Create Book</button>
-    <div id="status" class="small"></div>
+  updateIndicator();
+}
 
-    <div class="out">
-      <label>Generated story</label>
-      <pre id="story">(nothing yet)</pre>
-    </div>
-  </div>
+function nextPage() {
+  if (currentIndex < pages.length) {
+    pages[currentIndex].classList.add("flipped");
+    currentIndex++;
+    updateIndicator();
+  }
+}
 
-  <script>
-    // ✅ Your Railway service base URL:
-    const API_BASE = "https://romantic-patience-production.up.railway.app";
+function prevPage() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    pages[currentIndex].classList.remove("flipped");
+    updateIndicator();
+  }
+}
 
-    const btn = document.getElementById("btn");
-    const statusEl = document.getElementById("status");
-    const storyEl = document.getElementById("story");
+function updateIndicator() {
+  document.getElementById("indicator").innerText =
+    `Page ${Math.min(currentIndex + 1, pages.length)} of ${pages.length}`;
+}
 
-    function setStatus(type, text) {
-      statusEl.className = type;
-      statusEl.textContent = text;
-    }
+</script>
 
-    btn.addEventListener("click", async () => {
-      storyEl.textContent = "(working...)";
-      setStatus("small", "");
-
-      // ✅ MUST match server.js required fields: child_name, age, story_type
-      const payload = {
-        child_name: document.getElementById("child_name").value.trim(),
-        age: Number(document.getElementById("age").value),
-        story_type: document.getElementById("story_type").value,
-        illustration_style: document.getElementById("illustration_style").value,
-        traits: document.getElementById("traits").value.split(",").map(s => s.trim()).filter(Boolean),
-        reference_images: document.getElementById("reference_images").value.split(",").map(s => s.trim()).filter(Boolean),
-      };
-
-      console.log("Payload being sent:", payload);
-
-      // Basic guard (client-side)
-      if (!payload.child_name || !payload.age || !payload.story_type) {
-        storyEl.textContent = "(missing required fields)";
-        setStatus("err", "Error ❌ Please fill Child name, Age and Story type.");
-        return;
-      }
-
-      btn.disabled = true;
-
-      try {
-        const res = await fetch(`${API_BASE}/create-book`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await res.json().catch(() => ({}));
-
-        // Show full response if error
-        if (!res.ok || data.status === "error") {
-          storyEl.textContent = JSON.stringify(data, null, 2) || "(no JSON response)";
-          setStatus("err", `Error ❌ ${data.message || "Request failed"} (HTTP ${res.status})`);
-          return;
-        }
-
-        // Prefer story_text; fallback to debug output
-        if (data.story_text) {
-          storyEl.textContent = data.story_text;
-          setStatus("ok", "Story generated successfully ✨");
-        } else {
-          storyEl.textContent = JSON.stringify(data, null, 2);
-          setStatus("ok", "Success ✅ (No story_text returned - showing raw response)");
-        }
-      } catch (e) {
-        storyEl.textContent = String(e);
-        setStatus("err", "Error ❌ " + (e?.message || e));
-      } finally {
-        btn.disabled = false;
-      }
-    });
-  </script>
 </body>
 </html>
