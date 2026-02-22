@@ -90,8 +90,9 @@
         });
 
         const data = await res.json();
+        document.getElementById("story").textContent = data.story_text || "";
 
-        statusEl.textContent = "Success ✅ Request sent. Check console/logs for received data.";
+        statusEl.textContent = "Story generated successfully ✨";
         statusEl.className = "ok";
         console.log("Server response:", data);
       } catch (e) {
