@@ -1,67 +1,118 @@
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
-const OpenAI = require("openai");
+import express from "express";
+import cors from "cors";
+import OpenAI from "openai";
 
 const app = express();
-
-// 🔐 OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 app.use(cors());
-app.use(express.json());
-app.use(express.static(__dirname)); // מאפשר להגיש wizard.html
+app.use(express.json({ limit: "10mb" }));
 
-// דף ראשי
-app.get("/", (req, res) => {
-  res.send("AI Book Engine is running 🚀");
-});
+// --- OpenAI client (requires OPENAI_API_KEY env var) ---
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// יצירת ספר
+// Health check
+app.get("/", (req, res) => res.json({ ok: true }));
+
+/**
+ * POST /create-book
+ * Body: { child_name, age, story_type }
+ * Returns: { title, pages: [{pageNumber, text, imagePrompt}], cover: {title, subtitle} }
+ */
 app.post("/create-book", async (req, res) => {
   try {
-    const { child_name, age, story_type, traits } = req.body;
+    const { child_name, age, story_type } = req.body || {};
 
     if (!child_name || !age || !story_type) {
       return res.status(400).json({
         status: "error",
-        message: "Missing required fields"
+        message: "Missing required fields: child_name, age, story_type",
       });
     }
 
+    // Ask model to return structured JSON only
     const prompt = `
-Write a magical children's story (600-800 words).
-Main character: ${child_name}, age ${age}.
+You are a children's book generator.
+Write a short kids book in ENGLISH.
+Target age: ${age}.
 Theme: ${story_type}.
-Personality traits: ${(traits || []).join(", ") || "kind and curious"}.
-Make it emotional, warm, inspiring.
-End with a gentle life lesson.
-Return plain text only.
+Child name: ${child_name}.
+
+Return JSON only (no markdown).
+Schema:
+{
+  "title": "string",
+  "subtitle": "string",
+  "pages": [
+    { "text": "string (max 80 words)", "imagePrompt": "string (for an illustration)" }
+  ]
+}
+
+Rules:
+- 10 pages exactly.
+- Page texts must be kid-friendly, colorful, positive, and simple.
+- imagePrompt should describe a colorful children's illustration (no brand names).
 `;
 
-    const response = await openai.responses.create({
+    const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      input: prompt,
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      temperature: 0.9,
     });
 
-    res.json({
-      status: "success",
-      story_text: response.output_text
-    });
+    const raw = completion.choices?.[0]?.message?.content || "{}";
+    const book = JSON.parse(raw);
 
-  } catch (error) {
-    console.error("AI Error:", error);
-    res.status(500).json({
+    // Normalize / validate
+    const title = book.title || "My Magical Story";
+    const subtitle = book.subtitle || "A personalized adventure";
+    const pages = Array.isArray(book.pages) ? book.pages.slice(0, 10) : [];
+
+    if (pages.length !== 10) {
+      return res.status(500).json({
+        status: "error",
+        message: "AI returned invalid page count. Expected 10 pages.",
+        debug: { returned: pages.length },
+      });
+    }
+
+    const normalizedPages = pages.map((p, idx) => ({
+      pageNumber: idx + 1,
+      text: String(p.text || "").trim(),
+      imagePrompt: String(p.imagePrompt || "").trim(),
+      imageUrl: null, // will be filled later when we enable image generation
+    }));
+
+    return res.json({
+      status: "ok",
+      title,
+      subtitle,
+      cover: { title, subtitle },
+      pages: normalizedPages,
+    });
+  } catch (err) {
+    const status = err?.status || 500;
+    const code = err?.code || "unknown_error";
+    const message = err?.message || "AI generation failed";
+
+    // If quota issue - return clean error message to UI
+    if (status === 429 || code === "insufficient_quota") {
+      return res.status(429).json({
+        status: "error",
+        message:
+          "OpenAI quota/billing issue. Please enable billing or add credits to generate stories/images.",
+        code,
+      });
+    }
+
+    return res.status(500).json({
       status: "error",
-      message: "AI generation failed"
+      message: "AI generation failed",
+      code,
+      details: message,
     });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Railway uses PORT env var
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
