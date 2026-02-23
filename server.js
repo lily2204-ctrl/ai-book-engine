@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const app = express();
 app.use(cors());
