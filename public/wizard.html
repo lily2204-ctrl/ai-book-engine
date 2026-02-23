@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Create Your AI Book</title>
+<style>
+  body{font-family:Arial;background:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;}
+  .container{width:900px;max-width:95vw;text-align:center;}
+  h1{font-size:42px;margin-bottom:24px;}
+  .row{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;}
+  input,select{padding:12px 14px;border:1px solid #ddd;border-radius:12px;font-size:16px;}
+  button{padding:12px 18px;border:none;border-radius:12px;background:#111;color:#fff;font-weight:700;cursor:pointer;}
+  .avatar{width:90px;height:90px;border-radius:50%;background:#f1f1f1;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #eee;}
+  .avatar img{width:100%;height:100%;object-fit:cover;}
+  input[type="file"]{display:none;}
+  .hint{margin-top:12px;color:#888;}
+  .msg{margin-top:14px;font-weight:700;}
+  .err{color:#c40000;}
+  .ok{color:#0b8a00;}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <h1>Create Your AI Book</h1>
+
+  <div class="row">
+    <label class="avatar" title="Upload child photo">
+      <input type="file" id="photoInput" accept="image/*" />
+      <img id="avatarPreview" alt="" style="display:none;" />
+      <span id="avatarIcon">+</span>
+    </label>
+
+    <input id="childName" placeholder="Child name" />
+    <select id="age">
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5" selected>5</option>
+      <option value="6">6</option>
+      <option value="7">7</option>
+    </select>
+
+    <select id="theme">
+      <option>Magical Forest</option>
+      <option>Space Adventure</option>
+      <option>Underwater Kingdom</option>
+      <option>Superhero Day</option>
+    </select>
+
+    <button onclick="createBook()">Create Book</button>
+  </div>
+
+  <div class="hint">Upload a photo first (optional for now). Then click Create Book.</div>
+  <div id="msg" class="msg"></div>
+</div>
+
+<script>
+  const API_BASE = "https://romantic-patience-production.up.railway.app";
+
+  const msgEl = document.getElementById("msg");
+  const photoInput = document.getElementById("photoInput");
+  const avatarPreview = document.getElementById("avatarPreview");
+  const avatarIcon = document.getElementById("avatarIcon");
+
+  photoInput.addEventListener("change", (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      localStorage.setItem("childPhoto", reader.result);
+      avatarPreview.src = reader.result;
+      avatarPreview.style.display = "block";
+      avatarIcon.style.display = "none";
+    };
+    reader.readAsDataURL(file);
+  });
+
+  async function createBook() {
+    msgEl.textContent = "";
+    msgEl.className = "msg";
+
+    const payload = {
+      child_name: document.getElementById("childName").value.trim(),
+      age: document.getElementById("age").value,
+      story_type: document.getElementById("theme").value
+    };
+
+    if (!payload.child_name) {
+      msgEl.textContent = "Please enter a child name.";
+      msgEl.classList.add("err");
+      return;
+    }
+
+    try {
+      msgEl.textContent = "Creating your book...";
+      const res = await fetch(`${API_BASE}/create-book`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        msgEl.textContent = data?.message || "Error creating book";
+        msgEl.classList.add("err");
+        return;
+      }
+
+      localStorage.setItem("bookData", JSON.stringify(data));
+      msgEl.textContent = "Success! Opening preview...";
+      msgEl.classList.add("ok");
+
+      window.location.href = "preview.html";
+    } catch (err) {
+      msgEl.textContent = "Network error. Check API_BASE and Railway logs.";
+      msgEl.classList.add("err");
+    }
+  }
+</script>
+</body>
+</html>
