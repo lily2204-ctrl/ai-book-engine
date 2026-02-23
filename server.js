@@ -1,16 +1,22 @@
-import express from "express";
-import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import OpenAI from "openai";
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(path.join(__dirname, "public")));
 
 // --- OpenAI client (requires OPENAI_API_KEY env var) ---
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Health check
-app.get("/", (req, res) => res.json({ ok: true }));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "wizard.html"));
+});
 
 /**
  * POST /create-book
