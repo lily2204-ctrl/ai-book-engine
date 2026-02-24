@@ -96,7 +96,7 @@ of this child in ${illustration_style} style.
 The illustration must strongly resemble the uploaded child photo.
 Colorful, soft lighting, storybook style.
 `,
-        image: child_photo,
+        
         size: "1024x1024",
       });
 
