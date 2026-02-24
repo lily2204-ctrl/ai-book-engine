@@ -143,7 +143,8 @@ Colorful, detailed, soft lighting.
       characterImage: characterImageUrl,
       pages: normalizedPages,
     });
-  } catch (err) {
+  } 
+    catch (err) {
     const status = err?.status || 500;
     const code = err?.code || "unknown_error";
     const message = err?.message || "AI generation failed";
