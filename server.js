@@ -142,6 +142,7 @@ Colorful, detailed, soft lighting.
       title,
       subtitle,
       cover: { title, subtitle },
+      characterImage: characterImageUrl,
       pages: normalizedPages,
     });
   } catch (err) {
