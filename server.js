@@ -16,28 +16,27 @@ app.use(express.static(path.join(__dirname, "public")));
 // --- OpenAI client (requires OPENAI_API_KEY env var) ---
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Health check
+// Health / main page
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "wizard.html"));
 });
 
 /**
  * POST /create-book
+ * Body: { child_name, age, story_type, illustration_style }
+ * Returns: { title, subtitle, pages: [{pageNumber, text, imagePrompt}], cover }
+ *
+ * NOTE: This endpoint does NOT generate images (fast).
  */
 app.post("/create-book", async (req, res) => {
   try {
-    const {
-      child_name,
-      age,
-      story_type,
-      illustration_style,
-      child_photo,
-    } = req.body;
+    const { child_name, age, story_type, illustration_style } = req.body;
 
-    if (!child_name || !age || !story_type) {
+    if (!child_name || !age || !story_type || !illustration_style) {
       return res.status(400).json({
         status: "error",
-        message: "Missing required fields: child_name, age, story_type",
+        message:
+          "Missing required fields: child_name, age, story_type, illustration_style",
       });
     }
 
@@ -52,16 +51,13 @@ Child name: ${child_name}
 Child age: ${age}
 Story theme: ${story_type}
 
-The story must include image prompts that clearly describe the child in the selected illustration style.
-Make sure the illustrated character strongly resembles the uploaded child photo.
-
 Return structured JSON only in this format:
 
 {
   "title": "string",
   "subtitle": "string",
   "pages": [
-    { "text": "string (max 80 words)", "imagePrompt": "string" }
+    { "text": "string (max 80 words)", "imagePrompt": "string (for an illustration)" }
   ]
 }
 
@@ -69,6 +65,7 @@ Rules:
 - 10 pages exactly.
 - Page texts must be kid-friendly, colorful, positive, and simple.
 - imagePrompt should describe a colorful children's illustration (no brand names).
+- Each imagePrompt should include: main character description, scene, mood, lighting, and composition.
 `;
 
     const completion = await openai.chat.completions.create({
@@ -83,25 +80,7 @@ Rules:
 
     const title = book.title || "My Magical Story";
     const subtitle = book.subtitle || "A personalized adventure";
-    const pages = Array.isArray(book.pages) ? book.pages.slice(0, 10) : [];
-
-    let characterImageUrl = null;
-
-    if (child_photo) {
-      const characterImage = await openai.images.generate({
-        model: "gpt-image-1",
-        prompt: `
-Create a high quality children's book illustration
-of this child in ${illustration_style} style.
-The illustration must strongly resemble the uploaded child photo.
-Colorful, soft lighting, storybook style.
-`,
-        
-        size: "1024x1024",
-      });
-
-      characterImageUrl = characterImage.data[0].url;
-    }
+    const pages = Array.isArray(book.pages) ? book.pages : [];
 
     if (pages.length !== 10) {
       return res.status(500).json({
@@ -111,42 +90,18 @@ Colorful, soft lighting, storybook style.
       });
     }
 
-    const normalizedPages = [];
-
-    for (let i = 0; i < pages.length; i++) {
-      const p = pages[i];
-
-      const imagePrompt = `
-${p.imagePrompt}
-
-Illustration style: ${illustration_style}.
-Use the same main character as the reference image.
-High quality children's book illustration.
-Colorful, detailed, soft lighting.
-`;
-
-      const imageResponse = await openai.images.generate({
-        model: "gpt-image-1",
-        prompt: imagePrompt,
-        size: "1024x1024",
-      });
-
-      const imageUrl = imageResponse.data[0].url;
-
-      normalizedPages.push({
-        pageNumber: i + 1,
-        text: String(p.text || "").trim(),
-        imagePrompt: p.imagePrompt,
-        imageUrl,
-      });
-    }
+    const normalizedPages = pages.slice(0, 10).map((p, i) => ({
+      pageNumber: i + 1,
+      text: String(p?.text || "").trim(),
+      imagePrompt: String(p?.imagePrompt || "").trim(),
+    }));
 
     return res.json({
       status: "ok",
       title,
       subtitle,
       cover: { title, subtitle },
-      characterImage: characterImageUrl,
+      illustration_style,
       pages: normalizedPages,
     });
   } catch (err) {
@@ -172,8 +127,76 @@ Colorful, detailed, soft lighting.
   }
 });
 
+/**
+ * POST /generate-image
+ * Body: { prompt, illustration_style }
+ * Returns: { status: "ok", imageBase64 }
+ *
+ * NOTE: Called from preview page per page (lazy load).
+ */
+app.post("/generate-image", async (req, res) => {
+  try {
+    const { prompt, illustration_style } = req.body;
+
+    if (!prompt || !illustration_style) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing required fields: prompt, illustration_style",
+      });
+    }
+
+    const finalPrompt = `
+${prompt}
+
+Illustration style: ${illustration_style}.
+High quality children's book illustration.
+Colorful, detailed, soft lighting.
+No text on the image.
+`;
+
+    const imageResponse = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt: finalPrompt,
+      size: "1024x1024",
+      response_format: "b64_json",
+    });
+
+    const b64 = imageResponse?.data?.[0]?.b64_json;
+
+    if (!b64) {
+      return res.status(500).json({
+        status: "error",
+        message: "Image generation returned empty result",
+      });
+    }
+
+    return res.json({
+      status: "ok",
+      imageBase64: b64,
+    });
+  } catch (err) {
+    const status = err?.status || 500;
+    const code = err?.code || "unknown_error";
+    const message = err?.message || "Image generation failed";
+
+    if (status === 429 || code === "insufficient_quota") {
+      return res.status(429).json({
+        status: "error",
+        message:
+          "OpenAI quota/billing issue. Please enable billing or add credits to generate images.",
+        code,
+      });
+    }
+
+    return res.status(500).json({
+      status: "error",
+      message: "Image generation failed",
+      code,
+      details: message,
+    });
+  }
+});
+
 // Railway uses PORT env var
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () =>
-  console.log(`Server running on port ${PORT}`)
-);
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
