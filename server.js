@@ -134,7 +134,6 @@ Colorful, detailed, soft lighting.
     imageUrl
   });
 
-
     return res.json({
       status: "ok",
       title,
