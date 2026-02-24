@@ -90,12 +90,34 @@ Rules:
       });
     }
 
-    const normalizedPages = pages.map((p, idx) => ({
-      pageNumber: idx + 1,
-      text: String(p.text || "").trim(),
-      imagePrompt: String(p.imagePrompt || "").trim(),
-      imageUrl: null, // will be filled later when we enable image generation
-    }));
+    const normalizedPages = [];
+
+for (let i = 0; i < pages.length; i++) {
+  const p = pages[i];
+
+  const imagePrompt = `
+${p.imagePrompt}
+
+Illustration style: ${illustration_style}.
+High quality children's book illustration.
+Colorful, detailed, soft lighting.
+`;
+
+  const imageResponse = await openai.images.generate({
+    model: "gpt-image-1",
+    prompt: imagePrompt,
+    size: "1024x1024"
+  });
+
+  const imageUrl = imageResponse.data[0].url;
+
+  normalizedPages.push({
+    pageNumber: i + 1,
+    text: String(p.text || "").trim(),
+    imagePrompt: p.imagePrompt,
+    imageUrl
+  });
+}
 
     return res.json({
       status: "ok",
