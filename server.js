@@ -80,6 +80,23 @@ Rules:
     const title = book.title || "My Magical Story";
     const subtitle = book.subtitle || "A personalized adventure";
     const pages = Array.isArray(book.pages) ? book.pages.slice(0, 10) : [];
+    let characterImageUrl = null;
+
+if (child_photo) {
+  const characterImage = await openai.images.generate({
+    model: "gpt-image-1",
+    prompt: `
+Create a high quality children's book illustration
+of this child in ${illustration_style} style.
+The illustration must strongly resemble the uploaded child photo.
+Colorful, soft lighting, storybook style.
+`,
+    image: child_photo,
+    size: "1024x1024"
+  });
+
+  characterImageUrl = characterImage.data[0].url;
+}
 
     if (pages.length !== 10) {
       return res.status(500).json({
@@ -87,26 +104,7 @@ Rules:
         message: "AI returned invalid page count. Expected 10 pages.",
         debug: { returned: pages.length },
       });
-    }
-let characterImageUrl = null;
-
-if (child_photo) {
-  const characterPrompt = `
-Transform this child into a children's book illustrated character.
-
-Style: ${illustration_style}
-Keep facial resemblance strong.
-Colorful, high quality, soft lighting.
-`;
-
-  const characterImage = await openai.images.generate({
-    model: "gpt-image-1",
-    prompt: characterPrompt,
-    size: "1024x1024"
-  });
-
-  characterImageUrl = characterImage.data[0].url;
-}
+    
     const normalizedPages = [];
 
 for (let i = 0; i < pages.length; i++) {
