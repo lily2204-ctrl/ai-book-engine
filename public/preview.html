@@ -103,12 +103,15 @@
     cover.style.zIndex = 9999;
 
     cover.innerHTML = `
-      <div class="side coverFront front">
-        <h1>${escapeHtml(data.title || "My Magical Story")}</h1>
-        <p>${escapeHtml(data.subtitle || "A personalized adventure")}</p>
-        <div class="coverPhoto">
-          ${childPhoto ? `<img src="${childPhoto}" />` : `<div style="padding:18px;">Upload photo in the wizard</div>`}
-        </div>
+     <div class="coverPhoto">
+  ${
+    data.characterImage
+      ? `<img src="${data.characterImage}" />`
+      : childPhoto
+        ? `<img src="${childPhoto}" />`
+        : `<div style="padding:18px;">Upload photo in the wizard</div>`
+  }
+</div>
       </div>
       <div class="side spineBack back">
         ${escapeHtml(data.title || "My Magical Story")}
