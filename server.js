@@ -27,7 +27,7 @@ app.get("/", (req, res) => {
  */
 app.post("/create-book", async (req, res) => {
   try {
-    const { child_name, age, story_type } = req.body || {};
+    const { child_name, age, story_type, illustration_style } = req.body;
 
     if (!child_name || !age || !story_type) {
       return res.status(400).json({
