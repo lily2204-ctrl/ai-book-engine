@@ -38,14 +38,20 @@ app.post("/create-book", async (req, res) => {
 
     // Ask model to return structured JSON only
     const prompt = `
-You are a children's book generator.
-Write a short kids book in ENGLISH.
-Target age: ${age}.
-Theme: ${story_type}.
-Child name: ${child_name}.
+You are a professional children's book writer and illustrator.
 
-Return JSON only (no markdown).
-Schema:
+Illustration style must be: ${illustration_style}.
+
+Create a magical children's story.
+
+Child name: ${child_name}
+Child age: ${age}
+Story theme: ${story_type}
+
+The story must include image prompts that clearly describe the child in the selected illustration style.
+Make sure the illustrated character strongly resembles the uploaded child photo.
+Return structured JSON only.
+`;
 {
   "title": "string",
   "subtitle": "string",
