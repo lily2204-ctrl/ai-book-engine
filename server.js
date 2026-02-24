@@ -133,7 +133,7 @@ Colorful, detailed, soft lighting.
     imagePrompt: p.imagePrompt,
     imageUrl
   });
-}
+
 
     return res.json({
       status: "ok",
