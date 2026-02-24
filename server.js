@@ -27,8 +27,7 @@ app.get("/", (req, res) => {
  */
 app.post("/create-book", async (req, res) => {
   try {
-    const { child_name, age, story_type, illustration_style } = req.body;
-
+    const { child_name, age, story_type, illustration_style, child_photo } = req.body;
     if (!child_name || !age || !story_type) {
       return res.status(400).json({
         status: "error",
@@ -89,7 +88,25 @@ Rules:
         debug: { returned: pages.length },
       });
     }
+let characterImageUrl = null;
 
+if (child_photo) {
+  const characterPrompt = `
+Transform this child into a children's book illustrated character.
+
+Style: ${illustration_style}
+Keep facial resemblance strong.
+Colorful, high quality, soft lighting.
+`;
+
+  const characterImage = await openai.images.generate({
+    model: "gpt-image-1",
+    prompt: characterPrompt,
+    size: "1024x1024"
+  });
+
+  characterImageUrl = characterImage.data[0].url;
+}
     const normalizedPages = [];
 
 for (let i = 0; i < pages.length; i++) {
@@ -99,6 +116,7 @@ for (let i = 0; i < pages.length; i++) {
 ${p.imagePrompt}
 
 Illustration style: ${illustration_style}.
+Use the same main character as the reference image.
 High quality children's book illustration.
 Colorful, detailed, soft lighting.
 `;
