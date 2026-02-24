@@ -50,8 +50,9 @@ Story theme: ${story_type}
 
 The story must include image prompts that clearly describe the child in the selected illustration style.
 Make sure the illustrated character strongly resembles the uploaded child photo.
-Return structured JSON only.
-`;
+
+Return structured JSON only in this format:
+
 {
   "title": "string",
   "subtitle": "string",
