@@ -18,6 +18,24 @@
   .msg{margin-top:14px;font-weight:700;}
   .err{color:#c40000;}
   .ok{color:#0b8a00;}
+.styleCard{
+  padding:14px 18px;
+  border-radius:14px;
+  border:2px solid #ddd;
+  cursor:pointer;
+  font-weight:600;
+  transition:0.2s;
+}
+
+.styleCard:hover{
+  border-color:#111;
+}
+
+.styleCard.active{
+  border-color:#111;
+  background:#111;
+  color:white;
+}
 </style>
 </head>
 
@@ -99,7 +117,18 @@
     };
     reader.readAsDataURL(file);
   });
+let selectedStyle = "Soft Storybook";
 
+function selectStyle(style){
+  selectedStyle = style;
+
+  document.querySelectorAll(".styleCard").forEach(card=>{
+    card.classList.remove("active");
+  });
+
+  document.querySelector(`[data-style="${style}"]`).classList.add("active");
+}
+  
   async function createBook() {
     msgEl.textContent = "";
     msgEl.className = "msg";
