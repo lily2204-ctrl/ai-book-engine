@@ -79,7 +79,7 @@
     const data = await res.json();
     if (!res.ok) throw new Error(data?.message || "Image generation failed");
 
-    imgEl.src = `data:image/png;base64,${data.imageBase64}`;
+    imgEl.src = data.imageBase64;
     imgEl.style.display = "block";
     loaderEl.style.display = "none";
   }
