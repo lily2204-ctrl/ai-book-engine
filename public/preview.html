@@ -1,51 +1,184 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Book Preview</title>
-<style>
-  body{font-family:Arial;background:#f6f7fb;margin:0;padding:24px;}
-  .wrap{max-width:920px;margin:0 auto;}
-  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
-  h1{margin:0;font-size:26px;}
-  .page{background:#fff;border-radius:18px;padding:18px;margin:14px 0;box-shadow:0 10px 30px rgba(0,0,0,0.06);}
-  .imgBox{height:320px;border-radius:14px;background:#eef1ff;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
-  .imgBox img{width:100%;height:100%;object-fit:cover;}
-  .loader{font-weight:700;color:#555;}
-  .text{margin-top:14px;font-size:18px;line-height:1.6;}
-  .prompt{margin-top:10px;padding:12px;border:1px dashed #cfd6ff;border-radius:12px;color:#444;background:#fbfcff;}
-  .prompt b{color:#111;}
-  .btn{padding:10px 14px;border:none;border-radius:12px;background:#111;color:#fff;font-weight:700;cursor:pointer;}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Book Preview</title>
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      background:#fff;
+      margin:0;
+      padding:0;
+      color:#111;
+    }
+    .wrap{
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+    h1{
+      font-size: 28px;
+      margin: 0 0 18px;
+    }
+    .sub{
+      color:#666;
+      margin-bottom: 18px;
+      font-size: 14px;
+    }
+    .grid{
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    .page{
+      border:1px solid #eee;
+      border-radius: 16px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+    @media (max-width: 760px){
+      .page{ grid-template-columns: 1fr; }
+    }
+    .imgBox{
+      width: 240px;
+      max-width: 100%;
+      aspect-ratio: 1 / 1;
+      background:#f6f6f6;
+      border-radius: 14px;
+      overflow:hidden;
+      position: relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border:1px solid #eee;
+    }
+    .imgBox img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:none;
+    }
+    .loader{
+      font-size: 13px;
+      color:#555;
+      padding: 10px;
+      text-align:center;
+    }
+    .text{
+      font-size: 16px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      margin-bottom: 10px;
+    }
+    .prompt{
+      font-size: 12px;
+      color:#666;
+      background:#fafafa;
+      border:1px solid #eee;
+      padding: 10px;
+      border-radius: 12px;
+      word-break: break-word;
+    }
+    .topRow{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .pill{
+      font-size: 12px;
+      color:#111;
+      background:#f2f2f2;
+      border:1px solid #e9e9e9;
+      padding: 8px 10px;
+      border-radius: 999px;
+    }
+    .btn{
+      padding: 10px 12px;
+      border: none;
+      border-radius: 12px;
+      background:#111;
+      color:#fff;
+      font-weight: 700;
+      cursor:pointer;
+    }
+    .btn.secondary{
+      background:#fff;
+      color:#111;
+      border:1px solid #ddd;
+    }
+    .error{
+      color:#c40000;
+      font-weight: 700;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 
 <body>
-<div class="wrap">
-  <div class="top">
-    <h1 id="title">Book Preview</h1>
-    <button class="btn" onclick="window.location.href='wizard.html'">Back</button>
+  <div class="wrap">
+    <div class="topRow">
+      <h1 id="title">Book Preview</h1>
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <div id="stylePill" class="pill">Style: Soft Storybook</div>
+        <button class="btn secondary" onclick="goBack()">Back</button>
+        <button class="btn" onclick="clearImages()">Regenerate Images</button>
+      </div>
+    </div>
+    <div class="sub">Tip: Images are saved locally after first generation. Next time they load instantly.</div>
+
+    <div id="pages" class="grid"></div>
+    <div id="err" class="error"></div>
   </div>
-  <div id="pages"></div>
-</div>
 
 <script>
   const API_BASE = "https://romantic-patience-production.up.railway.app";
 
+  function goBack(){
+    window.location.href = "wizard.html";
+  }
+
+  function clearImages(){
+    try{
+      const bookRaw = localStorage.getItem("bookData");
+      if(!bookRaw) return;
+      const book = JSON.parse(bookRaw);
+      if(Array.isArray(book.pages)){
+        book.pages = book.pages.map(p => {
+          if(p && typeof p === "object") delete p.imageBase64;
+          return p;
+        });
+      }
+      localStorage.setItem("bookData", JSON.stringify(book));
+      window.location.reload();
+    }catch(e){
+      console.error(e);
+    }
+  }
+
+  const errEl = document.getElementById("err");
+  const pagesEl = document.getElementById("pages");
+
   const bookRaw = localStorage.getItem("bookData");
   if (!bookRaw) {
-    document.getElementById("pages").innerHTML = "<p>No book data found. Go back and create a book.</p>";
+    pagesEl.innerHTML = "<p>No book data found. Go back and create a book.</p>";
     throw new Error("No bookData in localStorage");
   }
 
   const book = JSON.parse(bookRaw);
   document.getElementById("title").textContent = book?.title ? `Book Preview - ${book.title}` : "Book Preview";
 
-  const pagesEl = document.getElementById("pages");
   const pages = Array.isArray(book.pages) ? book.pages : [];
   const style = book.illustration_style || "Soft Storybook";
+  document.getElementById("stylePill").textContent = `Style: ${style}`;
 
-  // simple concurrency limiter
+  // Simple concurrency limiter
   let active = 0;
   const queue = [];
   const MAX_CONCURRENT = 2;
@@ -66,7 +199,7 @@
     runNext();
   }
 
-  async function generateImage(prompt, imgEl, loaderEl) {
+  async function generateImage(prompt, imgEl, loaderEl, index) {
     const res = await fetch(`${API_BASE}/generate-image`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -79,12 +212,22 @@
     const data = await res.json();
     if (!res.ok) throw new Error(data?.message || "Image generation failed");
 
-    imgEl.src = data.imageBase64;
+    // Show image
+    imgEl.src = `data:image/png;base64,${data.imageBase64}`;
     imgEl.style.display = "block";
     loaderEl.style.display = "none";
+
+    // Save into bookData so it won't regenerate next time
+    if (pages[index]) {
+      pages[index].imageBase64 = data.imageBase64;
+    }
+
+    // Persist full bookData
+    book.pages = pages;
+    localStorage.setItem("bookData", JSON.stringify(book));
   }
 
-  function createPageCard(p) {
+  function createPageCard(p, index) {
     const card = document.createElement("div");
     card.className = "page";
 
@@ -96,10 +239,11 @@
     loader.textContent = "Generating illustration...";
 
     const img = document.createElement("img");
-    img.style.display = "none";
 
     imgBox.appendChild(loader);
     imgBox.appendChild(img);
+
+    const right = document.createElement("div");
 
     const text = document.createElement("div");
     text.className = "text";
@@ -109,16 +253,34 @@
     prompt.className = "prompt";
     prompt.innerHTML = `<b>Illustration prompt:</b> ${p.imagePrompt || ""}`;
 
+    right.appendChild(text);
+    right.appendChild(prompt);
+
     card.appendChild(imgBox);
-    card.appendChild(text);
-    card.appendChild(prompt);
+    card.appendChild(right);
+
+    // If we already have imageBase64 saved - show instantly (no API call)
+    if (p.imageBase64) {
+      img.src = `data:image/png;base64,${p.imageBase64}`;
+      img.style.display = "block";
+      loader.style.display = "none";
+      return card;
+    }
 
     // Lazy-load when visible
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((e) => {
         if (e.isIntersecting) {
           observer.disconnect();
-          enqueue(() => generateImage(p.imagePrompt || "", img, loader));
+          enqueue(async () => {
+            try{
+              await generateImage(p.imagePrompt || "", img, loader, index);
+            }catch(err){
+              console.error(err);
+              loader.textContent = "Failed to generate image. Scroll away and back, or click Regenerate Images.";
+              errEl.textContent = err?.message ? String(err.message) : "Image generation failed";
+            }
+          });
         }
       });
     }, { threshold: 0.3 });
@@ -128,7 +290,7 @@
     return card;
   }
 
-  pages.forEach((p) => pagesEl.appendChild(createPageCard(p)));
+  pages.forEach((p, i) => pagesEl.appendChild(createPageCard(p, i)));
 </script>
 </body>
 </html>
