@@ -2,28 +2,30 @@ import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
 import path from "path";
-import fs from "fs";
 import { fileURLToPath } from "url";
+import fs from "fs/promises";
+import crypto from "crypto";
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "15mb" }));
+app.use(express.json({ limit: "10mb" }));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Serve static site
 app.use(express.static(path.join(__dirname, "public")));
 
-// Folder to store generated images
-const GENERATED_DIR = path.join(__dirname, "generated");
-if (!fs.existsSync(GENERATED_DIR)) fs.mkdirSync(GENERATED_DIR, { recursive: true });
-
-// Expose generated images
-app.use("/generated", express.static(GENERATED_DIR));
-
-// --- OpenAI client (requires OPENAI_API_KEY env var) ---
+// OpenAI client (requires OPENAI_API_KEY env var)
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Ensure generated folder exists
+const GENERATED_DIR = path.join(__dirname, "public", "generated");
+async function ensureGeneratedDir() {
+  try {
+    await fs.mkdir(GENERATED_DIR, { recursive: true });
+  } catch (e) {}
+}
+ensureGeneratedDir();
 
 // Health check -> wizard
 app.get("/", (req, res) => {
@@ -33,7 +35,9 @@ app.get("/", (req, res) => {
 /**
  * POST /create-book
  * Body: { child_name, age, story_type, illustration_style }
- * Returns: { title, subtitle, illustration_style, pages:[{pageNumber,text,imagePrompt,imageUrl?}] }
+ * Returns: { status, title, subtitle, illustration_style, pages:[{pageNumber,text,imagePrompt,imageUrl?}] }
+ *
+ * NOTE: This endpoint creates story ONLY (no images here).
  */
 app.post("/create-book", async (req, res) => {
   try {
@@ -87,7 +91,7 @@ Rules:
 
     const title = book.title || "My Magical Story";
     const subtitle = book.subtitle || "A personalized adventure";
-    const pages = Array.isArray(book.pages) ? book.pages : [];
+    const pages = Array.isArray(book.pages) ? book.pages.slice(0, 10) : [];
 
     if (pages.length !== 10) {
       return res.status(500).json({
@@ -99,8 +103,8 @@ Rules:
 
     const normalizedPages = pages.map((p, i) => ({
       pageNumber: i + 1,
-      text: String(p?.text || "").trim(),
-      imagePrompt: String(p?.imagePrompt || "").trim(),
+      text: String(p.text || "").trim(),
+      imagePrompt: String(p.imagePrompt || "").trim(),
       imageUrl: null, // will be filled later by /generate-image
     }));
 
@@ -109,7 +113,6 @@ Rules:
       title,
       subtitle,
       illustration_style: style,
-      cover: { title, subtitle },
       pages: normalizedPages,
     });
   } catch (err) {
@@ -140,14 +143,11 @@ Rules:
  * Body: { prompt, illustration_style }
  * Returns: { status:"ok", imageUrl:"/generated/xxx.png" }
  *
- * IMPORTANT:
- * We DO NOT return base64 to the browser (avoids localStorage quota).
- * We save the image on server and return a URL.
+ * Important: We save the image file into /public/generated and return a URL.
  */
 app.post("/generate-image", async (req, res) => {
   try {
     const { prompt, illustration_style } = req.body;
-
     if (!prompt) {
       return res.status(400).json({
         status: "error",
@@ -158,44 +158,47 @@ app.post("/generate-image", async (req, res) => {
     const style = illustration_style || "Soft Storybook";
 
     const finalPrompt = `
+Children's book illustration.
+Style: ${style}.
+High quality, colorful, soft lighting.
+No text on image.
+Scene:
 ${prompt}
+`.trim();
 
-Illustration style: ${style}.
-High quality children's book illustration.
-Colorful, detailed, soft lighting.
-No brand names.`;
-
-    // Generate image (URL) then download and save
     const imageResponse = await openai.images.generate({
       model: "gpt-image-1",
       prompt: finalPrompt,
       size: "1024x1024",
     });
 
-    const url = imageResponse?.data?.[0]?.url;
-    if (!url) {
-      return res.status(500).json({
-        status: "error",
-        message: "Image generation failed (no URL returned).",
+    // Some responses return url, some return base64-like field.
+    const item = imageResponse?.data?.[0];
+
+    // Case 1: URL returned directly
+    if (item?.url) {
+      return res.json({
+        status: "ok",
+        imageUrl: item.url,
       });
     }
 
-    // Download image bytes
-    const r = await fetch(url);
-    if (!r.ok) {
+    // Case 2: base64 returned (common)
+    const b64 = item?.b64_json || item?.base64 || null;
+
+    if (!b64) {
       return res.status(500).json({
         status: "error",
-        message: "Image download failed.",
+        message: "Image generation failed (no image returned).",
       });
     }
 
-    const arrayBuffer = await r.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const buffer = Buffer.from(b64, "base64");
 
-    const fileName = `img_${Date.now()}_${Math.random().toString(16).slice(2)}.png`;
+    const fileName = `${crypto.randomUUID?.() || crypto.randomBytes(16).toString("hex")}.png`;
     const filePath = path.join(GENERATED_DIR, fileName);
 
-    fs.writeFileSync(filePath, buffer);
+    await fs.writeFile(filePath, buffer);
 
     return res.json({
       status: "ok",
