@@ -1,157 +1,163 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Create Your AI Book</title>
 
 <style>
-  body{
-    font-family: Arial, sans-serif;
-    background:#fff;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    min-height:100vh;
-    margin:0;
-  }
+body{
+  font-family: Arial, sans-serif;
+  background:#f9f9fb;
+  margin:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
 
-  .container{
-    width:900px;
-    max-width:95vw;
-    text-align:center;
-    padding:40px 20px;
-  }
+.container{
+  width:900px;
+  max-width:95vw;
+  background:white;
+  padding:40px;
+  border-radius:20px;
+  box-shadow:0 10px 40px rgba(0,0,0,0.05);
+  text-align:center;
+}
 
-  h1{
-    font-size:42px;
-    margin-bottom:24px;
-  }
+h1{
+  margin-top:0;
+  font-size:34px;
+}
 
-  .row{
-    display:flex;
-    gap:14px;
-    justify-content:center;
-    align-items:center;
-    flex-wrap:wrap;
-  }
+.row{
+  display:flex;
+  gap:14px;
+  justify-content:center;
+  align-items:center;
+  flex-wrap:wrap;
+  margin-bottom:20px;
+}
 
-  input,select{
-    padding:12px 14px;
-    border:1px solid #ddd;
-    border-radius:12px;
-    font-size:16px;
-  }
+input,select{
+  padding:12px 14px;
+  border:1px solid #ddd;
+  border-radius:12px;
+  font-size:16px;
+  min-width:160px;
+}
 
-  button{
-    padding:14px 22px;
-    border:none;
-    border-radius:14px;
-    background:#111;
-    color:#fff;
-    font-weight:700;
-    cursor:pointer;
-    min-width:160px;
-  }
+.avatar{
+  width:100px;
+  height:100px;
+  border-radius:50%;
+  background:#f1f1f1;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  border:1px solid #eee;
+}
 
-  button:disabled{
-    opacity:0.6;
-    cursor:not-allowed;
-  }
+.avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
 
-  .avatar{
-    width:100px;
-    height:100px;
-    border-radius:50%;
-    background:#f1f1f1;
-    overflow:hidden;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    border:1px solid #eee;
-  }
+input[type="file"]{
+  display:none;
+}
 
-  .avatar img{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-  }
+.styleGrid{
+  display:flex;
+  gap:12px;
+  justify-content:center;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
 
-  input[type="file"]{
-    display:none;
-  }
+.styleCard{
+  padding:14px 18px;
+  border-radius:14px;
+  border:2px solid #ddd;
+  cursor:pointer;
+  font-weight:600;
+  transition:0.2s;
+}
 
-  .hint{
-    margin-top:16px;
-    color:#888;
-  }
+.styleCard:hover{
+  border-color:#111;
+}
 
-  .msg{
-    margin-top:18px;
-    font-weight:700;
-    min-height:24px;
-  }
+.styleCard.active{
+  border-color:#111;
+  background:#111;
+  color:white;
+}
 
-  .err{ color:#c40000; }
-  .ok{ color:#0b8a00; }
+button{
+  padding:14px 22px;
+  border:none;
+  border-radius:14px;
+  background:#111;
+  color:#fff;
+  font-weight:700;
+  cursor:pointer;
+  min-width:180px;
+  position:relative;
+}
 
-  .styleWrapper{
-    margin-top:30px;
-  }
+button:disabled{
+  opacity:0.6;
+  cursor:not-allowed;
+}
 
-  .styleCard{
-    padding:14px 18px;
-    border-radius:14px;
-    border:2px solid #ddd;
-    cursor:pointer;
-    font-weight:600;
-    transition:0.2s;
-  }
+.spinner{
+  width:16px;
+  height:16px;
+  border:3px solid #fff;
+  border-top:3px solid transparent;
+  border-radius:50%;
+  display:inline-block;
+  margin-left:8px;
+  animation:spin 0.8s linear infinite;
+}
 
-  .styleCard:hover{
-    border-color:#111;
-  }
+@keyframes spin{
+  to{ transform:rotate(360deg); }
+}
 
-  .styleCard.active{
-    border-color:#111;
-    background:#111;
-    color:white;
-  }
+.msg{
+  margin-top:16px;
+  font-weight:600;
+}
 
-  .loaderInline{
-    margin-left:8px;
-    display:inline-block;
-    width:16px;
-    height:16px;
-    border:2px solid #fff;
-    border-top:2px solid transparent;
-    border-radius:50%;
-    animation:spin 1s linear infinite;
-  }
+.msg.err{
+  color:#c40000;
+}
 
-  @keyframes spin{
-    0%{ transform:rotate(0deg); }
-    100%{ transform:rotate(360deg); }
-  }
+.msg.ok{
+  color:#0b8a00;
+}
 </style>
 </head>
 
 <body>
 <div class="container">
-
   <h1>Create Your AI Book</h1>
 
   <div class="row">
-
-    <label class="avatar" title="Upload child photo">
+    <label class="avatar">
       <input type="file" id="photoInput" accept="image/*" />
       <img id="avatarPreview" style="display:none;" />
       <span id="avatarIcon">+</span>
     </label>
 
     <input id="childName" placeholder="Child name" />
-    
+
     <select id="age">
       <option value="3">3</option>
       <option value="4">4</option>
@@ -166,141 +172,112 @@
       <option>Underwater Kingdom</option>
       <option>Superhero Day</option>
     </select>
+  </div>
 
+  <h3>Select Illustration Style</h3>
+
+  <div class="styleGrid">
+    <div class="styleCard active" data-style="Soft Storybook">Soft Storybook</div>
+    <div class="styleCard" data-style="Pixar 3D">Pixar 3D</div>
+    <div class="styleCard" data-style="Magical Fantasy">Magical Fantasy</div>
+    <div class="styleCard" data-style="Minimal Scandinavian">Minimal Scandinavian</div>
+  </div>
+
+  <div style="margin-top:30px;">
     <button id="createBtn" onclick="createBook()">Create Book</button>
   </div>
 
-  <div class="styleWrapper">
-    <h3>Select Illustration Style</h3>
-
-    <div class="row" style="margin-top:12px;">
-
-      <div class="styleCard active" onclick="selectStyle('Soft Storybook')" data-style="Soft Storybook">
-        Soft Storybook
-      </div>
-
-      <div class="styleCard" onclick="selectStyle('Pixar 3D')" data-style="Pixar 3D">
-        Pixar 3D
-      </div>
-
-      <div class="styleCard" onclick="selectStyle('Magical Fantasy')" data-style="Magical Fantasy">
-        Magical Fantasy
-      </div>
-
-      <div class="styleCard" onclick="selectStyle('Minimal Scandinavian')" data-style="Minimal Scandinavian">
-        Minimal Scandinavian
-      </div>
-
-    </div>
-  </div>
-
-  <div class="hint">
-    Upload a photo (optional). Then click Create Book.
-  </div>
-
   <div id="msg" class="msg"></div>
-
 </div>
 
 <script>
-
 const API_BASE = "https://romantic-patience-production.up.railway.app";
 
-const msgEl = document.getElementById("msg");
-const photoInput = document.getElementById("photoInput");
-const avatarPreview = document.getElementById("avatarPreview");
-const avatarIcon = document.getElementById("avatarIcon");
-const createBtn = document.getElementById("createBtn");
-
 let selectedStyle = "Soft Storybook";
+let isLoading = false;
 
-photoInput.addEventListener("change", (e) => {
+const msgEl = document.getElementById("msg");
+const btn = document.getElementById("createBtn");
+
+document.querySelectorAll(".styleCard").forEach(card=>{
+  card.addEventListener("click", ()=>{
+    document.querySelectorAll(".styleCard").forEach(c=>c.classList.remove("active"));
+    card.classList.add("active");
+    selectedStyle = card.dataset.style;
+  });
+});
+
+document.getElementById("photoInput").addEventListener("change",(e)=>{
   const file = e.target.files?.[0];
-  if (!file) return;
+  if(!file) return;
 
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = ()=>{
     localStorage.setItem("childPhoto", reader.result);
-    avatarPreview.src = reader.result;
-    avatarPreview.style.display = "block";
-    avatarIcon.style.display = "none";
+    document.getElementById("avatarPreview").src = reader.result;
+    document.getElementById("avatarPreview").style.display="block";
+    document.getElementById("avatarIcon").style.display="none";
   };
   reader.readAsDataURL(file);
 });
 
-function selectStyle(style){
-  selectedStyle = style;
+async function createBook(){
+  if(isLoading) return;
 
-  document.querySelectorAll(".styleCard").forEach(card=>{
-    card.classList.remove("active");
-  });
+  msgEl.textContent="";
+  msgEl.className="msg";
 
-  document.querySelector(`[data-style="${style}"]`).classList.add("active");
-}
+  const name = document.getElementById("childName").value.trim();
 
-async function createBook() {
-
-  if (createBtn.disabled) return;
-
-  msgEl.textContent = "";
-  msgEl.className = "msg";
-
-  const childName = document.getElementById("childName").value.trim();
-  const age = document.getElementById("age").value;
-  const theme = document.getElementById("theme").value;
-
-  if (!childName) {
-    msgEl.textContent = "Please enter a child name.";
+  if(!name){
+    msgEl.textContent="Please enter a child name.";
     msgEl.classList.add("err");
     return;
   }
 
-  const payload = {
-    child_name: childName,
-    age,
-    story_type: theme,
-    illustration_style: selectedStyle,
-    child_photo: localStorage.getItem("childPhoto")
-  };
+  isLoading = true;
+  btn.disabled = true;
+  btn.innerHTML = "Creating<span class='spinner'></span>";
 
-  try {
-    createBtn.disabled = true;
-    createBtn.innerHTML = `Creating <span class="loaderInline"></span>`;
-    msgEl.textContent = "Creating your book...";
-    msgEl.classList.remove("err");
-
-    const res = await fetch(`${API_BASE}/create-book`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+  try{
+    const res = await fetch(`${API_BASE}/create-book`,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({
+        child_name: name,
+        age: document.getElementById("age").value,
+        story_type: document.getElementById("theme").value,
+        illustration_style: selectedStyle,
+        child_photo: localStorage.getItem("childPhoto")
+      })
     });
 
     const data = await res.json();
 
-    if (!res.ok) {
-      msgEl.textContent = data?.message || "Error creating book.";
-      msgEl.classList.add("err");
-      createBtn.disabled = false;
-      createBtn.textContent = "Create Book";
-      return;
+    if(!res.ok){
+      throw new Error(data?.message || "Failed to create book");
     }
 
+    data.illustration_style = selectedStyle;
+
     localStorage.setItem("bookData", JSON.stringify(data));
-    msgEl.textContent = "Success! Opening preview...";
+
+    msgEl.textContent="Success! Opening preview...";
     msgEl.classList.add("ok");
 
     setTimeout(()=>{
-      window.location.href = "preview.html";
-    }, 700);
+      window.location.href="preview.html";
+    },800);
 
-  } catch (err) {
-    msgEl.textContent = "Network error. Please try again.";
+  }catch(err){
+    msgEl.textContent = err.message;
     msgEl.classList.add("err");
-    createBtn.disabled = false;
-    createBtn.textContent = "Create Book";
+  }finally{
+    isLoading=false;
+    btn.disabled=false;
+    btn.innerHTML="Create Book";
   }
 }
-
 </script>
 </body>
 </html>
