@@ -138,57 +138,48 @@ app.post("/generate-image", async (req, res) => {
   try {
     const { prompt, illustration_style } = req.body;
 
-    if (!prompt || !illustration_style) {
+    if (!prompt) {
       return res.status(400).json({
         status: "error",
-        message: "Missing required fields: prompt, illustration_style",
+        message: "Missing required field: prompt",
       });
     }
 
-    const finalPrompt = `
+    const fullPrompt = `
 ${prompt}
 
-Illustration style: ${illustration_style}.
+Illustration style: ${illustration_style || "Soft Storybook"}.
 High quality children's book illustration.
 Colorful, detailed, soft lighting.
-No text on the image.
-`;
+No brand names.
+`.trim();
 
     const imageResponse = await openai.images.generate({
       model: "gpt-image-1",
-      prompt: finalPrompt,
+      prompt: fullPrompt,
       size: "1024x1024",
-      response_format: "b64_json",
+      output_format: "png",
+      // quality: "high", // אופציונלי
     });
 
     const b64 = imageResponse?.data?.[0]?.b64_json;
-
     if (!b64) {
       return res.status(500).json({
         status: "error",
-        message: "Image generation returned empty result",
+        message: "No image returned from model",
       });
     }
 
     return res.json({
       status: "ok",
-      imageBase64: b64,
+      imageBase64: `data:image/png;base64,${b64}`,
     });
   } catch (err) {
     const status = err?.status || 500;
     const code = err?.code || "unknown_error";
     const message = err?.message || "Image generation failed";
 
-    if (status === 429 || code === "insufficient_quota") {
-      return res.status(429).json({
-        status: "error",
-        message:
-          "OpenAI quota/billing issue. Please enable billing or add credits to generate images.",
-        code,
-      });
-    }
-
-    return res.status(500).json({
+    return res.status(status).json({
       status: "error",
       message: "Image generation failed",
       code,
