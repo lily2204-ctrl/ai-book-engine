@@ -4,46 +4,102 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Create Your AI Book</title>
+
 <style>
-  body{font-family:Arial;background:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;}
-  .container{width:900px;max-width:95vw;text-align:center;}
-  h1{font-size:42px;margin-bottom:24px;}
-  .row{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;}
-  input,select{padding:12px 14px;border:1px solid #ddd;border-radius:12px;font-size:16px;}
-  button{padding:12px 18px;border:none;border-radius:12px;background:#111;color:#fff;font-weight:700;cursor:pointer;}
+  body{
+    font-family: Arial, sans-serif;
+    background:#fff;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    margin:0;
+  }
+
+  .container{
+    width:900px;
+    max-width:95vw;
+    text-align:center;
+    padding:40px 20px;
+  }
+
+  h1{
+    font-size:42px;
+    margin-bottom:24px;
+  }
+
+  .row{
+    display:flex;
+    gap:14px;
+    justify-content:center;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+
+  input,select{
+    padding:12px 14px;
+    border:1px solid #ddd;
+    border-radius:12px;
+    font-size:16px;
+  }
+
+  button{
+    padding:14px 22px;
+    border:none;
+    border-radius:14px;
+    background:#111;
+    color:#fff;
+    font-weight:700;
+    cursor:pointer;
+    min-width:160px;
+  }
+
+  button:disabled{
+    opacity:0.6;
+    cursor:not-allowed;
+  }
+
   .avatar{
-  width:90px;
-  height:90px;
-  border-radius:50%;
-  background:#f1f1f1;
-  overflow:hidden;
-  cursor:pointer;
-  border:1px solid #eee;
-  position:relative;
-}
+    width:100px;
+    height:100px;
+    border-radius:50%;
+    background:#f1f1f1;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    border:1px solid #eee;
+  }
 
-#avatarIcon{
-  position:absolute;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:28px;
-}
+  .avatar img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+  }
 
-#avatarPreview{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-  .avatar img{width:100%;height:100%;object-fit:cover;}
-  input[type="file"]{display:none;}
-  .hint{margin-top:12px;color:#888;}
-  .msg{margin-top:14px;font-weight:700;}
-  .err{color:#c40000;}
-  .ok{color:#0b8a00;}
+  input[type="file"]{
+    display:none;
+  }
+
+  .hint{
+    margin-top:16px;
+    color:#888;
+  }
+
+  .msg{
+    margin-top:18px;
+    font-weight:700;
+    min-height:24px;
+  }
+
+  .err{ color:#c40000; }
+  .ok{ color:#0b8a00; }
+
+  .styleWrapper{
+    margin-top:30px;
+  }
+
   .styleCard{
     padding:14px 18px;
     border-radius:14px;
@@ -51,29 +107,51 @@
     cursor:pointer;
     font-weight:600;
     transition:0.2s;
-    user-select:none;
   }
-  .styleCard:hover{ border-color:#111; }
+
+  .styleCard:hover{
+    border-color:#111;
+  }
+
   .styleCard.active{
     border-color:#111;
     background:#111;
     color:white;
+  }
+
+  .loaderInline{
+    margin-left:8px;
+    display:inline-block;
+    width:16px;
+    height:16px;
+    border:2px solid #fff;
+    border-top:2px solid transparent;
+    border-radius:50%;
+    animation:spin 1s linear infinite;
+  }
+
+  @keyframes spin{
+    0%{ transform:rotate(0deg); }
+    100%{ transform:rotate(360deg); }
   }
 </style>
 </head>
 
 <body>
 <div class="container">
+
   <h1>Create Your AI Book</h1>
 
   <div class="row">
+
     <label class="avatar" title="Upload child photo">
       <input type="file" id="photoInput" accept="image/*" />
-      <img id="avatarPreview" alt="" style="display:none;" />
+      <img id="avatarPreview" style="display:none;" />
       <span id="avatarIcon">+</span>
     </label>
 
     <input id="childName" placeholder="Child name" />
+    
     <select id="age">
       <option value="3">3</option>
       <option value="4">4</option>
@@ -84,16 +162,19 @@
 
     <select id="theme">
       <option>Magical Forest</option>
-      <option selected>Space Adventure</option>
+      <option>Space Adventure</option>
       <option>Underwater Kingdom</option>
       <option>Superhero Day</option>
     </select>
+
+    <button id="createBtn" onclick="createBook()">Create Book</button>
   </div>
 
-  <div style="margin-top:25px;">
+  <div class="styleWrapper">
     <h3>Select Illustration Style</h3>
 
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:12px;">
+    <div class="row" style="margin-top:12px;">
+
       <div class="styleCard active" onclick="selectStyle('Soft Storybook')" data-style="Soft Storybook">
         Soft Storybook
       </div>
@@ -109,93 +190,117 @@
       <div class="styleCard" onclick="selectStyle('Minimal Scandinavian')" data-style="Minimal Scandinavian">
         Minimal Scandinavian
       </div>
+
     </div>
   </div>
 
-  <div style="margin-top:16px;">
-    <button onclick="createBook()">Create Book</button>
+  <div class="hint">
+    Upload a photo (optional). Then click Create Book.
   </div>
 
-  <div class="hint">Upload a photo (optional). Then click Create Book.</div>
   <div id="msg" class="msg"></div>
+
 </div>
 
 <script>
-  const API_BASE = "https://romantic-patience-production.up.railway.app";
 
-  const msgEl = document.getElementById("msg");
-  const photoInput = document.getElementById("photoInput");
-  const avatarPreview = document.getElementById("avatarPreview");
-  const avatarIcon = document.getElementById("avatarIcon");
+const API_BASE = "https://romantic-patience-production.up.railway.app";
 
-  photoInput.addEventListener("change", (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+const msgEl = document.getElementById("msg");
+const photoInput = document.getElementById("photoInput");
+const avatarPreview = document.getElementById("avatarPreview");
+const avatarIcon = document.getElementById("avatarIcon");
+const createBtn = document.getElementById("createBtn");
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      // Keep locally for UI preview only (not sent to backend now)
-      localStorage.setItem("childPhotoPreview", reader.result);
-      avatarPreview.src = reader.result;
-      avatarPreview.style.display = "block";
-      avatarIcon.style.display = "none";
-      avatarIcon.textContent = "";
-    };
-    reader.readAsDataURL(file);
+let selectedStyle = "Soft Storybook";
+
+photoInput.addEventListener("change", (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    localStorage.setItem("childPhoto", reader.result);
+    avatarPreview.src = reader.result;
+    avatarPreview.style.display = "block";
+    avatarIcon.style.display = "none";
+  };
+  reader.readAsDataURL(file);
+});
+
+function selectStyle(style){
+  selectedStyle = style;
+
+  document.querySelectorAll(".styleCard").forEach(card=>{
+    card.classList.remove("active");
   });
 
-  let selectedStyle = "Soft Storybook";
+  document.querySelector(`[data-style="${style}"]`).classList.add("active");
+}
 
-  function selectStyle(style){
-    selectedStyle = style;
-    document.querySelectorAll(".styleCard").forEach(card => card.classList.remove("active"));
-    const el = document.querySelector(`[data-style="${style}"]`);
-    if (el) el.classList.add("active");
+async function createBook() {
+
+  if (createBtn.disabled) return;
+
+  msgEl.textContent = "";
+  msgEl.className = "msg";
+
+  const childName = document.getElementById("childName").value.trim();
+  const age = document.getElementById("age").value;
+  const theme = document.getElementById("theme").value;
+
+  if (!childName) {
+    msgEl.textContent = "Please enter a child name.";
+    msgEl.classList.add("err");
+    return;
   }
 
-  async function createBook() {
-    msgEl.textContent = "";
-    msgEl.className = "msg";
+  const payload = {
+    child_name: childName,
+    age,
+    story_type: theme,
+    illustration_style: selectedStyle,
+    child_photo: localStorage.getItem("childPhoto")
+  };
 
-    const payload = {
-      child_name: document.getElementById("childName").value.trim(),
-      age: document.getElementById("age").value,
-      story_type: document.getElementById("theme").value,
-      illustration_style: selectedStyle
-    };
+  try {
+    createBtn.disabled = true;
+    createBtn.innerHTML = `Creating <span class="loaderInline"></span>`;
+    msgEl.textContent = "Creating your book...";
+    msgEl.classList.remove("err");
 
-    if (!payload.child_name) {
-      msgEl.textContent = "Please enter a child name.";
+    const res = await fetch(`${API_BASE}/create-book`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      msgEl.textContent = data?.message || "Error creating book.";
       msgEl.classList.add("err");
+      createBtn.disabled = false;
+      createBtn.textContent = "Create Book";
       return;
     }
 
-    try {
-      msgEl.textContent = "Creating your book...";
-      const res = await fetch(`${API_BASE}/create-book`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+    localStorage.setItem("bookData", JSON.stringify(data));
+    msgEl.textContent = "Success! Opening preview...";
+    msgEl.classList.add("ok");
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        msgEl.textContent = data?.message || "Error creating book";
-        msgEl.classList.add("err");
-        return;
-      }
-
-      localStorage.setItem("bookData", JSON.stringify(data));
-      msgEl.textContent = "Success! Opening preview...";
-      msgEl.classList.add("ok");
-
+    setTimeout(()=>{
       window.location.href = "preview.html";
-    } catch (err) {
-      msgEl.textContent = "Network error. Check API_BASE and Railway logs.";
-      msgEl.classList.add("err");
-    }
+    }, 700);
+
+  } catch (err) {
+    msgEl.textContent = "Network error. Please try again.";
+    msgEl.classList.add("err");
+    createBtn.disabled = false;
+    createBtn.textContent = "Create Book";
   }
+}
+
 </script>
 </body>
 </html>
