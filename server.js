@@ -2,21 +2,30 @@ import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "15mb" }));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Serve static site
 app.use(express.static(path.join(__dirname, "public")));
+
+// Folder to store generated images
+const GENERATED_DIR = path.join(__dirname, "generated");
+if (!fs.existsSync(GENERATED_DIR)) fs.mkdirSync(GENERATED_DIR, { recursive: true });
+
+// Expose generated images
+app.use("/generated", express.static(GENERATED_DIR));
 
 // --- OpenAI client (requires OPENAI_API_KEY env var) ---
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Health / main page
+// Health check -> wizard
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "wizard.html"));
 });
@@ -24,26 +33,25 @@ app.get("/", (req, res) => {
 /**
  * POST /create-book
  * Body: { child_name, age, story_type, illustration_style }
- * Returns: { title, subtitle, pages: [{pageNumber, text, imagePrompt}], cover }
- *
- * NOTE: This endpoint does NOT generate images (fast).
+ * Returns: { title, subtitle, illustration_style, pages:[{pageNumber,text,imagePrompt,imageUrl?}] }
  */
 app.post("/create-book", async (req, res) => {
   try {
     const { child_name, age, story_type, illustration_style } = req.body;
 
-    if (!child_name || !age || !story_type || !illustration_style) {
+    if (!child_name || !age || !story_type) {
       return res.status(400).json({
         status: "error",
-        message:
-          "Missing required fields: child_name, age, story_type, illustration_style",
+        message: "Missing required fields: child_name, age, story_type",
       });
     }
 
-    const prompt = `
-You are a professional children's book writer and illustrator.
+    const style = illustration_style || "Soft Storybook";
 
-Illustration style must be: ${illustration_style}.
+    const prompt = `
+You are a professional children's book writer.
+
+Illustration style must be: ${style}.
 
 Create a magical children's story.
 
@@ -65,7 +73,6 @@ Rules:
 - 10 pages exactly.
 - Page texts must be kid-friendly, colorful, positive, and simple.
 - imagePrompt should describe a colorful children's illustration (no brand names).
-- Each imagePrompt should include: main character description, scene, mood, lighting, and composition.
 `;
 
     const completion = await openai.chat.completions.create({
@@ -90,18 +97,19 @@ Rules:
       });
     }
 
-    const normalizedPages = pages.slice(0, 10).map((p, i) => ({
+    const normalizedPages = pages.map((p, i) => ({
       pageNumber: i + 1,
       text: String(p?.text || "").trim(),
       imagePrompt: String(p?.imagePrompt || "").trim(),
+      imageUrl: null, // will be filled later by /generate-image
     }));
 
     return res.json({
       status: "ok",
       title,
       subtitle,
+      illustration_style: style,
       cover: { title, subtitle },
-      illustration_style,
       pages: normalizedPages,
     });
   } catch (err) {
@@ -130,9 +138,11 @@ Rules:
 /**
  * POST /generate-image
  * Body: { prompt, illustration_style }
- * Returns: { status: "ok", imageBase64 }
+ * Returns: { status:"ok", imageUrl:"/generated/xxx.png" }
  *
- * NOTE: Called from preview page per page (lazy load).
+ * IMPORTANT:
+ * We DO NOT return base64 to the browser (avoids localStorage quota).
+ * We save the image on server and return a URL.
  */
 app.post("/generate-image", async (req, res) => {
   try {
@@ -145,41 +155,67 @@ app.post("/generate-image", async (req, res) => {
       });
     }
 
-    const fullPrompt = `
+    const style = illustration_style || "Soft Storybook";
+
+    const finalPrompt = `
 ${prompt}
 
-Illustration style: ${illustration_style || "Soft Storybook"}.
+Illustration style: ${style}.
 High quality children's book illustration.
 Colorful, detailed, soft lighting.
-No brand names.
-`.trim();
+No brand names.`;
 
+    // Generate image (URL) then download and save
     const imageResponse = await openai.images.generate({
       model: "gpt-image-1",
-      prompt: fullPrompt,
+      prompt: finalPrompt,
       size: "1024x1024",
-      output_format: "png",
-      // quality: "high", // אופציונלי
     });
 
-    const b64 = imageResponse?.data?.[0]?.b64_json;
-    if (!b64) {
+    const url = imageResponse?.data?.[0]?.url;
+    if (!url) {
       return res.status(500).json({
         status: "error",
-        message: "No image returned from model",
+        message: "Image generation failed (no URL returned).",
       });
     }
 
+    // Download image bytes
+    const r = await fetch(url);
+    if (!r.ok) {
+      return res.status(500).json({
+        status: "error",
+        message: "Image download failed.",
+      });
+    }
+
+    const arrayBuffer = await r.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const fileName = `img_${Date.now()}_${Math.random().toString(16).slice(2)}.png`;
+    const filePath = path.join(GENERATED_DIR, fileName);
+
+    fs.writeFileSync(filePath, buffer);
+
     return res.json({
       status: "ok",
-      imageBase64: `data:image/png;base64,${b64}`,
+      imageUrl: `/generated/${fileName}`,
     });
   } catch (err) {
     const status = err?.status || 500;
     const code = err?.code || "unknown_error";
     const message = err?.message || "Image generation failed";
 
-    return res.status(status).json({
+    if (status === 429 || code === "insufficient_quota") {
+      return res.status(429).json({
+        status: "error",
+        message:
+          "OpenAI quota/billing issue. Please enable billing or add credits to generate images.",
+        code,
+      });
+    }
+
+    return res.status(500).json({
       status: "error",
       message: "Image generation failed",
       code,
