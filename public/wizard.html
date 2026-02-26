@@ -1,594 +1,225 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>lifebook - Create Your Personalized Book</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>lifebook - Create Your Book</title>
 
-  <style>
-    :root{
-      --bg1:#eef1ff;
-      --bg2:#f8f9ff;
-      --card:#ffffff;
-      --text:#0f172a;
-      --muted:#64748b;
-      --line:#e5e7eb;
-      --dark:#111;
-      --shadow: 0 25px 60px rgba(0,0,0,0.08);
-      --radius: 28px;
-      --gold:#c9a14a;
-    }
+<style>
+body{
+  font-family:Arial;
+  background:linear-gradient(135deg,#eef1ff,#f8f9ff);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+  margin:0;
+  padding:20px;
+}
 
-    *{ box-sizing:border-box; }
+.container{
+  width:900px;
+  max-width:95vw;
+  background:#fff;
+  padding:40px;
+  border-radius:28px;
+  box-shadow:0 25px 60px rgba(0,0,0,0.08);
+  text-align:center;
+}
 
-    body{
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg,var(--bg1),var(--bg2));
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      min-height:100vh;
-      margin:0;
-      color:var(--text);
-      padding:24px 12px;
-    }
+/* LOGO CENTER */
+.logoWrap{
+  display:flex;
+  justify-content:center;
+  margin-bottom:20px;
+}
+.logoWrap img{
+  width:180px;
+}
 
-    .container{
-      width: 980px;
-      max-width: 96vw;
-      background: var(--card);
-      padding: 34px 34px 28px;
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      text-align:center;
-      animation: fadeIn .45s ease;
-      position:relative;
-      overflow:hidden;
-    }
+/* STEP */
+.step{
+  font-size:12px;
+  letter-spacing:2px;
+  color:#777;
+  margin-bottom:10px;
+}
 
-    @keyframes fadeIn{
-      from{opacity:0; transform: translateY(12px)}
-      to{opacity:1; transform: translateY(0)}
-    }
+h1{
+  font-size:40px;
+  margin:0 0 25px;
+  font-weight:900;
+}
 
-    /* Top bar */
-    .topBar{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:16px;
-      margin-bottom:18px;
-    }
+/* AVATAR */
+.avatar{
+  width:120px;
+  height:120px;
+  border-radius:50%;
+  background:#f4f6ff;
+  border:2px dashed #d4d4d4;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  margin:auto;
+  overflow:hidden;
+}
+.avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:none;
+}
+.avatar span{
+  font-size:30px;
+  opacity:.4;
+}
+input[type=file]{display:none;}
 
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      min-width: 240px;
-    }
+.row{
+  display:flex;
+  gap:12px;
+  justify-content:center;
+  flex-wrap:wrap;
+  margin-top:20px;
+}
+input,select{
+  padding:14px;
+  border-radius:14px;
+  border:1px solid #ddd;
+  font-size:16px;
+}
 
-    .brandLogo{
-      width: 150px;
-      height: auto;
-      display:block;
-    }
+.styles{
+  margin-top:30px;
+}
+.styleCard{
+  padding:12px 18px;
+  border:2px solid #eee;
+  border-radius:14px;
+  cursor:pointer;
+  margin:5px;
+  font-weight:600;
+}
+.styleCard.active{
+  background:#111;
+  color:white;
+  border-color:#111;
+}
 
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      font-size:12px;
-      letter-spacing:1px;
-      text-transform:uppercase;
-      color: var(--muted);
-      border:1px solid var(--line);
-      border-radius:999px;
-      padding:8px 12px;
-      background: rgba(255,255,255,0.65);
-      backdrop-filter: blur(6px);
-      white-space:nowrap;
-    }
+button{
+  margin-top:30px;
+  padding:16px 40px;
+  border:none;
+  border-radius:18px;
+  background:linear-gradient(90deg,#111,#333);
+  color:white;
+  font-weight:800;
+  font-size:16px;
+  cursor:pointer;
+}
+button:disabled{opacity:.6;}
 
-    .badgeDot{
-      width:8px;height:8px;border-radius:50%;
-      background: var(--gold);
-      box-shadow: 0 0 0 4px rgba(201,161,74,0.18);
-    }
-
-    .stepWrap{
-      display:flex;
-      flex-direction:column;
-      align-items:flex-end;
-      gap:8px;
-      min-width: 240px;
-    }
-
-    .stepLabel{
-      font-size:12px;
-      letter-spacing:2px;
-      color:#6b7280;
-      font-weight:700;
-      text-transform:uppercase;
-    }
-
-    .progress{
-      width: 240px;
-      max-width: 48vw;
-      height: 10px;
-      border-radius:999px;
-      background: #edf2ff;
-      border: 1px solid #e6eaff;
-      overflow:hidden;
-    }
-
-    .progressFill{
-      width: 50%;
-      height: 100%;
-      background: linear-gradient(90deg, #111, #333);
-      border-radius:999px;
-      transition: width .25s ease;
-    }
-
-    h1{
-      font-size: 42px;
-      margin: 8px 0 10px;
-      font-weight: 900;
-      letter-spacing:-0.5px;
-    }
-
-    .subTitle{
-      margin:0 0 22px;
-      color: var(--muted);
-      font-size: 15px;
-      line-height:1.5;
-    }
-
-    .row{
-      display:flex;
-      gap:14px;
-      justify-content:center;
-      align-items:center;
-      flex-wrap:wrap;
-      margin-top: 6px;
-    }
-
-    input, select{
-      padding: 14px 16px;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      font-size: 16px;
-      min-width: 170px;
-      background:#fff;
-      transition: .15s ease;
-    }
-
-    input:focus, select:focus{
-      outline:none;
-      border-color:#111;
-      box-shadow: 0 0 0 4px rgba(17,17,17,0.08);
-    }
-
-    /* Avatar upload */
-    .avatar{
-      width:110px;
-      height:110px;
-      border-radius:50%;
-      background:#f8fafc;
-      overflow:hidden;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      border:2px dashed #d4d4d4;
-      transition:.2s ease;
-      position:relative;
-    }
-    .avatar:hover{
-      border-color:#111;
-      transform: translateY(-1px);
-    }
-    .avatar img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:none;
-    }
-    .avatar .plus{
-      font-size:28px;
-      color:#111;
-      opacity:.6;
-      font-weight:900;
-      user-select:none;
-    }
-    input[type="file"]{ display:none; }
-
-    /* Style cards */
-    .stylesBlock{
-      margin-top: 18px;
-      padding: 18px 18px 8px;
-      border-radius: 18px;
-      background: #fafafa;
-      border: 1px solid var(--line);
-    }
-
-    .stylesTitle{
-      margin: 0 0 12px;
-      font-size: 18px;
-      font-weight: 800;
-    }
-
-    .stylesRow{
-      display:flex;
-      gap:12px;
-      justify-content:center;
-      flex-wrap:wrap;
-      margin-top: 10px;
-    }
-
-    .styleCard{
-      padding: 14px 18px;
-      border-radius: 16px;
-      border: 2px solid #e5e7eb;
-      cursor: pointer;
-      font-weight: 700;
-      transition: 0.2s;
-      background:#fff;
-      min-width: 170px;
-      user-select:none;
-    }
-    .styleCard:hover{
-      border-color:#111;
-      transform: translateY(-2px);
-      box-shadow: 0 12px 25px rgba(0,0,0,0.08);
-    }
-    .styleCard.active{
-      border-color:#111;
-      background:#111;
-      color:white;
-      box-shadow: 0 18px 35px rgba(0,0,0,0.18);
-    }
-
-    /* CTA */
-    .ctaWrap{
-      margin-top: 18px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:10px;
-    }
-
-    button.primary{
-      margin-top: 6px;
-      padding: 18px 46px;
-      border:none;
-      border-radius: 18px;
-      background: linear-gradient(90deg,#111,#333);
-      color:#fff;
-      font-weight: 900;
-      font-size: 17px;
-      cursor:pointer;
-      transition:0.25s;
-      display:inline-flex;
-      align-items:center;
-      gap:10px;
-      position:relative;
-    }
-
-    button.primary:hover{
-      transform: scale(1.03);
-      box-shadow: 0 16px 38px rgba(0,0,0,0.18);
-    }
-
-    button.primary:disabled{
-      opacity:.65;
-      cursor:not-allowed;
-      transform:none;
-      box-shadow:none;
-    }
-
-    .spinner{
-      width:18px;height:18px;
-      border-radius:50%;
-      border:2px solid rgba(255,255,255,0.35);
-      border-top-color: #fff;
-      animation: spin .9s linear infinite;
-      display:none;
-    }
-
-    @keyframes spin{ to{ transform: rotate(360deg);} }
-
-    .priceLine{
-      font-size: 14px;
-      color: var(--muted);
-    }
-    .priceLine b{
-      color:#111;
-    }
-
-    .hint{
-      margin-top: 10px;
-      color: #6b7280;
-      font-size: 14px;
-      line-height:1.45;
-    }
-
-    .msg{
-      margin-top: 12px;
-      font-weight: 800;
-      min-height: 22px;
-    }
-    .err{ color:#c40000; }
-    .ok{ color:#0b8a00; }
-
-    /* Bottom “premium” trust row */
-    .trustRow{
-      margin-top: 22px;
-      display:flex;
-      justify-content:center;
-      gap:14px;
-      flex-wrap:wrap;
-      color: #64748b;
-      font-size: 13px;
-    }
-    .trustPill{
-      border:1px solid var(--line);
-      background:#fff;
-      padding:10px 14px;
-      border-radius:999px;
-    }
-
-    /* Small screens */
-    @media (max-width: 640px){
-      .container{ padding: 26px 18px 20px; }
-      h1{ font-size: 34px; }
-      .brand{ min-width: unset; }
-      .stepWrap{ min-width: unset; align-items:center; }
-      .topBar{ flex-direction:column; align-items:center; }
-      .progress{ width: 86vw; }
-      input, select{ min-width: 140px; }
-      .styleCard{ min-width: 150px; }
-    }
-  </style>
+.badge{
+  margin-top:25px;
+  font-size:12px;
+  color:#777;
+}
+.msg{margin-top:10px;font-weight:700;}
+.err{color:#c40000;}
+.ok{color:#0b8a00;}
+</style>
 </head>
 
 <body>
-  <div class="container">
-    <!-- TOP -->
-    <div class="topBar">
-      <div class="brand">
-        <!-- Keep whatever you already set for the logo source.
-             If your logo is already working, leave the src exactly as you currently have it. -->
-        <img class="brandLogo" id="brandLogo" src="lifebook-logo.png" alt="lifebook" />
-        <div class="badge" title="AI-powered personalized books">
-          <span class="badgeDot"></span>
-          AI Powered
-        </div>
-      </div>
+<div class="container">
 
-      <div class="stepWrap">
-        <div class="stepLabel" id="stepLabel">STEP 1 OF 2</div>
-        <div class="progress" aria-label="Progress">
-          <div class="progressFill" id="progressFill"></div>
-        </div>
-      </div>
-    </div>
+<div class="logoWrap">
+  <img src="lifebook-logo.png" alt="lifebook"/>
+</div>
 
-    <h1>Create Your Personalized Book</h1>
-    <p class="subTitle">
-      Choose a style, add your child’s name, and generate a beautiful story preview.
-      <br/>
-      <b>Step 2:</b> payment to unlock the full book with illustrations.
-    </p>
+<div class="step">STEP 1 OF 2</div>
+<h1>Create Your Personalized Book</h1>
 
-    <!-- FORM ROW -->
-    <div class="row">
-      <label class="avatar" title="Upload child photo (optional)">
-        <input type="file" id="photoInput" accept="image/*" />
-        <img id="avatarPreview" alt="Child preview" />
-        <span class="plus" id="avatarIcon">+</span>
-      </label>
+<label class="avatar">
+  <input type="file" id="photoInput" accept="image/*"/>
+  <img id="avatarPreview"/>
+  <span id="avatarIcon">+</span>
+</label>
 
-      <input id="childName" placeholder="Child name" />
-      <select id="age">
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5" selected>5</option>
-        <option value="6">6</option>
-        <option value="7">7</option>
-      </select>
+<div class="row">
+  <input id="childName" placeholder="Child name"/>
+  <select id="age">
+    <option>3</option><option>4</option><option selected>5</option><option>6</option>
+  </select>
+  <select id="theme">
+    <option>Magical Forest</option>
+    <option>Space Adventure</option>
+  </select>
+</div>
 
-      <select id="theme">
-        <option>Magical Forest</option>
-        <option>Space Adventure</option>
-        <option>Underwater Kingdom</option>
-        <option>Superhero Day</option>
-      </select>
-    </div>
+<div class="styles">
+  <div class="styleCard active" data-style="Soft Storybook">Soft Storybook</div>
+  <div class="styleCard" data-style="Pixar 3D">Pixar 3D</div>
+  <div class="styleCard" data-style="Magical Fantasy">Magical Fantasy</div>
+</div>
 
-    <!-- STYLES -->
-    <div class="stylesBlock">
-      <div class="stylesTitle">Select Illustration Style</div>
-      <div class="stylesRow">
-        <div class="styleCard active" data-style="Soft Storybook">Soft Storybook</div>
-        <div class="styleCard" data-style="Pixar 3D">Pixar 3D</div>
-        <div class="styleCard" data-style="Magical Fantasy">Magical Fantasy</div>
-        <div class="styleCard" data-style="Minimal Scandinavian">Minimal Scandinavian</div>
-      </div>
-    </div>
+<button id="createBtn">Generate My Book</button>
 
-    <!-- CTA -->
-    <div class="ctaWrap">
-      <button class="primary" id="createBtn" type="button">
-        <span class="spinner" id="btnSpinner"></span>
-        <span id="btnText">Generate My Book</span>
-      </button>
+<div class="badge">AI Generated Story & Illustrations</div>
+<div id="msg" class="msg"></div>
 
-      <div class="priceLine">
-        Unlock full illustrated book for <b>$49</b> (payment in Step 2).
-      </div>
+</div>
 
-      <div class="hint">
-        Photo is optional. If you upload one, we’ll keep it for preview only (not sent yet).
-      </div>
+<script>
+const API_BASE="https://romantic-patience-production.up.railway.app";
+let selectedStyle="Soft Storybook";
 
-      <div id="msg" class="msg"></div>
-    </div>
+document.querySelectorAll(".styleCard").forEach(c=>{
+  c.onclick=()=>{
+    document.querySelectorAll(".styleCard").forEach(x=>x.classList.remove("active"));
+    c.classList.add("active");
+    selectedStyle=c.dataset.style;
+  }
+});
 
-    <div class="trustRow">
-      <div class="trustPill">Fast preview • 10 pages</div>
-      <div class="trustPill">Premium illustration styles</div>
-      <div class="trustPill">Pay to unlock the full illustrated book</div>
-    </div>
-  </div>
+photoInput.onchange=e=>{
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    avatarPreview.src=reader.result;
+    avatarPreview.style.display="block";
+    avatarIcon.style.display="none";
+  };
+  reader.readAsDataURL(file);
+};
 
-  <script>
-    // ========= CONFIG =========
-    const API_BASE = "https://romantic-patience-production.up.railway.app";
+createBtn.onclick=async()=>{
+  const name=document.getElementById("childName").value.trim();
+  if(!name){msg.textContent="Enter child name";msg.className="msg err";return;}
 
-    // ========= STATE =========
-    let selectedStyle = "Soft Storybook";
+  createBtn.disabled=true;
+  msg.textContent="Creating book...";
 
-    // ========= ELEMENTS =========
-    const msgEl = document.getElementById("msg");
-    const photoInput = document.getElementById("photoInput");
-    const avatarPreview = document.getElementById("avatarPreview");
-    const avatarIcon = document.getElementById("avatarIcon");
-    const createBtn = document.getElementById("createBtn");
-    const btnSpinner = document.getElementById("btnSpinner");
-    const btnText = document.getElementById("btnText");
+  const res=await fetch(`${API_BASE}/create-book`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      child_name:name,
+      age:age.value,
+      story_type:theme.value,
+      illustration_style:selectedStyle
+    })
+  });
 
-    // ========= PHOTO PREVIEW (UI ONLY) =========
-    // IMPORTANT: Keep photo only for preview (avoid localStorage quota issues)
-    photoInput.addEventListener("change", (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
+  const data=await res.json();
+  if(!res.ok){msg.textContent="Error";msg.className="msg err";createBtn.disabled=false;return;}
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        // Keep locally for UI preview only (NOT sent to backend right now)
-        // Use a dedicated key (smaller risk than storing huge bookData)
-        try {
-          localStorage.setItem("childPhotoPreview", reader.result);
-        } catch (err) {
-          // If storage quota is full, still show preview without saving
-        }
-
-        avatarPreview.src = reader.result;
-        avatarPreview.style.display = "block";
-        avatarIcon.style.display = "none";
-      };
-      reader.readAsDataURL(file);
-    });
-
-    // If there is already a photo saved, show it on load
-    (function restorePhotoPreview(){
-      try {
-        const saved = localStorage.getItem("childPhotoPreview");
-        if (saved) {
-          avatarPreview.src = saved;
-          avatarPreview.style.display = "block";
-          avatarIcon.style.display = "none";
-        }
-      } catch (e) {}
-    })();
-
-    // ========= STYLE SELECT =========
-    document.querySelectorAll(".styleCard").forEach(card => {
-      card.addEventListener("click", () => {
-        const style = card.getAttribute("data-style");
-        selectedStyle = style;
-
-        document.querySelectorAll(".styleCard").forEach(c => c.classList.remove("active"));
-        card.classList.add("active");
-      });
-    });
-
-    // ========= UI HELPERS =========
-    function setLoading(isLoading){
-      createBtn.disabled = isLoading;
-      btnSpinner.style.display = isLoading ? "inline-block" : "none";
-      btnText.textContent = isLoading ? "Generating..." : "Generate My Book";
-    }
-
-    function showError(text){
-      msgEl.textContent = text;
-      msgEl.className = "msg err";
-    }
-
-    function showOk(text){
-      msgEl.textContent = text;
-      msgEl.className = "msg ok";
-    }
-
-    // ========= CREATE BOOK =========
-    async function createBook() {
-      msgEl.textContent = "";
-      msgEl.className = "msg";
-
-      const payload = {
-        child_name: document.getElementById("childName").value.trim(),
-        age: document.getElementById("age").value,
-        story_type: document.getElementById("theme").value,
-        illustration_style: selectedStyle
-        // NOTE: child photo not sent yet (payment comes before images)
-        // child_photo: localStorage.getItem("childPhotoPreview")
-      };
-
-      if (!payload.child_name) {
-        showError("Please enter a child name.");
-        return;
-      }
-
-      setLoading(true);
-
-      try {
-        const res = await fetch(`${API_BASE}/create-book`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          showError(data?.message || "Error creating book");
-          setLoading(false);
-          return;
-        }
-
-        // Save only what we need for preview (keep it light)
-        // Also store illustration_style so preview knows which style to use
-        const slim = {
-          status: "ok",
-          title: data.title,
-          subtitle: data.subtitle,
-          cover: data.cover,
-          pages: data.pages,
-          illustration_style: payload.illustration_style
-        };
-
-        try {
-          localStorage.setItem("bookData", JSON.stringify(slim));
-        } catch (e) {
-          // If storage is full, clear old and retry once
-          try {
-            localStorage.removeItem("bookData");
-            localStorage.setItem("bookData", JSON.stringify(slim));
-          } catch (e2) {}
-        }
-
-        showOk("Success! Opening preview...");
-        // Go to preview
-        window.location.href = "preview.html";
-      } catch (err) {
-        showError("Network error. Check API_BASE and Railway logs.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    // Wire the button
-    createBtn.addEventListener("click", createBook);
-  </script>
+  localStorage.setItem("bookData",JSON.stringify(data));
+  window.location.href="preview.html";
+};
+</script>
 </body>
 </html>
