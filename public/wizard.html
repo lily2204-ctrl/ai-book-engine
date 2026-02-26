@@ -124,15 +124,14 @@
                         character_description: charDesc
                     })
                 });
-                const bookData = await bookRes.json();
-                
-                console.log("Success!", bookData);
-                alert(selectedLang === 'Hebrew' ? "הספר נוצר! בדוק את הקונסול." : "Book Created! Check Console.");
-                
-            } catch (e) { alert("Error!"); }
-            
-            document.getElementById('loader').classList.add('hidden');
-            document.getElementById('mainBtn').disabled = false;
+                // בתוך wizard.html - בתוך פונקציית generateBook
+const bookData = await bookRes.json();
+
+// שמירת הנתונים כדי שדף ה-Preview יוכל לקרוא אותם
+sessionStorage.setItem('lastGeneratedBook', JSON.stringify(bookData));
+
+// מעבר לדף התצוגה המקדימה
+window.location.href = "/preview.html";
         }
     </script>
 </body>
