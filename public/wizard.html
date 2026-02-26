@@ -6,6 +6,59 @@
 <title>Create Your AI Book</title>
 
 <style>
+<style>
+/* --- LIFeBOOK Animated Logo --- */
+.logoWrap{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  margin: 0 0 18px 0;
+}
+.lifebookLogo{
+  width: 260px;
+  max-width: 70vw;
+  height: auto;
+  filter: drop-shadow(0 10px 22px rgba(0,0,0,.10));
+}
+
+.lbGlow{
+  animation: lbGlow 2.2s ease-in-out infinite;
+  transform-origin: 50% 50%;
+}
+@keyframes lbGlow{
+  0%,100% { opacity:.55; transform: scale(1); }
+  50% { opacity:1; transform: scale(1.02); }
+}
+
+.lbStroke{
+  stroke-dasharray: 520;
+  stroke-dashoffset: 520;
+  animation: lbDraw 1.4s ease forwards;
+}
+@keyframes lbDraw{
+  to { stroke-dashoffset: 0; }
+}
+
+.lbShimmer{
+  animation: lbShimmer 2.8s linear infinite;
+}
+@keyframes lbShimmer{
+  0%   { transform: translateX(-120px); opacity: 0; }
+  15%  { opacity: .35; }
+  50%  { opacity: .18; }
+  100% { transform: translateX(120px); opacity: 0; }
+}
+
+.lbBook{
+  transform-origin: 50% 62%;
+  animation: lbBook 2.2s ease-in-out infinite;
+}
+@keyframes lbBook{
+  0%,100% { transform: rotate(0deg) translateY(0px); }
+  50% { transform: rotate(-2deg) translateY(-1px); }
+}
+</style>
+  
 body{
   font-family:Arial;
   background:linear-gradient(135deg,#eef1ff,#f8f9ff);
@@ -155,7 +208,66 @@ button:hover{
 
 <body>
 <div class="container">
+<div class="logoWrap">
+  <!-- lifebook animated logo (inline SVG) -->
+  <svg class="lifebookLogo" viewBox="0 0 520 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="lifebook">
+    <defs>
+      <linearGradient id="lbGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#111"/>
+        <stop offset="0.55" stop-color="#111"/>
+        <stop offset="1" stop-color="#111"/>
+      </linearGradient>
 
+      <!-- Gold accent -->
+      <linearGradient id="lbGold" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#b8892b"/>
+        <stop offset="0.5" stop-color="#f1d28a"/>
+        <stop offset="1" stop-color="#b8892b"/>
+      </linearGradient>
+
+      <clipPath id="lbClip">
+        <rect x="0" y="0" width="520" height="160" rx="18"/>
+      </clipPath>
+    </defs>
+
+    <!-- subtle shimmer pass -->
+    <g clip-path="url(#lbClip)">
+      <rect class="lbShimmer" x="90" y="18" width="90" height="130" fill="url(#lbGold)" opacity="0"/>
+    </g>
+
+    <!-- icon: minimalist open book -->
+    <g class="lbBook" transform="translate(34,28)">
+      <path d="M60 18 C42 10, 24 12, 14 22 C8 30, 8 92, 14 100 C24 110, 42 112, 60 104
+               C78 112, 96 110, 106 100 C112 92, 112 30, 106 22 C96 12, 78 10, 60 18 Z"
+            fill="#fff" opacity="0.9"/>
+      <path d="M60 22 C45 14, 28 16, 20 24 C16 30, 16 90, 20 96 C28 104, 45 106, 60 98"
+            fill="#f7f7f7"/>
+      <path d="M60 22 C75 14, 92 16, 100 24 C104 30, 104 90, 100 96 C92 104, 75 106, 60 98"
+            fill="#f2f2f2"/>
+
+      <!-- spine line -->
+      <path d="M60 22 L60 98" stroke="#111" stroke-width="3" opacity="0.25"/>
+
+      <!-- gold highlight -->
+      <path d="M22 36 C32 30, 44 30, 56 34" stroke="url(#lbGold)" stroke-width="4" stroke-linecap="round" opacity="0.9"/>
+      <path d="M64 34 C76 30, 88 30, 98 36" stroke="url(#lbGold)" stroke-width="4" stroke-linecap="round" opacity="0.9"/>
+    </g>
+
+    <!-- wordmark -->
+    <g transform="translate(170,92)">
+      <text x="0" y="0" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="800" fill="url(#lbGrad)" letter-spacing="0.5">
+        lifebook
+      </text>
+
+      <!-- underline stroke draw -->
+      <path class="lbStroke" d="M6 22 C70 44, 210 44, 334 20"
+            fill="none" stroke="url(#lbGold)" stroke-width="6" stroke-linecap="round"/>
+      <!-- small glow dot -->
+      <circle class="lbGlow" cx="345" cy="18" r="5" fill="url(#lbGold)"/>
+    </g>
+  </svg>
+</div>
+  
 <div class="step">STEP 1 OF 2</div>
 <h1>Create Your Personalized Book</h1>
 
