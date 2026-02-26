@@ -1,501 +1,139 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Lifebook - Create Your AI Book</title>
-<style>
-  :root{
-    --bg:#0b0c10;
-    --panel:#11131a;
-    --panel2:#0f1117;
-    --text:#f5f7ff;
-    --muted:#b8c0ff;
-    --line:rgba(255,255,255,0.10);
-    --gold1:#f7d36b;
-    --gold2:#b8892f;
-    --accent:#6ee7ff;
-    --danger:#ff4d4d;
-    --ok:#00d47a;
-  }
-
-  *{box-sizing:border-box}
-  body{
-    margin:0;
-    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    background: radial-gradient(1200px 600px at 50% -100px, rgba(110,231,255,0.18), transparent 60%),
-                radial-gradient(900px 500px at 20% 10%, rgba(247,211,107,0.12), transparent 60%),
-                var(--bg);
-    color:var(--text);
-    min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:26px;
-  }
-
-  .wrap{
-    width:980px;
-    max-width:96vw;
-  }
-
-  .top{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    margin-bottom:18px;
-  }
-
-  /* Animated Lifebook logo (no external file) */
-  .logo{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    padding:10px 16px;
-    border:1px solid var(--line);
-    border-radius:18px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-    box-shadow: 0 18px 60px rgba(0,0,0,0.55);
-  }
-  .mark{
-    width:44px;height:44px;border-radius:14px;
-    background: radial-gradient(circle at 30% 30%, rgba(110,231,255,0.55), rgba(247,211,107,0.35)),
-                linear-gradient(135deg, rgba(247,211,107,0.25), rgba(110,231,255,0.12));
-    border:1px solid rgba(255,255,255,0.18);
-    position:relative;
-    overflow:hidden;
-  }
-  .mark:before{
-    content:"";
-    position:absolute; inset:-60%;
-    background: conic-gradient(from 180deg, rgba(255,255,255,0.0), rgba(255,255,255,0.35), rgba(255,255,255,0.0));
-    animation: spin 2.8s linear infinite;
-  }
-  .mark:after{
-    content:"";
-    position:absolute; inset:2px;
-    background: rgba(10,10,14,0.60);
-    border-radius:12px;
-    border:1px solid rgba(255,255,255,0.08);
-  }
-  .logoText{
-    font-weight:900;
-    letter-spacing:0.4px;
-    font-size:22px;
-    background: linear-gradient(90deg, var(--gold1), #fff, var(--accent));
-    -webkit-background-clip:text;
-    background-clip:text;
-    color:transparent;
-    position:relative;
-  }
-  .logoSub{
-    font-size:12px;
-    color:rgba(245,247,255,0.72);
-    margin-top:2px;
-  }
-  @keyframes spin{to{transform:rotate(360deg)}}
-
-  .panel{
-    border:1px solid var(--line);
-    border-radius:22px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-    box-shadow: 0 22px 80px rgba(0,0,0,0.65);
-    padding:22px;
-  }
-
-  .title{
-    text-align:center;
-    margin:0 0 8px 0;
-    font-size:34px;
-    font-weight:900;
-  }
-  .subtitle{
-    text-align:center;
-    margin:0 0 18px 0;
-    color:rgba(245,247,255,0.72);
-    line-height:1.4;
-  }
-
-  .grid{
-    display:grid;
-    grid-template-columns: 1.1fr 1fr;
-    gap:18px;
-  }
-
-  @media(max-width:900px){
-    .grid{grid-template-columns:1fr}
-  }
-
-  .card{
-    border:1px solid var(--line);
-    border-radius:18px;
-    background: rgba(15,17,23,0.55);
-    padding:16px;
-  }
-
-  .sectionTitle{
-    font-weight:800;
-    margin:0 0 10px 0;
-    letter-spacing:0.2px;
-  }
-
-  .row{
-    display:flex;
-    gap:12px;
-    flex-wrap:wrap;
-    align-items:center;
-  }
-
-  input,select{
-    width:100%;
-    padding:12px 14px;
-    border:1px solid rgba(255,255,255,0.12);
-    background: rgba(0,0,0,0.25);
-    color:var(--text);
-    border-radius:14px;
-    font-size:15px;
-    outline:none;
-  }
-  input:focus,select:focus{
-    border-color:rgba(110,231,255,0.55);
-    box-shadow:0 0 0 4px rgba(110,231,255,0.12);
-  }
-
-  .two{
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap:12px;
-    width:100%;
-  }
-  @media(max-width:520px){
-    .two{grid-template-columns:1fr}
-  }
-
-  .avatarWrap{
-    display:flex;
-    gap:14px;
-    align-items:center;
-  }
-  .avatar{
-    width:100px;height:100px;
-    border-radius:22px;
-    border:1px dashed rgba(255,255,255,0.22);
-    background: rgba(0,0,0,0.22);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    cursor:pointer;
-    overflow:hidden;
-    position:relative;
-  }
-  .avatar img{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    display:none; /* stays hidden until upload */
-  }
-  .avatar .plus{
-    font-size:30px;
-    color:rgba(245,247,255,0.75);
-    user-select:none;
-  }
-  input[type="file"]{display:none}
-  .avatarHint{
-    color:rgba(245,247,255,0.65);
-    font-size:13px;
-    line-height:1.35;
-  }
-
-  .styles{
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
-    margin-top:10px;
-  }
-  .styleCard{
-    padding:10px 12px;
-    border-radius:14px;
-    border:1px solid rgba(255,255,255,0.14);
-    cursor:pointer;
-    font-weight:700;
-    background: rgba(0,0,0,0.18);
-    transition:0.18s;
-    user-select:none;
-    font-size:13px;
-  }
-  .styleCard:hover{transform:translateY(-1px); border-color:rgba(110,231,255,0.45)}
-  .styleCard.active{
-    border-color:rgba(247,211,107,0.75);
-    background: linear-gradient(180deg, rgba(247,211,107,0.18), rgba(110,231,255,0.10));
-    box-shadow: 0 12px 30px rgba(0,0,0,0.35);
-  }
-
-  .ctaRow{
-    display:flex;
-    justify-content:center;
-    margin-top:16px;
-  }
-  .btn{
-    padding:13px 18px;
-    border:none;
-    border-radius:14px;
-    background: linear-gradient(90deg, rgba(247,211,107,0.95), rgba(110,231,255,0.85));
-    color:#0b0c10;
-    font-weight:900;
-    cursor:pointer;
-    font-size:15px;
-    min-width:220px;
-    box-shadow: 0 18px 40px rgba(0,0,0,0.45);
-  }
-  .btn:disabled{
-    opacity:0.6;
-    cursor:not-allowed;
-  }
-
-  .msg{
-    margin-top:12px;
-    text-align:center;
-    font-weight:800;
-    min-height:22px;
-  }
-  .msg.err{color:var(--danger)}
-  .msg.ok{color:var(--ok)}
-  .msg.muted{color:rgba(245,247,255,0.7); font-weight:700}
-
-  .aiBadge{
-    margin-top:14px;
-    text-align:center;
-    color:rgba(245,247,255,0.55);
-    font-size:12px;
-  }
-  .aiBadge span{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding:8px 12px;
-    border-radius:999px;
-    border:1px solid rgba(255,255,255,0.10);
-    background: rgba(0,0,0,0.18);
-  }
-  .dot{
-    width:8px;height:8px;border-radius:999px;
-    background: radial-gradient(circle at 30% 30%, rgba(110,231,255,1), rgba(247,211,107,1));
-    box-shadow:0 0 12px rgba(110,231,255,0.45);
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lifebook - Premium AI Storybook</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .lang-active { border-color: #2563eb; background-color: #eff6ff; color: #1e40af; }
+        .loading-ring { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
+<body class="bg-gray-50 text-left transition-all duration-300">
 
-<body>
-  <div class="wrap">
-
-    <div class="top">
-      <div class="logo" aria-label="lifebook logo">
-        <div class="mark"></div>
-        <div>
-          <div class="logoText">lifebook</div>
-          <div class="logoSub">Create a premium AI storybook in minutes</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h1 class="title">Create Your AI Book</h1>
-      <p class="subtitle">Upload a child photo (optional), choose theme + style, then create a premium cover & preview.</p>
-
-      <div class="grid">
-
-        <div class="card">
-          <div class="sectionTitle">Child Details</div>
-
-          <div class="avatarWrap">
-            <label class="avatar" title="Upload child photo">
-              <input type="file" id="photoInput" accept="image/*" />
-              <img id="avatarPreview" alt="Child photo preview" />
-              <div id="avatarPlus" class="plus">+</div>
-            </label>
-            <div class="avatarHint">
-              <b>Photo preview</b> appears here after upload.<br/>
-              Recommended: clear face, good lighting.
+    <div class="max-w-6xl mx-auto px-4 py-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-3xl text-white shadow-2xl">
+                <h2 class="text-2xl font-bold mb-6 italic">Premium Experience</h2>
+                <ul class="space-y-4 text-sm font-light">
+                    <li class="flex items-center gap-3">✨ <span>Hardcover Physical Book</span></li>
+                    <li>🎨 <span>24 High-Definition Illustrations</span></li>
+                    <li>✍️ <span>Personalized Story by AI</span></li>
+                    <li>🚚 <span>Free Express Shipping</span></li>
+                </ul>
+                <div class="mt-8 pt-6 border-t border-white/20 text-center">
+                    <span class="text-4xl font-bold">$49.00</span>
+                    <p class="text-blue-100 text-xs mt-2">All inclusive • No hidden fees</p>
+                </div>
             </div>
-          </div>
-
-          <div style="height:14px"></div>
-
-          <div class="two">
-            <input id="childName" placeholder="Child name" />
-            <select id="age"></select>
-          </div>
-
-          <div style="height:12px"></div>
-
-          <select id="theme">
-            <option>Magical Forest</option>
-            <option>Space Adventure</option>
-            <option>Underwater Kingdom</option>
-            <option>Superhero Day</option>
-            <option>Princess & Castle</option>
-            <option>Dinosaurs</option>
-            <option>Animals & Safari</option>
-          </select>
-
         </div>
 
-        <div class="card">
-          <div class="sectionTitle">Illustration Style</div>
-          <div style="color:rgba(245,247,255,0.72); font-size:13px; line-height:1.35;">
-            Choose the visual style for the book. You can change later.
-          </div>
+        <div class="lg:col-span-2 bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-gray-100">
+            <h1 class="text-3xl font-extrabold text-gray-900 mb-8">Design Your Story</h1>
 
-          <div class="styles" id="styles"></div>
+            <div class="mb-8">
+                <label class="block text-sm font-bold text-gray-700 mb-3">Story Language:</label>
+                <div class="flex gap-4">
+                    <button onclick="changeLang('English', this)" class="lang-btn flex-1 py-3 px-4 border-2 rounded-xl font-bold lang-active transition-all">🇺🇸 English</button>
+                    <button onclick="changeLang('Hebrew', this)" class="lang-btn flex-1 py-3 px-4 border-2 rounded-xl font-bold border-gray-100 text-gray-500 transition-all">🇮🇱 עברית</button>
+                </div>
+            </div>
 
-          <div class="ctaRow">
-            <button class="btn" id="createBtn" onclick="createBook()">Create Book</button>
-          </div>
+            <div class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="text" id="name" placeholder="Child's Name" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400">
+                    <input type="number" id="age" placeholder="Age" class="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400">
+                </div>
 
-          <div id="msg" class="msg muted"></div>
+                <div onclick="document.getElementById('fileInput').click()" class="border-2 border-dashed border-blue-100 bg-blue-50/20 rounded-2xl p-10 text-center cursor-pointer hover:bg-blue-50 transition-all">
+                    <input type="file" id="fileInput" class="hidden" accept="image/*" onchange="handlePreview(this)">
+                    <div id="uploadPlaceholder">
+                        <span class="text-4xl block mb-2">📸</span>
+                        <p class="text-sm font-medium text-blue-600">Upload Photo for Face Sync</p>
+                        <p class="text-xs text-gray-400 mt-1">Recommended for better AI consistency</p>
+                    </div>
+                    <img id="previewImg" class="hidden h-32 w-32 rounded-full mx-auto object-cover border-4 border-white shadow-lg">
+                </div>
+
+                <button onclick="generateBook()" id="mainBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 rounded-2xl shadow-lg shadow-blue-200 flex justify-center items-center gap-3 transition-transform active:scale-95">
+                    <span id="btnText">Generate My Book</span>
+                    <div id="loader" class="loading-ring hidden"></div>
+                </button>
+            </div>
         </div>
-
-      </div>
-
-      <!-- AI badge must be bottom -->
-      <div class="aiBadge">
-        <span><i class="dot"></i> AI Generated • Premium Storybook Preview</span>
-      </div>
-
     </div>
-  </div>
 
-<script>
-  const API_BASE = "https://romantic-patience-production.up.railway.app";
+    <script>
+        let selectedLang = "English";
+        let base64Photo = "";
 
-  const msgEl = document.getElementById("msg");
-  const photoInput = document.getElementById("photoInput");
-  const avatarPreview = document.getElementById("avatarPreview");
-  const avatarPlus = document.getElementById("avatarPlus");
-  const createBtn = document.getElementById("createBtn");
+        function changeLang(lang, btn) {
+            selectedLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('lang-active', 'border-blue-600'));
+            btn.classList.add('lang-active');
+            document.body.dir = lang === 'Hebrew' ? 'rtl' : 'ltr';
+            document.body.classList.toggle('text-right', lang === 'Hebrew');
+            document.getElementById('btnText').innerText = lang === 'Hebrew' ? 'צור את הספר שלי' : 'Generate My Book';
+        }
 
-  // Build age 1..10
-  const ageSelect = document.getElementById("age");
-  for (let i = 1; i <= 10; i++) {
-    const opt = document.createElement("option");
-    opt.value = String(i);
-    opt.textContent = String(i);
-    if (i === 5) opt.selected = true;
-    ageSelect.appendChild(opt);
-  }
+        function handlePreview(input) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                base64Photo = e.target.result;
+                document.getElementById('uploadPlaceholder').classList.add('hidden');
+                const img = document.getElementById('previewImg');
+                img.src = e.target.result;
+                img.classList.remove('hidden');
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
 
-  // Styles (restored + expanded)
-  const ALL_STYLES = [
-    "Soft Storybook",
-    "Magical Fantasy",
-    "Pixar 3D",
-    "Watercolor Dream",
-    "Classic Fairytale",
-    "Minimal Scandinavian",
-    "Cute Kawaii",
-    "Bright Cartoon",
-    "Ghibli-inspired (soft)",
-    "Paper Cutout",
-    "Pastel Nursery",
-    "Comic Book",
-    "3D Clay",
-    "Vintage Storybook"
-  ];
+        async function generateBook() {
+            const name = document.getElementById('name').value;
+            if(!name) return alert("Please enter the child's name");
 
-  const stylesWrap = document.getElementById("styles");
-  let selectedStyle = "Soft Storybook";
+            // UI Feedback
+            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('mainBtn').disabled = true;
 
-  function renderStyles(){
-    stylesWrap.innerHTML = "";
-    ALL_STYLES.forEach(s=>{
-      const div = document.createElement("div");
-      div.className = "styleCard";
-      div.dataset.style = s;
-      div.textContent = s;
-      div.onclick = () => selectStyle(s);
-      stylesWrap.appendChild(div);
-    });
-    selectStyle(selectedStyle);
-  }
+            try {
+                let charDesc = "";
+                // 1. Analyze Face
+                if(base64Photo) {
+                    const charRes = await fetch('/generate-character', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ child_photo: base64Photo })
+                    });
+                    const charData = await charRes.json();
+                    charDesc = charData.characterDescription;
+                }
 
-  function selectStyle(style){
-    selectedStyle = style;
-    document.querySelectorAll(".styleCard").forEach(card=>{
-      card.classList.toggle("active", card.dataset.style === style);
-    });
-  }
-
-  renderStyles();
-
-  // Photo preview (blank until upload)
-  photoInput.addEventListener("change", (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      localStorage.setItem("childPhoto", reader.result);
-      avatarPreview.src = reader.result;
-      avatarPreview.style.display = "block";
-      avatarPlus.style.display = "none";
-    };
-    reader.readAsDataURL(file);
-  });
-
-  function setMsg(text, type="muted"){
-    msgEl.className = "msg " + type;
-    msgEl.textContent = text || "";
-  }
-
-  async function createBook() {
-    setMsg("");
-
-    const payload = {
-      child_name: document.getElementById("childName").value.trim(),
-      age: document.getElementById("age").value,
-      story_type: document.getElementById("theme").value,
-      illustration_style: selectedStyle,
-      child_photo: localStorage.getItem("childPhoto") || null
-    };
-
-    if (!payload.child_name) {
-      setMsg("Please enter a child name.", "err");
-      return;
-    }
-
-    try {
-      createBtn.disabled = true;
-      setMsg("Creating your book...", "muted");
-
-      const res = await fetch(`${API_BASE}/create-book`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setMsg(data?.message || "Error creating book", "err");
-        createBtn.disabled = false;
-        return;
-      }
-
-      // Force store illustration_style in bookData
-      data.illustration_style = payload.illustration_style;
-
-      localStorage.setItem("bookData", JSON.stringify(data));
-      localStorage.removeItem("paid"); // must pay again for new book
-      setMsg("Success! Opening premium cover...", "ok");
-
-      // go to premium cover page
-      window.location.href = "cover.html";
-
-    } catch (err) {
-      setMsg("Network error. Check API_BASE and Railway logs.", "err");
-      createBtn.disabled = false;
-    }
-  }
-</script>
+                // 2. Build Story
+                const bookRes = await fetch('/create-book', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        child_name: name,
+                        age: document.getElementById('age').value,
+                        story_type: 'Magic Adventure',
+                        language: selectedLang,
+                        character_description: charDesc
+                    })
+                });
+                const bookData = await bookRes.json();
+                
+                console.log("Success!", bookData);
+                alert(selectedLang === 'Hebrew' ? "הספר נוצר! בדוק את הקונסול." : "Book Created! Check Console.");
+                
+            } catch (e) { alert("Error!"); }
+            
+            document.getElementById('loader').classList.add('hidden');
+            document.getElementById('mainBtn').disabled = false;
+        }
+    </script>
 </body>
 </html>
