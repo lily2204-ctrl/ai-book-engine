@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lifebook - Premium Cover</title>
+<style>
+  :root{
+    --bg:#0b0c10;
+    --panel:#11131a;
+    --text:#f5f7ff;
+    --line:rgba(255,255,255,0.10);
+    --gold1:#f7d36b;
+    --accent:#6ee7ff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    background: radial-gradient(1000px 560px at 50% -120px, rgba(110,231,255,0.18), transparent 60%),
+                radial-gradient(900px 500px at 20% 10%, rgba(247,211,107,0.12), transparent 60%),
+                var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:26px;
+  }
+
+  .wrap{width:980px; max-width:96vw;}
+  .top{
+    display:flex;
+    align-items:center;
+    justify-content:center; /* logo centered */
+    margin-bottom:16px;
+    position:relative;
+  }
+
+  /* Back button (top right) */
+  .back{
+    position:absolute;
+    right:0;
+    top:0;
+    border:1px solid var(--line);
+    background: rgba(0,0,0,0.25);
+    color:rgba(245,247,255,0.9);
+    border-radius:14px;
+    padding:10px 12px;
+    cursor:pointer;
+    font-weight:800;
+  }
+
+  .logo{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 16px;
+    border:1px solid var(--line);
+    border-radius:18px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  }
+  .mark{
+    width:44px;height:44px;border-radius:14px;
+    background: radial-gradient(circle at 30% 30%, rgba(110,231,255,0.55), rgba(247,211,107,0.35));
+    border:1px solid rgba(255,255,255,0.18);
+    position:relative; overflow:hidden;
+  }
+  .mark:before{
+    content:"";
+    position:absolute; inset:-60%;
+    background: conic-gradient(from 180deg, rgba(255,255,255,0.0), rgba(255,255,255,0.35), rgba(255,255,255,0.0));
+    animation: spin 2.8s linear infinite;
+  }
+  .mark:after{
+    content:"";
+    position:absolute; inset:2px;
+    background: rgba(10,10,14,0.60);
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.08);
+  }
+  .logoText{
+    font-weight:900;
+    letter-spacing:0.4px;
+    font-size:22px;
+    background: linear-gradient(90deg, var(--gold1), #fff, var(--accent));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .logoSub{font-size:12px;color:rgba(245,247,255,0.72);margin-top:2px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .panel{
+    border:1px solid var(--line);
+    border-radius:22px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    box-shadow: 0 22px 80px rgba(0,0,0,0.65);
+    padding:22px;
+  }
+
+  .coverWrap{
+    display:flex;
+    justify-content:center;
+    margin-top:8px;
+  }
+
+  .cover{
+    width:520px;
+    max-width:92vw;
+    border-radius:24px;
+    border:1px solid rgba(255,255,255,0.14);
+    background:
+      radial-gradient(700px 320px at 30% 10%, rgba(110,231,255,0.20), transparent 60%),
+      radial-gradient(620px 300px at 70% 30%, rgba(247,211,107,0.18), transparent 60%),
+      rgba(0,0,0,0.25);
+    box-shadow: 0 30px 90px rgba(0,0,0,0.70);
+    padding:26px;
+    position:relative;
+    overflow:hidden;
+  }
+
+  .cover:before{
+    content:"";
+    position:absolute; inset:-80%;
+    background: conic-gradient(from 140deg, rgba(110,231,255,0.0), rgba(110,231,255,0.20), rgba(247,211,107,0.18), rgba(110,231,255,0.0));
+    animation: spin 8s linear infinite;
+  }
+  .cover:after{
+    content:"";
+    position:absolute; inset:10px;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(12,12,18,0.55);
+    backdrop-filter: blur(10px);
+  }
+
+  .coverInner{
+    position:relative;
+    z-index:2;
+    min-height:520px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    gap:16px;
+  }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 12px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.18);
+    width: fit-content;
+    color:rgba(245,247,255,0.8);
+    font-weight:800;
+    font-size:12px;
+  }
+  .dot{
+    width:8px;height:8px;border-radius:999px;
+    background: radial-gradient(circle at 30% 30%, rgba(110,231,255,1), rgba(247,211,107,1));
+  }
+
+  .bigTitle{
+    font-size:38px;
+    font-weight:950;
+    letter-spacing:0.2px;
+    margin:0;
+    line-height:1.1;
+  }
+  .subTitle{
+    margin:0;
+    color:rgba(245,247,255,0.72);
+    font-size:16px;
+    line-height:1.4;
+  }
+
+  .metaRow{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:10px;
+  }
+  .pill{
+    padding:8px 10px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.20);
+    font-weight:800;
+    font-size:12px;
+    color:rgba(245,247,255,0.85);
+  }
+
+  .cta{
+    margin-top:6px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    align-items:center;
+  }
+  .payBtn{
+    width:100%;
+    max-width:520px;
+    padding:14px 16px;
+    border:none;
+    border-radius:16px;
+    cursor:pointer;
+    font-weight:950;
+    background: linear-gradient(90deg, rgba(247,211,107,0.95), rgba(110,231,255,0.85));
+    color:#0b0c10;
+    font-size:15px;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+  }
+  .smallNote{
+    color:rgba(245,247,255,0.62);
+    font-size:12px;
+    text-align:center;
+    line-height:1.35;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <button class="back" onclick="window.location.href='wizard.html'">Back</button>
+
+      <div class="logo">
+        <div class="mark"></div>
+        <div>
+          <div class="logoText">lifebook</div>
+          <div class="logoSub">Premium cover before preview</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="coverWrap">
+        <div class="cover" aria-label="Premium book cover">
+          <div class="coverInner">
+            <div>
+              <div class="badge"><span class="dot"></span> AI Generated • Premium Preview</div>
+              <h1 class="bigTitle" id="coverTitle">Your Lifebook</h1>
+              <p class="subTitle" id="coverSub">A personalized adventure made for your child.</p>
+              <div class="metaRow" id="metaRow"></div>
+            </div>
+
+            <div class="cta">
+              <button class="payBtn" onclick="unlockPreview()">Unlock Preview - $49</button>
+              <div class="smallNote">
+                This is a demo payment button for now.<br/>
+                Next step: connect Stripe/Shopify checkout.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  const raw = localStorage.getItem("bookData");
+  if (!raw) {
+    window.location.href = "wizard.html";
+  }
+
+  const book = JSON.parse(raw || "{}");
+  const title = book.title || "Your Lifebook";
+  const subtitle = book.subtitle || "A personalized adventure made for your child.";
+
+  document.getElementById("coverTitle").textContent = title;
+  document.getElementById("coverSub").textContent = subtitle;
+
+  // meta pills
+  const pills = [];
+  if (book.illustration_style) pills.push("Style: " + book.illustration_style);
+  if (book.pages?.length) pills.push("Pages: " + book.pages.length);
+  const metaRow = document.getElementById("metaRow");
+  pills.forEach(t=>{
+    const el = document.createElement("div");
+    el.className = "pill";
+    el.textContent = t;
+    metaRow.appendChild(el);
+  });
+
+  function unlockPreview(){
+    localStorage.setItem("paid", "true");
+    window.location.href = "preview.html";
+  }
+</script>
+</body>
+</html>
