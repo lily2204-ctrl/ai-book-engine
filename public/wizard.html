@@ -1,225 +1,501 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>lifebook - Create Your Book</title>
-
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lifebook - Create Your AI Book</title>
 <style>
-body{
-  font-family:Arial;
-  background:linear-gradient(135deg,#eef1ff,#f8f9ff);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  min-height:100vh;
-  margin:0;
-  padding:20px;
-}
+  :root{
+    --bg:#0b0c10;
+    --panel:#11131a;
+    --panel2:#0f1117;
+    --text:#f5f7ff;
+    --muted:#b8c0ff;
+    --line:rgba(255,255,255,0.10);
+    --gold1:#f7d36b;
+    --gold2:#b8892f;
+    --accent:#6ee7ff;
+    --danger:#ff4d4d;
+    --ok:#00d47a;
+  }
 
-.container{
-  width:900px;
-  max-width:95vw;
-  background:#fff;
-  padding:40px;
-  border-radius:28px;
-  box-shadow:0 25px 60px rgba(0,0,0,0.08);
-  text-align:center;
-}
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    background: radial-gradient(1200px 600px at 50% -100px, rgba(110,231,255,0.18), transparent 60%),
+                radial-gradient(900px 500px at 20% 10%, rgba(247,211,107,0.12), transparent 60%),
+                var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:26px;
+  }
 
-/* LOGO CENTER */
-.logoWrap{
-  display:flex;
-  justify-content:center;
-  margin-bottom:20px;
-}
-.logoWrap img{
-  width:180px;
-}
+  .wrap{
+    width:980px;
+    max-width:96vw;
+  }
 
-/* STEP */
-.step{
-  font-size:12px;
-  letter-spacing:2px;
-  color:#777;
-  margin-bottom:10px;
-}
+  .top{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:18px;
+  }
 
-h1{
-  font-size:40px;
-  margin:0 0 25px;
-  font-weight:900;
-}
+  /* Animated Lifebook logo (no external file) */
+  .logo{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 16px;
+    border:1px solid var(--line);
+    border-radius:18px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+  }
+  .mark{
+    width:44px;height:44px;border-radius:14px;
+    background: radial-gradient(circle at 30% 30%, rgba(110,231,255,0.55), rgba(247,211,107,0.35)),
+                linear-gradient(135deg, rgba(247,211,107,0.25), rgba(110,231,255,0.12));
+    border:1px solid rgba(255,255,255,0.18);
+    position:relative;
+    overflow:hidden;
+  }
+  .mark:before{
+    content:"";
+    position:absolute; inset:-60%;
+    background: conic-gradient(from 180deg, rgba(255,255,255,0.0), rgba(255,255,255,0.35), rgba(255,255,255,0.0));
+    animation: spin 2.8s linear infinite;
+  }
+  .mark:after{
+    content:"";
+    position:absolute; inset:2px;
+    background: rgba(10,10,14,0.60);
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.08);
+  }
+  .logoText{
+    font-weight:900;
+    letter-spacing:0.4px;
+    font-size:22px;
+    background: linear-gradient(90deg, var(--gold1), #fff, var(--accent));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    position:relative;
+  }
+  .logoSub{
+    font-size:12px;
+    color:rgba(245,247,255,0.72);
+    margin-top:2px;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
 
-/* AVATAR */
-.avatar{
-  width:120px;
-  height:120px;
-  border-radius:50%;
-  background:#f4f6ff;
-  border:2px dashed #d4d4d4;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  margin:auto;
-  overflow:hidden;
-}
-.avatar img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  display:none;
-}
-.avatar span{
-  font-size:30px;
-  opacity:.4;
-}
-input[type=file]{display:none;}
+  .panel{
+    border:1px solid var(--line);
+    border-radius:22px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    box-shadow: 0 22px 80px rgba(0,0,0,0.65);
+    padding:22px;
+  }
 
-.row{
-  display:flex;
-  gap:12px;
-  justify-content:center;
-  flex-wrap:wrap;
-  margin-top:20px;
-}
-input,select{
-  padding:14px;
-  border-radius:14px;
-  border:1px solid #ddd;
-  font-size:16px;
-}
+  .title{
+    text-align:center;
+    margin:0 0 8px 0;
+    font-size:34px;
+    font-weight:900;
+  }
+  .subtitle{
+    text-align:center;
+    margin:0 0 18px 0;
+    color:rgba(245,247,255,0.72);
+    line-height:1.4;
+  }
 
-.styles{
-  margin-top:30px;
-}
-.styleCard{
-  padding:12px 18px;
-  border:2px solid #eee;
-  border-radius:14px;
-  cursor:pointer;
-  margin:5px;
-  font-weight:600;
-}
-.styleCard.active{
-  background:#111;
-  color:white;
-  border-color:#111;
-}
+  .grid{
+    display:grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap:18px;
+  }
 
-button{
-  margin-top:30px;
-  padding:16px 40px;
-  border:none;
-  border-radius:18px;
-  background:linear-gradient(90deg,#111,#333);
-  color:white;
-  font-weight:800;
-  font-size:16px;
-  cursor:pointer;
-}
-button:disabled{opacity:.6;}
+  @media(max-width:900px){
+    .grid{grid-template-columns:1fr}
+  }
 
-.badge{
-  margin-top:25px;
-  font-size:12px;
-  color:#777;
-}
-.msg{margin-top:10px;font-weight:700;}
-.err{color:#c40000;}
-.ok{color:#0b8a00;}
+  .card{
+    border:1px solid var(--line);
+    border-radius:18px;
+    background: rgba(15,17,23,0.55);
+    padding:16px;
+  }
+
+  .sectionTitle{
+    font-weight:800;
+    margin:0 0 10px 0;
+    letter-spacing:0.2px;
+  }
+
+  .row{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+
+  input,select{
+    width:100%;
+    padding:12px 14px;
+    border:1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.25);
+    color:var(--text);
+    border-radius:14px;
+    font-size:15px;
+    outline:none;
+  }
+  input:focus,select:focus{
+    border-color:rgba(110,231,255,0.55);
+    box-shadow:0 0 0 4px rgba(110,231,255,0.12);
+  }
+
+  .two{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:12px;
+    width:100%;
+  }
+  @media(max-width:520px){
+    .two{grid-template-columns:1fr}
+  }
+
+  .avatarWrap{
+    display:flex;
+    gap:14px;
+    align-items:center;
+  }
+  .avatar{
+    width:100px;height:100px;
+    border-radius:22px;
+    border:1px dashed rgba(255,255,255,0.22);
+    background: rgba(0,0,0,0.22);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    overflow:hidden;
+    position:relative;
+  }
+  .avatar img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:none; /* stays hidden until upload */
+  }
+  .avatar .plus{
+    font-size:30px;
+    color:rgba(245,247,255,0.75);
+    user-select:none;
+  }
+  input[type="file"]{display:none}
+  .avatarHint{
+    color:rgba(245,247,255,0.65);
+    font-size:13px;
+    line-height:1.35;
+  }
+
+  .styles{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:10px;
+  }
+  .styleCard{
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,0.14);
+    cursor:pointer;
+    font-weight:700;
+    background: rgba(0,0,0,0.18);
+    transition:0.18s;
+    user-select:none;
+    font-size:13px;
+  }
+  .styleCard:hover{transform:translateY(-1px); border-color:rgba(110,231,255,0.45)}
+  .styleCard.active{
+    border-color:rgba(247,211,107,0.75);
+    background: linear-gradient(180deg, rgba(247,211,107,0.18), rgba(110,231,255,0.10));
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+  }
+
+  .ctaRow{
+    display:flex;
+    justify-content:center;
+    margin-top:16px;
+  }
+  .btn{
+    padding:13px 18px;
+    border:none;
+    border-radius:14px;
+    background: linear-gradient(90deg, rgba(247,211,107,0.95), rgba(110,231,255,0.85));
+    color:#0b0c10;
+    font-weight:900;
+    cursor:pointer;
+    font-size:15px;
+    min-width:220px;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+  }
+  .btn:disabled{
+    opacity:0.6;
+    cursor:not-allowed;
+  }
+
+  .msg{
+    margin-top:12px;
+    text-align:center;
+    font-weight:800;
+    min-height:22px;
+  }
+  .msg.err{color:var(--danger)}
+  .msg.ok{color:var(--ok)}
+  .msg.muted{color:rgba(245,247,255,0.7); font-weight:700}
+
+  .aiBadge{
+    margin-top:14px;
+    text-align:center;
+    color:rgba(245,247,255,0.55);
+    font-size:12px;
+  }
+  .aiBadge span{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 12px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.10);
+    background: rgba(0,0,0,0.18);
+  }
+  .dot{
+    width:8px;height:8px;border-radius:999px;
+    background: radial-gradient(circle at 30% 30%, rgba(110,231,255,1), rgba(247,211,107,1));
+    box-shadow:0 0 12px rgba(110,231,255,0.45);
+  }
 </style>
 </head>
 
 <body>
-<div class="container">
+  <div class="wrap">
 
-<div class="logoWrap">
-  <img src="lifebook-logo.png" alt="lifebook"/>
-</div>
+    <div class="top">
+      <div class="logo" aria-label="lifebook logo">
+        <div class="mark"></div>
+        <div>
+          <div class="logoText">lifebook</div>
+          <div class="logoSub">Create a premium AI storybook in minutes</div>
+        </div>
+      </div>
+    </div>
 
-<div class="step">STEP 1 OF 2</div>
-<h1>Create Your Personalized Book</h1>
+    <div class="panel">
+      <h1 class="title">Create Your AI Book</h1>
+      <p class="subtitle">Upload a child photo (optional), choose theme + style, then create a premium cover & preview.</p>
 
-<label class="avatar">
-  <input type="file" id="photoInput" accept="image/*"/>
-  <img id="avatarPreview"/>
-  <span id="avatarIcon">+</span>
-</label>
+      <div class="grid">
 
-<div class="row">
-  <input id="childName" placeholder="Child name"/>
-  <select id="age">
-    <option>3</option><option>4</option><option selected>5</option><option>6</option>
-  </select>
-  <select id="theme">
-    <option>Magical Forest</option>
-    <option>Space Adventure</option>
-  </select>
-</div>
+        <div class="card">
+          <div class="sectionTitle">Child Details</div>
 
-<div class="styles">
-  <div class="styleCard active" data-style="Soft Storybook">Soft Storybook</div>
-  <div class="styleCard" data-style="Pixar 3D">Pixar 3D</div>
-  <div class="styleCard" data-style="Magical Fantasy">Magical Fantasy</div>
-</div>
+          <div class="avatarWrap">
+            <label class="avatar" title="Upload child photo">
+              <input type="file" id="photoInput" accept="image/*" />
+              <img id="avatarPreview" alt="Child photo preview" />
+              <div id="avatarPlus" class="plus">+</div>
+            </label>
+            <div class="avatarHint">
+              <b>Photo preview</b> appears here after upload.<br/>
+              Recommended: clear face, good lighting.
+            </div>
+          </div>
 
-<button id="createBtn">Generate My Book</button>
+          <div style="height:14px"></div>
 
-<div class="badge">AI Generated Story & Illustrations</div>
-<div id="msg" class="msg"></div>
+          <div class="two">
+            <input id="childName" placeholder="Child name" />
+            <select id="age"></select>
+          </div>
 
-</div>
+          <div style="height:12px"></div>
+
+          <select id="theme">
+            <option>Magical Forest</option>
+            <option>Space Adventure</option>
+            <option>Underwater Kingdom</option>
+            <option>Superhero Day</option>
+            <option>Princess & Castle</option>
+            <option>Dinosaurs</option>
+            <option>Animals & Safari</option>
+          </select>
+
+        </div>
+
+        <div class="card">
+          <div class="sectionTitle">Illustration Style</div>
+          <div style="color:rgba(245,247,255,0.72); font-size:13px; line-height:1.35;">
+            Choose the visual style for the book. You can change later.
+          </div>
+
+          <div class="styles" id="styles"></div>
+
+          <div class="ctaRow">
+            <button class="btn" id="createBtn" onclick="createBook()">Create Book</button>
+          </div>
+
+          <div id="msg" class="msg muted"></div>
+        </div>
+
+      </div>
+
+      <!-- AI badge must be bottom -->
+      <div class="aiBadge">
+        <span><i class="dot"></i> AI Generated • Premium Storybook Preview</span>
+      </div>
+
+    </div>
+  </div>
 
 <script>
-const API_BASE="https://romantic-patience-production.up.railway.app";
-let selectedStyle="Soft Storybook";
+  const API_BASE = "https://romantic-patience-production.up.railway.app";
 
-document.querySelectorAll(".styleCard").forEach(c=>{
-  c.onclick=()=>{
-    document.querySelectorAll(".styleCard").forEach(x=>x.classList.remove("active"));
-    c.classList.add("active");
-    selectedStyle=c.dataset.style;
+  const msgEl = document.getElementById("msg");
+  const photoInput = document.getElementById("photoInput");
+  const avatarPreview = document.getElementById("avatarPreview");
+  const avatarPlus = document.getElementById("avatarPlus");
+  const createBtn = document.getElementById("createBtn");
+
+  // Build age 1..10
+  const ageSelect = document.getElementById("age");
+  for (let i = 1; i <= 10; i++) {
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = String(i);
+    if (i === 5) opt.selected = true;
+    ageSelect.appendChild(opt);
   }
-});
 
-photoInput.onchange=e=>{
-  const file=e.target.files[0];
-  if(!file)return;
-  const reader=new FileReader();
-  reader.onload=()=>{
-    avatarPreview.src=reader.result;
-    avatarPreview.style.display="block";
-    avatarIcon.style.display="none";
-  };
-  reader.readAsDataURL(file);
-};
+  // Styles (restored + expanded)
+  const ALL_STYLES = [
+    "Soft Storybook",
+    "Magical Fantasy",
+    "Pixar 3D",
+    "Watercolor Dream",
+    "Classic Fairytale",
+    "Minimal Scandinavian",
+    "Cute Kawaii",
+    "Bright Cartoon",
+    "Ghibli-inspired (soft)",
+    "Paper Cutout",
+    "Pastel Nursery",
+    "Comic Book",
+    "3D Clay",
+    "Vintage Storybook"
+  ];
 
-createBtn.onclick=async()=>{
-  const name=document.getElementById("childName").value.trim();
-  if(!name){msg.textContent="Enter child name";msg.className="msg err";return;}
+  const stylesWrap = document.getElementById("styles");
+  let selectedStyle = "Soft Storybook";
 
-  createBtn.disabled=true;
-  msg.textContent="Creating book...";
+  function renderStyles(){
+    stylesWrap.innerHTML = "";
+    ALL_STYLES.forEach(s=>{
+      const div = document.createElement("div");
+      div.className = "styleCard";
+      div.dataset.style = s;
+      div.textContent = s;
+      div.onclick = () => selectStyle(s);
+      stylesWrap.appendChild(div);
+    });
+    selectStyle(selectedStyle);
+  }
 
-  const res=await fetch(`${API_BASE}/create-book`,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      child_name:name,
-      age:age.value,
-      story_type:theme.value,
-      illustration_style:selectedStyle
-    })
+  function selectStyle(style){
+    selectedStyle = style;
+    document.querySelectorAll(".styleCard").forEach(card=>{
+      card.classList.toggle("active", card.dataset.style === style);
+    });
+  }
+
+  renderStyles();
+
+  // Photo preview (blank until upload)
+  photoInput.addEventListener("change", (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      localStorage.setItem("childPhoto", reader.result);
+      avatarPreview.src = reader.result;
+      avatarPreview.style.display = "block";
+      avatarPlus.style.display = "none";
+    };
+    reader.readAsDataURL(file);
   });
 
-  const data=await res.json();
-  if(!res.ok){msg.textContent="Error";msg.className="msg err";createBtn.disabled=false;return;}
+  function setMsg(text, type="muted"){
+    msgEl.className = "msg " + type;
+    msgEl.textContent = text || "";
+  }
 
-  localStorage.setItem("bookData",JSON.stringify(data));
-  window.location.href="preview.html";
-};
+  async function createBook() {
+    setMsg("");
+
+    const payload = {
+      child_name: document.getElementById("childName").value.trim(),
+      age: document.getElementById("age").value,
+      story_type: document.getElementById("theme").value,
+      illustration_style: selectedStyle,
+      child_photo: localStorage.getItem("childPhoto") || null
+    };
+
+    if (!payload.child_name) {
+      setMsg("Please enter a child name.", "err");
+      return;
+    }
+
+    try {
+      createBtn.disabled = true;
+      setMsg("Creating your book...", "muted");
+
+      const res = await fetch(`${API_BASE}/create-book`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMsg(data?.message || "Error creating book", "err");
+        createBtn.disabled = false;
+        return;
+      }
+
+      // Force store illustration_style in bookData
+      data.illustration_style = payload.illustration_style;
+
+      localStorage.setItem("bookData", JSON.stringify(data));
+      localStorage.removeItem("paid"); // must pay again for new book
+      setMsg("Success! Opening premium cover...", "ok");
+
+      // go to premium cover page
+      window.location.href = "cover.html";
+
+    } catch (err) {
+      setMsg("Network error. Check API_BASE and Railway logs.", "err");
+      createBtn.disabled = false;
+    }
+  }
 </script>
 </body>
 </html>
