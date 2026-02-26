@@ -1,73 +1,334 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Book Preview</title>
-
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lifebook - Preview</title>
 <style>
-body{
-  font-family:Arial;
-  background:#f5f7ff;
-  margin:0;
-  padding:30px;
-}
-.topBar{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-.backBtn{
-  padding:8px 14px;
-  border-radius:12px;
-  border:1px solid #ddd;
-  cursor:pointer;
-}
-.bookCard{
-  margin:auto;
-  margin-top:30px;
-  width:500px;
-  max-width:95vw;
-  background:white;
-  border-radius:24px;
-  box-shadow:0 20px 60px rgba(0,0,0,0.1);
-  padding:40px;
-  text-align:center;
-}
-.coverTitle{
-  font-size:30px;
-  font-weight:900;
-}
-.unlockBtn{
-  margin-top:25px;
-  padding:16px 40px;
-  border:none;
-  border-radius:18px;
-  background:linear-gradient(90deg,#111,#333);
-  color:white;
-  font-weight:800;
-  cursor:pointer;
-}
+  :root{
+    --bg:#0b0c10;
+    --panel:#11131a;
+    --text:#f5f7ff;
+    --line:rgba(255,255,255,0.10);
+    --gold1:#f7d36b;
+    --accent:#6ee7ff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    background: radial-gradient(1000px 560px at 50% -120px, rgba(110,231,255,0.18), transparent 60%),
+                radial-gradient(900px 500px at 20% 10%, rgba(247,211,107,0.12), transparent 60%),
+                var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    padding:26px;
+  }
+
+  .wrap{width:1080px; max-width:96vw; margin:0 auto;}
+
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:14px;
+    gap:10px;
+  }
+
+  .logo{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 16px;
+    border:1px solid var(--line);
+    border-radius:18px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  }
+  .mark{
+    width:40px;height:40px;border-radius:14px;
+    background: radial-gradient(circle at 30% 30%, rgba(110,231,255,0.55), rgba(247,211,107,0.35));
+    border:1px solid rgba(255,255,255,0.18);
+    position:relative; overflow:hidden;
+  }
+  .mark:before{
+    content:"";
+    position:absolute; inset:-60%;
+    background: conic-gradient(from 180deg, rgba(255,255,255,0.0), rgba(255,255,255,0.35), rgba(255,255,255,0.0));
+    animation: spin 2.8s linear infinite;
+  }
+  .mark:after{
+    content:"";
+    position:absolute; inset:2px;
+    background: rgba(10,10,14,0.60);
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.08);
+  }
+  .logoText{
+    font-weight:900;
+    letter-spacing:0.4px;
+    font-size:18px;
+    background: linear-gradient(90deg, var(--gold1), #fff, var(--accent));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .logoSub{font-size:12px;color:rgba(245,247,255,0.72);margin-top:2px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Back button top right (requested) */
+  .back{
+    border:1px solid var(--line);
+    background: rgba(0,0,0,0.25);
+    color:rgba(245,247,255,0.9);
+    border-radius:14px;
+    padding:10px 12px;
+    cursor:pointer;
+    font-weight:800;
+  }
+
+  .panel{
+    border:1px solid var(--line);
+    border-radius:22px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    box-shadow: 0 22px 80px rgba(0,0,0,0.65);
+    padding:18px;
+  }
+
+  .h1{
+    margin:0 0 6px 0;
+    font-size:24px;
+    font-weight:950;
+  }
+  .meta{
+    margin:0 0 14px 0;
+    color:rgba(245,247,255,0.72);
+    font-size:13px;
+  }
+
+  .pages{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:14px;
+  }
+  @media(max-width:900px){
+    .pages{grid-template-columns:1fr}
+  }
+
+  .page{
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:18px;
+    background: rgba(0,0,0,0.22);
+    overflow:hidden;
+  }
+
+  .imgBox{
+    position:relative;
+    width:100%;
+    aspect-ratio: 4/3;
+    background: rgba(0,0,0,0.25);
+    border-bottom:1px solid rgba(255,255,255,0.10);
+  }
+  .imgBox img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:none;
+  }
+  .loader{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:rgba(245,247,255,0.78);
+    font-weight:900;
+    font-size:13px;
+    padding:14px;
+    text-align:center;
+  }
+
+  .text{
+    padding:12px 12px 0 12px;
+    font-size:14px;
+    line-height:1.5;
+    color:rgba(245,247,255,0.92);
+    font-weight:650;
+  }
+  .prompt{
+    padding:10px 12px 14px 12px;
+    font-size:12px;
+    color:rgba(245,247,255,0.62);
+    line-height:1.4;
+  }
+
+  .warn{
+    margin-top:10px;
+    color:rgba(255,255,255,0.70);
+    font-size:12px;
+  }
 </style>
 </head>
-
 <body>
+  <div class="wrap">
 
-<div class="topBar">
-  <div></div>
-  <div class="backBtn" onclick="window.location.href='wizard.html'">Back</div>
-</div>
+    <div class="topbar">
+      <div class="logo">
+        <div class="mark"></div>
+        <div>
+          <div class="logoText">lifebook</div>
+          <div class="logoSub" id="subline">Book preview</div>
+        </div>
+      </div>
 
-<div class="bookCard">
-  <div class="coverTitle" id="title"></div>
-  <p>Preview locked. Unlock full illustrated book.</p>
-  <button class="unlockBtn">Unlock Full Preview – $49</button>
-</div>
+      <button class="back" onclick="window.location.href='cover.html'">Back</button>
+    </div>
+
+    <div class="panel">
+      <div class="h1" id="title">Book Preview</div>
+      <p class="meta" id="meta"></p>
+
+      <div id="pages" class="pages"></div>
+      <div class="warn">Tip: images are generated lazily while you scroll (faster + cheaper).</div>
+    </div>
+
+  </div>
 
 <script>
-const book=JSON.parse(localStorage.getItem("bookData"));
-title.textContent=book?.title||"Your Personalized Story";
-</script>
+  const API_BASE = "https://romantic-patience-production.up.railway.app";
 
+  // must be paid
+  const paid = localStorage.getItem("paid");
+  if (paid !== "true") {
+    window.location.href = "cover.html";
+  }
+
+  const bookRaw = localStorage.getItem("bookData");
+  if (!bookRaw) {
+    document.getElementById("pages").innerHTML = "<p>No book data found. Go back and create a book.</p>";
+    throw new Error("No bookData in localStorage");
+  }
+
+  const book = JSON.parse(bookRaw);
+  const titleText = book?.title ? `Book Preview - ${book.title}` : "Book Preview";
+  document.getElementById("title").textContent = titleText;
+
+  const style = book.illustration_style || "Soft Storybook";
+  document.getElementById("subline").textContent = "Premium preview • " + style;
+  document.getElementById("meta").textContent = `Style: ${style} • Pages: ${book.pages?.length || 0}`;
+
+  const pagesEl = document.getElementById("pages");
+  const pages = Array.isArray(book.pages) ? book.pages : [];
+
+  // concurrency limiter
+  let active = 0;
+  const queue = [];
+  const MAX_CONCURRENT = 2;
+
+  function runNext() {
+    if (active >= MAX_CONCURRENT) return;
+    const job = queue.shift();
+    if (!job) return;
+    active++;
+    job().finally(() => {
+      active--;
+      runNext();
+    });
+  }
+
+  function enqueue(job) {
+    queue.push(job);
+    runNext();
+  }
+
+  // cache images so they don't regenerate on every visit:
+  // We'll store imageBase64 back into bookData pages[i].imageBase64
+  function saveImageToBookData(index, imageBase64){
+    try{
+      const raw = localStorage.getItem("bookData");
+      if(!raw) return;
+      const b = JSON.parse(raw);
+      if(!Array.isArray(b.pages)) return;
+      if(!b.pages[index]) return;
+      b.pages[index].imageBase64 = imageBase64;
+      localStorage.setItem("bookData", JSON.stringify(b));
+    }catch(e){}
+  }
+
+  async function generateImage(prompt, imgEl, loaderEl, index) {
+
+    // If already cached in localStorage, use it
+    if (pages[index]?.imageBase64) {
+      imgEl.src = `data:image/png;base64,${pages[index].imageBase64}`;
+      imgEl.style.display = "block";
+      loaderEl.style.display = "none";
+      return;
+    }
+
+    const res = await fetch(`${API_BASE}/generate-image`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt,
+        illustration_style: style
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || "Image generation failed");
+
+    imgEl.src = `data:image/png;base64,${data.imageBase64}`;
+    imgEl.style.display = "block";
+    loaderEl.style.display = "none";
+
+    // cache
+    saveImageToBookData(index, data.imageBase64);
+  }
+
+  function createPageCard(p, index) {
+    const card = document.createElement("div");
+    card.className = "page";
+
+    const imgBox = document.createElement("div");
+    imgBox.className = "imgBox";
+
+    const loader = document.createElement("div");
+    loader.className = "loader";
+    loader.textContent = "Generating illustration...";
+
+    const img = document.createElement("img");
+    img.style.display = "none";
+
+    imgBox.appendChild(loader);
+    imgBox.appendChild(img);
+
+    const text = document.createElement("div");
+    text.className = "text";
+    text.textContent = p.text || "";
+
+    const prompt = document.createElement("div");
+    prompt.className = "prompt";
+    prompt.innerHTML = `<b>Illustration prompt:</b> ${p.imagePrompt || ""}`;
+
+    card.appendChild(imgBox);
+    card.appendChild(text);
+    card.appendChild(prompt);
+
+    // Lazy-load when visible
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          observer.disconnect();
+          enqueue(() => generateImage(p.imagePrompt || "", img, loader, index));
+        }
+      });
+    }, { threshold: 0.25 });
+
+    observer.observe(card);
+
+    return card;
+  }
+
+  pages.forEach((p, i) => pagesEl.appendChild(createPageCard(p, i)));
+</script>
 </body>
 </html>
