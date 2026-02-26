@@ -1,334 +1,151 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Lifebook - Preview</title>
-<style>
-  :root{
-    --bg:#0b0c10;
-    --panel:#11131a;
-    --text:#f5f7ff;
-    --line:rgba(255,255,255,0.10);
-    --gold1:#f7d36b;
-    --accent:#6ee7ff;
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0;
-    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    background: radial-gradient(1000px 560px at 50% -120px, rgba(110,231,255,0.18), transparent 60%),
-                radial-gradient(900px 500px at 20% 10%, rgba(247,211,107,0.12), transparent 60%),
-                var(--bg);
-    color:var(--text);
-    min-height:100vh;
-    padding:26px;
-  }
-
-  .wrap{width:1080px; max-width:96vw; margin:0 auto;}
-
-  .topbar{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    margin-bottom:14px;
-    gap:10px;
-  }
-
-  .logo{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    padding:10px 16px;
-    border:1px solid var(--line);
-    border-radius:18px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-  }
-  .mark{
-    width:40px;height:40px;border-radius:14px;
-    background: radial-gradient(circle at 30% 30%, rgba(110,231,255,0.55), rgba(247,211,107,0.35));
-    border:1px solid rgba(255,255,255,0.18);
-    position:relative; overflow:hidden;
-  }
-  .mark:before{
-    content:"";
-    position:absolute; inset:-60%;
-    background: conic-gradient(from 180deg, rgba(255,255,255,0.0), rgba(255,255,255,0.35), rgba(255,255,255,0.0));
-    animation: spin 2.8s linear infinite;
-  }
-  .mark:after{
-    content:"";
-    position:absolute; inset:2px;
-    background: rgba(10,10,14,0.60);
-    border-radius:12px;
-    border:1px solid rgba(255,255,255,0.08);
-  }
-  .logoText{
-    font-weight:900;
-    letter-spacing:0.4px;
-    font-size:18px;
-    background: linear-gradient(90deg, var(--gold1), #fff, var(--accent));
-    -webkit-background-clip:text;
-    background-clip:text;
-    color:transparent;
-  }
-  .logoSub{font-size:12px;color:rgba(245,247,255,0.72);margin-top:2px;}
-  @keyframes spin{to{transform:rotate(360deg)}}
-
-  /* Back button top right (requested) */
-  .back{
-    border:1px solid var(--line);
-    background: rgba(0,0,0,0.25);
-    color:rgba(245,247,255,0.9);
-    border-radius:14px;
-    padding:10px 12px;
-    cursor:pointer;
-    font-weight:800;
-  }
-
-  .panel{
-    border:1px solid var(--line);
-    border-radius:22px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-    box-shadow: 0 22px 80px rgba(0,0,0,0.65);
-    padding:18px;
-  }
-
-  .h1{
-    margin:0 0 6px 0;
-    font-size:24px;
-    font-weight:950;
-  }
-  .meta{
-    margin:0 0 14px 0;
-    color:rgba(245,247,255,0.72);
-    font-size:13px;
-  }
-
-  .pages{
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap:14px;
-  }
-  @media(max-width:900px){
-    .pages{grid-template-columns:1fr}
-  }
-
-  .page{
-    border:1px solid rgba(255,255,255,0.12);
-    border-radius:18px;
-    background: rgba(0,0,0,0.22);
-    overflow:hidden;
-  }
-
-  .imgBox{
-    position:relative;
-    width:100%;
-    aspect-ratio: 4/3;
-    background: rgba(0,0,0,0.25);
-    border-bottom:1px solid rgba(255,255,255,0.10);
-  }
-  .imgBox img{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    display:none;
-  }
-  .loader{
-    position:absolute;
-    inset:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:rgba(245,247,255,0.78);
-    font-weight:900;
-    font-size:13px;
-    padding:14px;
-    text-align:center;
-  }
-
-  .text{
-    padding:12px 12px 0 12px;
-    font-size:14px;
-    line-height:1.5;
-    color:rgba(245,247,255,0.92);
-    font-weight:650;
-  }
-  .prompt{
-    padding:10px 12px 14px 12px;
-    font-size:12px;
-    color:rgba(245,247,255,0.62);
-    line-height:1.4;
-  }
-
-  .warn{
-    margin-top:10px;
-    color:rgba(255,255,255,0.70);
-    font-size:12px;
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Personal Storybook - Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .book-shadow { shadow-offset: {width: 10, height: 10}; shadow-color: rgba(0,0,0,0.3); shadow-radius: 20; }
+        .page-turn { transition: transform 0.6s cubic-bezier(0.645, 0.045, 0.355, 1); }
+        .gradient-bg { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+    </style>
 </head>
-<body>
-  <div class="wrap">
+<body class="gradient-bg min-h-screen font-sans overflow-x-hidden">
 
-    <div class="topbar">
-      <div class="logo">
-        <div class="mark"></div>
-        <div>
-          <div class="logoText">lifebook</div>
-          <div class="logoSub" id="subline">Book preview</div>
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-12">
+            <h1 class="text-3xl font-black text-blue-900 tracking-tighter">lifebook</h1>
+            <div class="bg-white px-6 py-2 rounded-full shadow-sm border border-blue-100 flex items-center gap-3">
+                <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                <span class="text-sm font-bold text-blue-900">AI Rendering Complete</span>
+            </div>
         </div>
-      </div>
 
-      <button class="back" onclick="window.location.href='cover.html'">Back</button>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+            
+            <div class="lg:col-span-8">
+                <div id="book-container" class="relative bg-white rounded-lg shadow-2xl overflow-hidden aspect-[4/3] flex items-center justify-center border-8 border-white">
+                    <div id="loading-overlay" class="absolute inset-0 bg-white z-50 flex flex-col items-center justify-center p-12 text-center">
+                        <div class="w-20 h-20 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-6"></div>
+                        <h2 class="text-2xl font-bold text-gray-800">Magical things take a moment...</h2>
+                        <p class="text-gray-500 mt-2 italic">Generating your custom illustrations based on the photo</p>
+                    </div>
+
+                    <div id="page-content" class="hidden w-full h-full flex flex-col md:flex-row">
+                        <div class="w-full md:w-1/2 h-full bg-gray-100 overflow-hidden">
+                            <img id="page-img" src="" class="w-full h-full object-cover">
+                        </div>
+                        <div class="w-full md:w-1/2 h-full p-8 md:p-12 flex flex-col justify-center bg-white border-l border-gray-100">
+                            <h3 id="book-title" class="text-xs uppercase tracking-widest text-blue-500 font-bold mb-4"></h3>
+                            <p id="page-text" class="text-xl md:text-2xl leading-relaxed font-serif text-gray-800"></p>
+                            <div class="mt-8 text-sm text-gray-400 font-medium italic">Page <span id="page-num">1</span> of 10</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-center gap-4 mt-8">
+                    <button onclick="prevPage()" class="p-4 bg-white rounded-full shadow-md hover:bg-gray-50 transition-all">⬅️</button>
+                    <button onclick="nextPage()" class="p-4 bg-white rounded-full shadow-md hover:bg-gray-50 transition-all">➡️</button>
+                </div>
+            </div>
+
+            <div class="lg:col-span-4">
+                <div class="bg-white rounded-3xl p-8 shadow-xl border border-blue-50 sticky top-24">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">Order Your Copy</h2>
+                    
+                    <div class="space-y-4 mb-8">
+                        <div class="flex justify-between items-center p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                            <div>
+                                <p class="font-bold text-blue-900">Hardcover Edition</p>
+                                <p class="text-xs text-blue-600">Premium Matte Finish</p>
+                            </div>
+                            <span class="font-black text-xl text-blue-900">$49.00</span>
+                        </div>
+                        <p class="text-xs text-gray-400 text-center italic">Includes free shipping and digital PDF</p>
+                    </div>
+
+                    <button class="w-full bg-green-500 hover:bg-green-600 text-white font-black py-5 rounded-2xl shadow-lg shadow-green-100 transition-transform active:scale-95 text-xl">
+                        Buy Now
+                    </button>
+                    
+                    <div class="mt-6 flex items-center justify-center gap-4">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" class="h-4">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" class="h-3">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" class="h-6">
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="panel">
-      <div class="h1" id="title">Book Preview</div>
-      <p class="meta" id="meta"></p>
+    <script>
+        let bookData = null;
+        let currentPage = 0;
 
-      <div id="pages" class="pages"></div>
-      <div class="warn">Tip: images are generated lazily while you scroll (faster + cheaper).</div>
-    </div>
+        // טעינת הנתונים שנשמרו ב-SessionStorage מהדף הקודם
+        window.onload = function() {
+            const savedData = sessionStorage.getItem('lastGeneratedBook');
+            if (savedData) {
+                bookData = JSON.parse(savedData);
+                renderBook();
+            } else {
+                alert("No book found. Redirecting to wizard...");
+                window.location.href = "/wizard.html";
+            }
+        };
 
-  </div>
-
-<script>
-  const API_BASE = "https://romantic-patience-production.up.railway.app";
-
-  // must be paid
-  const paid = localStorage.getItem("paid");
-  if (paid !== "true") {
-    window.location.href = "cover.html";
-  }
-
-  const bookRaw = localStorage.getItem("bookData");
-  if (!bookRaw) {
-    document.getElementById("pages").innerHTML = "<p>No book data found. Go back and create a book.</p>";
-    throw new Error("No bookData in localStorage");
-  }
-
-  const book = JSON.parse(bookRaw);
-  const titleText = book?.title ? `Book Preview - ${book.title}` : "Book Preview";
-  document.getElementById("title").textContent = titleText;
-
-  const style = book.illustration_style || "Soft Storybook";
-  document.getElementById("subline").textContent = "Premium preview • " + style;
-  document.getElementById("meta").textContent = `Style: ${style} • Pages: ${book.pages?.length || 0}`;
-
-  const pagesEl = document.getElementById("pages");
-  const pages = Array.isArray(book.pages) ? book.pages : [];
-
-  // concurrency limiter
-  let active = 0;
-  const queue = [];
-  const MAX_CONCURRENT = 2;
-
-  function runNext() {
-    if (active >= MAX_CONCURRENT) return;
-    const job = queue.shift();
-    if (!job) return;
-    active++;
-    job().finally(() => {
-      active--;
-      runNext();
-    });
-  }
-
-  function enqueue(job) {
-    queue.push(job);
-    runNext();
-  }
-
-  // cache images so they don't regenerate on every visit:
-  // We'll store imageBase64 back into bookData pages[i].imageBase64
-  function saveImageToBookData(index, imageBase64){
-    try{
-      const raw = localStorage.getItem("bookData");
-      if(!raw) return;
-      const b = JSON.parse(raw);
-      if(!Array.isArray(b.pages)) return;
-      if(!b.pages[index]) return;
-      b.pages[index].imageBase64 = imageBase64;
-      localStorage.setItem("bookData", JSON.stringify(b));
-    }catch(e){}
-  }
-
-  async function generateImage(prompt, imgEl, loaderEl, index) {
-
-    // If already cached in localStorage, use it
-    if (pages[index]?.imageBase64) {
-      imgEl.src = `data:image/png;base64,${pages[index].imageBase64}`;
-      imgEl.style.display = "block";
-      loaderEl.style.display = "none";
-      return;
-    }
-
-    const res = await fetch(`${API_BASE}/generate-image`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt,
-        illustration_style: style
-      })
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.message || "Image generation failed");
-
-    imgEl.src = `data:image/png;base64,${data.imageBase64}`;
-    imgEl.style.display = "block";
-    loaderEl.style.display = "none";
-
-    // cache
-    saveImageToBookData(index, data.imageBase64);
-  }
-
-  function createPageCard(p, index) {
-    const card = document.createElement("div");
-    card.className = "page";
-
-    const imgBox = document.createElement("div");
-    imgBox.className = "imgBox";
-
-    const loader = document.createElement("div");
-    loader.className = "loader";
-    loader.textContent = "Generating illustration...";
-
-    const img = document.createElement("img");
-    img.style.display = "none";
-
-    imgBox.appendChild(loader);
-    imgBox.appendChild(img);
-
-    const text = document.createElement("div");
-    text.className = "text";
-    text.textContent = p.text || "";
-
-    const prompt = document.createElement("div");
-    prompt.className = "prompt";
-    prompt.innerHTML = `<b>Illustration prompt:</b> ${p.imagePrompt || ""}`;
-
-    card.appendChild(imgBox);
-    card.appendChild(text);
-    card.appendChild(prompt);
-
-    // Lazy-load when visible
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        if (e.isIntersecting) {
-          observer.disconnect();
-          enqueue(() => generateImage(p.imagePrompt || "", img, loader, index));
+        async function renderBook() {
+            // סימולציה של "עיבוד" להעלאת ערך המוצר
+            setTimeout(() => {
+                document.getElementById('loading-overlay').classList.add('hidden');
+                document.getElementById('page-content').classList.remove('hidden');
+                updatePage();
+            }, 3000);
         }
-      });
-    }, { threshold: 0.25 });
 
-    observer.observe(card);
+        function updatePage() {
+            const page = bookData.pages[currentPage];
+            document.getElementById('book-title').innerText = bookData.title;
+            document.getElementById('page-text').innerText = page.text;
+            document.getElementById('page-num').innerText = currentPage + 1;
+            
+            // כאן נכנס הקסם: קריאה לשרת לייצור התמונה לעמוד הספציפי
+            // בגרסת פרימיום, היינו מייצרים את התמונה מראש, אבל לצורך ההדגמה:
+            const imgEl = document.getElementById('page-img');
+            imgEl.src = "https://via.placeholder.com/800x1000?text=Generating+Art..."; // Placeholder
+            
+            // פונקציה לקריאה ל-API של DALL-E לייצור התמונה לעמוד
+            fetchImage(page.imagePrompt);
+        }
 
-    return card;
-  }
+        async function fetchImage(prompt) {
+            try {
+                const res = await fetch('/generate-image', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ prompt: prompt, illustration_style: 'Disney 3D' })
+                });
+                const data = await res.json();
+                if(data.status === 'ok') {
+                    document.getElementById('page-img').src = data.url;
+                }
+            } catch (e) { console.error("Image generation failed"); }
+        }
 
-  pages.forEach((p, i) => pagesEl.appendChild(createPageCard(p, i)));
-</script>
+        function nextPage() {
+            if (currentPage < bookData.pages.length - 1) {
+                currentPage++;
+                updatePage();
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 0) {
+                currentPage--;
+                updatePage();
+            }
+        }
+    </script>
 </body>
 </html>
