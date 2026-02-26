@@ -4,205 +4,258 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Create Your AI Book</title>
-<style>
-  body{font-family:Arial;background:#fff;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;}
-  .container{width:900px;max-width:95vw;text-align:center;}
-  h1{font-size:42px;margin-bottom:24px;}
-  .row{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;}
-  input,select{padding:12px 14px;border:1px solid #ddd;border-radius:12px;font-size:16px;}
-  button{padding:12px 18px;border:none;border-radius:12px;background:#111;color:#fff;font-weight:700;cursor:pointer;}
-  .avatar{width:90px;height:90px;border-radius:50%;background:#f1f1f1;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid #eee;}
-  .avatar img{width:100%;height:100%;object-fit:cover;}
-  input[type="file"]{display:none;}
-  .hint{margin-top:12px;color:#888;}
-  .msg{margin-top:14px;font-weight:700;}
-  .err{color:#c40000;}
-  .ok{color:#0b8a00;}
 
-  .styleCard{
-    padding:14px 18px;
-    border-radius:14px;
-    border:2px solid #ddd;
-    cursor:pointer;
-    font-weight:600;
-    transition:0.2s;
-    user-select:none;
-  }
-  .styleCard:hover{border-color:#111;}
-  .styleCard.active{border-color:#111;background:#111;color:white;}
+<style>
+body{
+  font-family:Arial;
+  background:linear-gradient(135deg,#f6f7ff,#eef1ff);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+  margin:0;
+}
+.container{
+  width:900px;
+  max-width:95vw;
+  text-align:center;
+  animation:fadeIn .5s ease;
+}
+@keyframes fadeIn{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
+h1{
+  font-size:42px;
+  margin-bottom:30px;
+  font-weight:800;
+}
+.row{
+  display:flex;
+  gap:14px;
+  justify-content:center;
+  align-items:center;
+  flex-wrap:wrap;
+}
+input,select{
+  padding:12px 14px;
+  border:1px solid #ddd;
+  border-radius:12px;
+  font-size:16px;
+}
+button{
+  padding:14px 22px;
+  border:none;
+  border-radius:14px;
+  background:linear-gradient(90deg,#111,#333);
+  color:#fff;
+  font-weight:700;
+  cursor:pointer;
+  transition:0.2s;
+}
+button:hover{
+  transform:scale(1.05);
+}
+.avatar{
+  width:100px;
+  height:100px;
+  border-radius:50%;
+  background:#eee;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  border:2px dashed #ccc;
+  transition:.2s;
+}
+.avatar:hover{
+  border-color:#111;
+}
+.avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+input[type="file"]{
+  display:none;
+}
+.styleCard{
+  padding:14px 18px;
+  border-radius:14px;
+  border:2px solid #ddd;
+  cursor:pointer;
+  font-weight:600;
+  transition:0.2s;
+}
+.styleCard:hover{
+  border-color:#111;
+}
+.styleCard.active{
+  border-color:#111;
+  background:#111;
+  color:white;
+}
+.hint{
+  margin-top:16px;
+  color:#777;
+}
+.msg{
+  margin-top:14px;
+  font-weight:700;
+}
+.err{color:#c40000;}
+.ok{color:#0b8a00;}
 </style>
 </head>
 
 <body>
 <div class="container">
-  <h1>Create Your AI Book</h1>
 
-  <div class="row">
-    <label class="avatar" title="Upload child photo">
-      <input type="file" id="photoInput" accept="image/*" />
-      <img id="avatarPreview" alt="" style="display:none;" />
-      <span id="avatarIcon">+</span>
-    </label>
+<h1>Create Your AI Book</h1>
 
-    <input id="childName" placeholder="Child name" />
-    <select id="age">
-      <option value="3">3</option>
-      <option value="4">4</option>
-      <option value="5" selected>5</option>
-      <option value="6">6</option>
-      <option value="7">7</option>
-    </select>
+<div class="row">
 
-    <select id="theme">
-      <option>Magical Forest</option>
-      <option>Space Adventure</option>
-      <option>Underwater Kingdom</option>
-      <option>Superhero Day</option>
-    </select>
-  </div>
+<label class="avatar">
+  <input type="file" id="photoInput" accept="image/*" />
+  <img id="avatarPreview" style="display:none;" />
+  <span id="avatarIcon">+</span>
+</label>
 
-  <div style="margin-top:25px;">
-    <h3>Select Illustration Style</h3>
+<input id="childName" placeholder="Child name" />
 
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:12px;">
-      <div class="styleCard active" onclick="selectStyle('Soft Storybook')" data-style="Soft Storybook">Soft Storybook</div>
-      <div class="styleCard" onclick="selectStyle('Pixar 3D')" data-style="Pixar 3D">Pixar 3D</div>
-      <div class="styleCard" onclick="selectStyle('Magical Fantasy')" data-style="Magical Fantasy">Magical Fantasy</div>
-      <div class="styleCard" onclick="selectStyle('Minimal Scandinavian')" data-style="Minimal Scandinavian">Minimal Scandinavian</div>
-    </div>
-  </div>
+<select id="age">
+  <option value="3">3</option>
+  <option value="4">4</option>
+  <option value="5" selected>5</option>
+  <option value="6">6</option>
+  <option value="7">7</option>
+</select>
 
-  <div style="margin-top:18px;">
-    <button onclick="createBook()">Create Book</button>
-  </div>
+<select id="theme">
+  <option>Magical Forest</option>
+  <option>Space Adventure</option>
+  <option>Underwater Kingdom</option>
+  <option>Superhero Day</option>
+</select>
 
-  <div class="hint">Upload a photo (optional). Then click Create Book.</div>
-  <div id="msg" class="msg"></div>
+</div>
+
+<div style="margin-top:30px;">
+<h3>Select Illustration Style</h3>
+
+<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:12px;">
+
+<div class="styleCard active" data-style="Soft Storybook">Soft Storybook</div>
+<div class="styleCard" data-style="Pixar 3D">Pixar 3D</div>
+<div class="styleCard" data-style="Magical Fantasy">Magical Fantasy</div>
+<div class="styleCard" data-style="Minimal Scandinavian">Minimal Scandinavian</div>
+
+</div>
+</div>
+
+<div style="margin-top:30px;">
+<button id="createBtn">Create Book</button>
+</div>
+
+<div class="hint">Upload a photo (optional). Fill name and click Create Book.</div>
+<div id="msg" class="msg"></div>
+
 </div>
 
 <script>
-
-  // ===== IMAGE PREVIEW FIX =====
+const API_BASE = "https://romantic-patience-production.up.railway.app";
 
 const photoInput = document.getElementById("photoInput");
 const avatarPreview = document.getElementById("avatarPreview");
 const avatarIcon = document.getElementById("avatarIcon");
+const msgEl = document.getElementById("msg");
+const createBtn = document.getElementById("createBtn");
 
-// Clear previous preview on load
-localStorage.removeItem("childPhotoPreview");
+let selectedStyle = "Soft Storybook";
 
-photoInput.addEventListener("change", function () {
+// ===== IMAGE PREVIEW =====
+photoInput.addEventListener("change", function(){
   const file = this.files[0];
-  if (!file) return;
+  if(!file) return;
 
-  // בדיקה שזה תמונה
-  if (!file.type.startsWith("image/")) {
+  if(!file.type.startsWith("image/")){
     alert("Please select an image file.");
     return;
   }
 
   const reader = new FileReader();
-
-  reader.onload = function (e) {
-    const base64 = e.target.result;
-
-    localStorage.setItem("childPhotoPreview", base64);
-
-    avatarPreview.src = base64;
+  reader.onload = function(e){
+    avatarPreview.src = e.target.result;
     avatarPreview.style.display = "block";
     avatarIcon.style.display = "none";
-  };
 
+    // שומרים אופציונלי להמשך
+    localStorage.setItem("childPhotoPreview", e.target.result);
+  };
   reader.readAsDataURL(file);
 });
-  const API_BASE = "https://romantic-patience-production.up.railway.app";
 
-  const msgEl = document.getElementById("msg");
-  const photoInput = document.getElementById("photoInput");
-  const avatarPreview = document.getElementById("avatarPreview");
-  const avatarIcon = document.getElementById("avatarIcon");
-
-  // Save photo locally for UI preview only (NOT sent to backend in option B)
-  photoInput.addEventListener("change", (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      localStorage.setItem("childPhotoPreview", reader.result);
-      avatarPreview.src = reader.result;
-      avatarPreview.style.display = "block";
-      avatarIcon.style.display = "none";
-    };
-    reader.readAsDataURL(file);
+// ===== STYLE SELECT =====
+document.querySelectorAll(".styleCard").forEach(card=>{
+  card.addEventListener("click", function(){
+    document.querySelectorAll(".styleCard").forEach(c=>c.classList.remove("active"));
+    this.classList.add("active");
+    selectedStyle = this.dataset.style;
   });
+});
 
-  // On load: if a photo was already selected before, show it
-  (function initPhotoPreview(){
-    const saved = localStorage.getItem("childPhotoPreview");
-    if (saved) {
-      avatarPreview.src = saved;
-      avatarPreview.style.display = "block";
-      avatarIcon.style.display = "none";
-    }
-  })();
+// ===== CREATE BOOK =====
+createBtn.addEventListener("click", async function(){
 
-  let selectedStyle = "Soft Storybook";
+  const childName = document.getElementById("childName").value.trim();
+  const age = document.getElementById("age").value;
+  const theme = document.getElementById("theme").value;
 
-  function selectStyle(style){
-    selectedStyle = style;
-    document.querySelectorAll(".styleCard").forEach(card => card.classList.remove("active"));
-    const el = document.querySelector(`[data-style="${style}"]`);
-    if (el) el.classList.add("active");
+  if(!childName){
+    msgEl.textContent = "Please enter child name.";
+    msgEl.className = "msg err";
+    return;
   }
 
-  async function createBook() {
-    msgEl.textContent = "";
-    msgEl.className = "msg";
+  msgEl.textContent = "Creating your book...";
+  msgEl.className = "msg";
 
-    const payload = {
-      child_name: document.getElementById("childName").value.trim(),
-      age: document.getElementById("age").value,
-      story_type: document.getElementById("theme").value,
-      illustration_style: selectedStyle
-    };
+  try{
+    const res = await fetch(`${API_BASE}/create-book`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        child_name: childName,
+        age,
+        story_type: theme,
+        illustration_style: selectedStyle
+      })
+    });
 
-    if (!payload.child_name) {
-      msgEl.textContent = "Please enter a child name.";
-      msgEl.classList.add("err");
+    const data = await res.json();
+
+    if(!res.ok){
+      msgEl.textContent = data.message || "Error creating book.";
+      msgEl.className = "msg err";
       return;
     }
 
-    try {
-      msgEl.textContent = "Creating your book...";
-      const res = await fetch(`${API_BASE}/create-book`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+    localStorage.setItem("bookData", JSON.stringify(data));
 
-      const data = await res.json();
+    msgEl.textContent = "Success!";
+    msgEl.className = "msg ok";
 
-      if (!res.ok) {
-        msgEl.textContent = data?.message || "Error creating book";
-        msgEl.classList.add("err");
-        return;
-      }
-
-      // Make sure style is stored in bookData for preview usage
-      data.illustration_style = payload.illustration_style;
-
-      localStorage.setItem("bookData", JSON.stringify(data));
-
-      msgEl.textContent = "Success! Opening preview...";
-      msgEl.classList.add("ok");
-
+    setTimeout(()=>{
       window.location.href = "preview.html";
-    } catch (err) {
-      msgEl.textContent = "Network error. Check API_BASE and Railway logs.";
-      msgEl.classList.add("err");
-    }
+    },500);
+
+  }catch(err){
+    msgEl.textContent = "Network error.";
+    msgEl.className = "msg err";
   }
+});
 </script>
+
 </body>
 </html>
