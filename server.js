@@ -66,6 +66,24 @@ Rules:
 - Keep prompts consistent for the SAME main character across pages.
 `;
 
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      child_photo: payload.child_photo,
+      illustration_style: payload.illustration_style
+    })
+  });
+
+  const charJson = await charRes.json();
+
+  if (!charRes.ok) {
+    setMsg("Character generation failed", "err");
+    createBtn.disabled = false;
+    return;
+  }
+
+  characterData = charJson;
+}
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
@@ -117,6 +135,96 @@ Rules:
       message: "AI generation failed",
       code,
       details: message,
+    });
+  }
+});
+
+app.post("/generate-character", async (req, res) => {
+  try {
+    const { child_photo, illustration_style } = req.body;
+
+    if (!child_photo) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing child_photo"
+      });
+    }
+
+    const style = illustration_style || "Soft Storybook";
+
+    // 1️⃣ Generate character description (important for consistency)
+    const descriptionResponse = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{
+        role: "user",
+        content: `
+Analyze this child photo and describe the child in detail.
+
+Return a consistent character description that can be reused for illustration prompts.
+
+Include:
+- Hair color
+- Hair length
+- Skin tone
+- Face shape
+- Eye color
+- Distinct features
+- General vibe
+
+Keep it concise but consistent.
+`
+      }],
+      temperature: 0.3
+    });
+
+    const characterDescription =
+      descriptionResponse.choices?.[0]?.message?.content?.trim() ||
+      "Young child character";
+
+    // 2️⃣ Generate reference illustration
+    const imageResponse = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt: `
+Create a high quality children's book character illustration.
+
+Style: ${style}
+
+The character must strongly resemble:
+${characterDescription}
+
+Full body.
+Neutral background.
+Soft lighting.
+Highly detailed.
+No text.
+`,
+      image: child_photo,
+      size: "1024x1024"
+    });
+
+    const imageData = imageResponse.data?.[0];
+
+    let imageBase64 = null;
+
+    if (imageData?.b64_json) {
+      imageBase64 = imageData.b64_json;
+    } else if (imageData?.url) {
+      const r = await fetch(imageData.url);
+      const buf = await r.arrayBuffer();
+      imageBase64 = Buffer.from(buf).toString("base64");
+    }
+
+    return res.json({
+      status: "ok",
+      characterImageBase64: imageBase64,
+      characterDescription
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: "Character generation failed",
+      details: err?.message
     });
   }
 });
