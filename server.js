@@ -66,24 +66,7 @@ Rules:
 - Keep prompts consistent for the SAME main character across pages.
 `;
 
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      child_photo: payload.child_photo,
-      illustration_style: payload.illustration_style
-    })
-  });
-
-  const charJson = await charRes.json();
-
-  if (!charRes.ok) {
-    setMsg("Character generation failed", "err");
-    createBtn.disabled = false;
-    return;
-  }
-
-  characterData = charJson;
-}
+  
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
