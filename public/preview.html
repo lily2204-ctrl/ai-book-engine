@@ -243,7 +243,7 @@
       headerUnlockBtn.style.display = "inline-flex";
     }
 
-    headerUnlockBtn.addEventListener("click", unlockFullBook);
+    headerUnlockBtn.addEventListener("click", goToCheckout);
 
     function saveImageToBookData(index, imageBase64) {
       try {
@@ -365,17 +365,16 @@
           Unlock Full Book - $49
         </button>
         <div class="unlock-note">
-          Demo unlock for now. Payment integration will replace this button later.
+          This will move you to checkout. Payment integration comes next.
         </div>
       `;
       previewGrid.appendChild(lockedCard);
 
-      document.getElementById("inlineUnlockBtn").addEventListener("click", unlockFullBook);
+      document.getElementById("inlineUnlockBtn").addEventListener("click", goToCheckout);
     }
 
-    function unlockFullBook() {
-      localStorage.setItem("paid", "true");
-      window.location.reload();
+    function goToCheckout() {
+      window.location.href = "checkout.html";
     }
   </script>
 </body>
