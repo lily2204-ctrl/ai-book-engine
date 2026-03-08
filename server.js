@@ -1,82 +1,396 @@
-import express from "express";
-import cors from "cors";
-import OpenAI from "openai";
-import path from "path";
-import { fileURLToPath } from "url";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lifebook - Preview</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .preview-shell {
+      width: min(1080px, 94vw);
+      margin: 0 auto;
+      padding: 26px 0 60px;
+    }
 
-const app = express();
-app.use(cors());
-app.use(express.json({ limit: "20mb" })); // מאפשר העלאת תמונות בפורמט Base64
+    .preview-header-card {
+      background: white;
+      border-radius: 28px;
+      box-shadow: 0 18px 35px rgba(0,0,0,0.1);
+      padding: 20px 24px;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+    .preview-header-left h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 4vw, 42px);
+    }
 
-app.use(express.static(path.join(__dirname, "public")));
+    .preview-header-left p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    .header-action-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
 
-// דף הבית
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "wizard.html"));
-});
+    .preview-grid {
+      display: grid;
+      gap: 18px;
+    }
 
-// שלב א': ניתוח תמונת הילד ויצירת תיאור דמות עקבי
-app.post("/generate-character", async (req, res) => {
-  try {
-    const { child_photo, illustration_style } = req.body;
-    if (!child_photo) return res.status(400).json({ error: "No photo provided" });
+    .page-card {
+      background: white;
+      border-radius: 28px;
+      box-shadow: 0 18px 35px rgba(0,0,0,0.1);
+      padding: 24px;
+    }
 
-    const vision = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: "Describe this child's face, hair, and eyes for a storybook character. Max 2 sentences for consistency." },
-            { type: "image_url", image_url: { url: child_photo } }
-          ],
-        },
-      ],
-    });
+    .page-layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 22px;
+      align-items: start;
+    }
 
-    res.json({ status: "ok", characterDescription: vision.choices[0].message.content });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+    .page-image-box {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 24px;
+      overflow: hidden;
+      background: linear-gradient(135deg, #f7f0e4, #fdfaf3);
+      border: 1px solid #efe2cc;
+    }
 
-// שלב ב': יצירת מבנה הספר (10 עמודים) בשפה שנבחרה
-app.post("/create-book", async (req, res) => {
-  try {
-    const { child_name, age, story_type, language, character_description, illustration_style } = req.body;
-    
-    const prompt = `
-      Write a 10-page children's storybook in ${language || 'English'}.
-      Hero: ${child_name}, Age: ${age}. Theme: ${story_type}.
-      Physical appearance to maintain: ${character_description}.
-      Style: ${illustration_style || '3D Render'}.
+    .page-image-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
 
-      Return ONLY a JSON object:
-      {
-        "title": "...",
-        "subtitle": "...",
-        "pages": [
-          { "text": "...", "imagePrompt": "Detailed illustration prompt of ${child_name} doing X, maintaining the character description." }
-        ]
+    .page-loader {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-weight: 700;
+      color: #8b7c62;
+      padding: 20px;
+      line-height: 1.5;
+    }
+
+    .page-title {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #b48b42;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .page-text {
+      font-size: 22px;
+      line-height: 1.65;
+      margin-bottom: 18px;
+    }
+
+    .page-prompt {
+      background: #faf7f0;
+      border: 1px solid #f0e5d2;
+      border-radius: 18px;
+      padding: 14px 16px;
+      color: #777;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .locked-card {
+      background: linear-gradient(180deg, #fff8eb, #f7efe1);
+      border: 1px solid #f1dfbc;
+      border-radius: 28px;
+      box-shadow: 0 18px 35px rgba(0,0,0,0.08);
+      padding: 36px 28px;
+      text-align: center;
+    }
+
+    .locked-icon {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: white;
+      color: #e4ab4b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 42px;
+      margin: 0 auto 20px;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.08);
+    }
+
+    .locked-title {
+      font-size: 34px;
+      margin: 0 0 12px;
+    }
+
+    .locked-text {
+      color: #777;
+      font-size: 18px;
+      line-height: 1.6;
+      max-width: 620px;
+      margin: 0 auto 24px;
+    }
+
+    .unlock-full-btn {
+      border: none;
+      border-radius: 999px;
+      background: #e4ab4b;
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+      padding: 18px 30px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .unlock-full-btn:hover {
+      background: #cf9432;
+    }
+
+    .unlock-note {
+      margin-top: 14px;
+      color: #888;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 860px) {
+      .page-layout {
+        grid-template-columns: 1fr;
       }
-    `;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
+      .page-text {
+        font-size: 19px;
+      }
+    }
+  </style>
+</head>
+<body class="setup-body">
+
+  <div class="preview-shell">
+    <header class="wizard-topbar">
+      <div class="wizard-topbar-left">
+        <button class="back-link-button" id="backToCover" type="button">← Back</button>
+      </div>
+
+      <div class="wizard-brand">
+        <div class="logo-mark small"></div>
+        <span class="wizard-brand-text">lifebook</span>
+      </div>
+
+      <div class="wizard-topbar-right"></div>
+    </header>
+
+    <div class="preview-header-card">
+      <div class="preview-header-left">
+        <h1 id="previewBookTitle">Book Preview</h1>
+        <p id="previewBookSubtitle">Your preview is ready.</p>
+      </div>
+
+      <div class="header-action-row">
+        <button class="continue-btn" id="headerUnlockBtn" type="button" style="display:none;">
+          Unlock Full Book - $49
+        </button>
+        <button class="continue-btn" id="printReadyBtn" type="button" style="display:none;">
+          Print Ready View
+        </button>
+      </div>
+    </div>
+
+    <div class="preview-grid" id="previewGrid"></div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+
+    const rawBookData = localStorage.getItem("bookData");
+    const previewGrid = document.getElementById("previewGrid");
+    const headerUnlockBtn = document.getElementById("headerUnlockBtn");
+    const printReadyBtn = document.getElementById("printReadyBtn");
+
+    if (!rawBookData) {
+      window.location.href = "cover.html";
+    }
+
+    const bookData = JSON.parse(rawBookData);
+    const fullUnlocked = localStorage.getItem("paid") === "true";
+
+    document.getElementById("previewBookTitle").textContent =
+      bookData.title || "Your preview";
+
+    document.getElementById("previewBookSubtitle").textContent =
+      bookData.subtitle || "A personalized storybook preview";
+
+    document.getElementById("backToCover").addEventListener("click", () => {
+      window.location.href = "cover.html";
     });
 
-    res.json({ status: "ok", ...JSON.parse(completion.choices[0].message.content) });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+    const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
+    const visiblePages = fullUnlocked ? pages : pages.slice(0, 2);
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    if (!fullUnlocked) {
+      headerUnlockBtn.style.display = "inline-flex";
+    } else {
+      printReadyBtn.style.display = "inline-flex";
+    }
+
+    headerUnlockBtn.addEventListener("click", goToCheckout);
+    printReadyBtn.addEventListener("click", () => {
+      window.location.href = "print.html";
+    });
+
+    function saveImageToBookData(index, imageBase64) {
+      try {
+        const raw = localStorage.getItem("bookData");
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (!parsed.pages || !parsed.pages[index]) return;
+        parsed.pages[index].imageBase64 = imageBase64;
+        localStorage.setItem("bookData", JSON.stringify(parsed));
+      } catch (error) {
+        console.error("Failed to cache image");
+      }
+    }
+
+    async function generateImage(prompt, imgEl, loaderEl, pageIndex) {
+      if (pages[pageIndex]?.imageBase64) {
+        imgEl.src = `data:image/png;base64,${pages[pageIndex].imageBase64}`;
+        imgEl.style.display = "block";
+        loaderEl.style.display = "none";
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/generate-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          illustration_style: bookData.illustration_style || "Soft Storybook"
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Image generation failed");
+      }
+
+      imgEl.src = `data:image/png;base64,${data.imageBase64}`;
+      imgEl.style.display = "block";
+      loaderEl.style.display = "none";
+
+      saveImageToBookData(pageIndex, data.imageBase64);
+    }
+
+    function createPageCard(page, pageIndex) {
+      const card = document.createElement("div");
+      card.className = "page-card";
+
+      const layout = document.createElement("div");
+      layout.className = "page-layout";
+
+      const imageBox = document.createElement("div");
+      imageBox.className = "page-image-box";
+
+      const loader = document.createElement("div");
+      loader.className = "page-loader";
+      loader.textContent = "Generating illustration...";
+
+      const image = document.createElement("img");
+
+      imageBox.appendChild(loader);
+      imageBox.appendChild(image);
+
+      const content = document.createElement("div");
+
+      const pageTitle = document.createElement("div");
+      pageTitle.className = "page-title";
+      pageTitle.textContent = `Page ${pageIndex + 1}`;
+
+      const text = document.createElement("div");
+      text.className = "page-text";
+      text.textContent = page.text || "";
+
+      const prompt = document.createElement("div");
+      prompt.className = "page-prompt";
+      prompt.innerHTML = `<strong>Illustration prompt:</strong> ${page.imagePrompt || ""}`;
+
+      content.appendChild(pageTitle);
+      content.appendChild(text);
+      content.appendChild(prompt);
+
+      layout.appendChild(imageBox);
+      layout.appendChild(content);
+      card.appendChild(layout);
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(async (entry) => {
+          if (entry.isIntersecting) {
+            observer.disconnect();
+            try {
+              await generateImage(page.imagePrompt || "", image, loader, pageIndex);
+            } catch (error) {
+              loader.textContent = "Failed to generate illustration";
+            }
+          }
+        });
+      }, { threshold: 0.25 });
+
+      observer.observe(card);
+
+      return card;
+    }
+
+    visiblePages.forEach((page, index) => {
+      previewGrid.appendChild(createPageCard(page, index));
+    });
+
+    if (!fullUnlocked && pages.length > 2) {
+      const lockedCard = document.createElement("div");
+      lockedCard.className = "locked-card";
+      lockedCard.innerHTML = `
+        <div class="locked-icon">🔒</div>
+        <h2 class="locked-title">Unlock the rest of the story</h2>
+        <div class="locked-text">
+          You’ve seen the beginning. Unlock the full book to continue the adventure,
+          view all remaining pages, and prepare the book for print.
+        </div>
+        <button class="unlock-full-btn" id="inlineUnlockBtn" type="button">
+          Unlock Full Book - $49
+        </button>
+        <div class="unlock-note">
+          This will move you to checkout. Payment integration comes next.
+        </div>
+      `;
+      previewGrid.appendChild(lockedCard);
+
+      document.getElementById("inlineUnlockBtn").addEventListener("click", goToCheckout);
+    }
+
+    function goToCheckout() {
+      window.location.href = "checkout.html";
+    }
+  </script>
+</body>
+</html>
