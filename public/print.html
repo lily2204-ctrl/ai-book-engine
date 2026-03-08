@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lifebook - Print Ready</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body.print-body {
+      background: #f3f3f3;
+    }
+
+    .print-shell {
+      width: min(1100px, 96vw);
+      margin: 0 auto;
+      padding: 24px 0 60px;
+    }
+
+    .print-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .print-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .print-btn {
+      border: none;
+      border-radius: 999px;
+      background: #e4ab4b;
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 14px 22px;
+      cursor: pointer;
+    }
+
+    .print-btn.secondary {
+      background: white;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+
+    .print-book {
+      display: grid;
+      gap: 22px;
+    }
+
+    .print-cover,
+    .print-page {
+      background: white;
+      border-radius: 28px;
+      box-shadow: 0 18px 35px rgba(0,0,0,0.1);
+      padding: 28px;
+      page-break-inside: avoid;
+    }
+
+    .print-cover {
+      background: linear-gradient(155deg, #fff4dc 0%, #f4e9d8 100%);
+      min-height: 720px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .print-cover-badge {
+      display: inline-block;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.75);
+      color: #8d6b2b;
+      font-size: 13px;
+      font-weight: 700;
+      width: fit-content;
+    }
+
+    .print-cover-title {
+      font-size: clamp(38px, 5vw, 60px);
+      line-height: 1.02;
+      margin: 22px 0 14px;
+    }
+
+    .print-cover-subtitle {
+      font-size: 22px;
+      color: #6f6f6f;
+      line-height: 1.55;
+      margin: 0 0 24px;
+      max-width: 620px;
+    }
+
+    .print-cover-image {
+      width: 280px;
+      height: 280px;
+      border-radius: 28px;
+      object-fit: cover;
+      box-shadow: 0 18px 35px rgba(0,0,0,0.18);
+      background: white;
+    }
+
+    .print-page-layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .print-page-image {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 24px;
+      background: #f7f0e4;
+      border: 1px solid #efe2cc;
+    }
+
+    .print-page-number {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #b48b42;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .print-page-text {
+      font-size: 24px;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 900px) {
+      .print-page-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      body.print-body {
+        background: white;
+      }
+
+      .print-topbar {
+        display: none;
+      }
+
+      .print-cover,
+      .print-page {
+        box-shadow: none;
+        border-radius: 0;
+      }
+
+      .print-shell {
+        width: 100%;
+        max-width: 100%;
+        padding: 0;
+      }
+    }
+  </style>
+</head>
+<body class="print-body">
+
+  <div class="print-shell">
+    <div class="print-topbar">
+      <div class="wizard-brand">
+        <div class="logo-mark small"></div>
+        <span class="wizard-brand-text">lifebook</span>
+      </div>
+
+      <div class="print-actions">
+        <button class="print-btn secondary" id="backToPreviewBtn" type="button">← Back</button>
+        <button class="print-btn" id="printBookBtn" type="button">Print This Book</button>
+      </div>
+    </div>
+
+    <div class="print-book" id="printBook"></div>
+  </div>
+
+  <script>
+    const rawBookData = localStorage.getItem("bookData");
+
+    if (!rawBookData) {
+      window.location.href = "preview.html";
+    }
+
+    const bookData = JSON.parse(rawBookData);
+
+    if (localStorage.getItem("paid") !== "true") {
+      window.location.href = "preview.html";
+    }
+
+    const printBook = document.getElementById("printBook");
+
+    function createCover() {
+      const cover = document.createElement("div");
+      cover.className = "print-cover";
+
+      const coverImage =
+        bookData.characterImageBase64
+          ? `data:image/png;base64,${bookData.characterImageBase64}`
+          : localStorage.getItem("croppedPhoto");
+
+      cover.innerHTML = `
+        <div>
+          <div class="print-cover-badge">Print Ready Edition</div>
+          <h1 class="print-cover-title">${bookData.title || "Your magical story"}</h1>
+          <div class="print-cover-subtitle">${bookData.subtitle || "A personalized adventure made just for your child."}</div>
+        </div>
+
+        <div>
+          <img class="print-cover-image" src="${coverImage || ""}" alt="Book cover image" />
+        </div>
+      `;
+
+      return cover;
+    }
+
+    function createPage(page, index) {
+      const pageCard = document.createElement("div");
+      pageCard.className = "print-page";
+
+      const imageSrc = page.imageBase64
+        ? `data:image/png;base64,${page.imageBase64}`
+        : "";
+
+      pageCard.innerHTML = `
+        <div class="print-page-layout">
+          <div>
+            <img class="print-page-image" src="${imageSrc}" alt="Page illustration" />
+          </div>
+
+          <div>
+            <div class="print-page-number">Page ${index + 1}</div>
+            <div class="print-page-text">${page.text || ""}</div>
+          </div>
+        </div>
+      `;
+
+      return pageCard;
+    }
+
+    printBook.appendChild(createCover());
+
+    if (Array.isArray(bookData.pages)) {
+      bookData.pages.forEach((page, index) => {
+        printBook.appendChild(createPage(page, index));
+      });
+    }
+
+    document.getElementById("backToPreviewBtn").addEventListener("click", () => {
+      window.location.href = "preview.html";
+    });
+
+    document.getElementById("printBookBtn").addEventListener("click", () => {
+      window.print();
+    });
+  </script>
+</body>
+</html>
