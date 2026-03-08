@@ -197,17 +197,17 @@
           </div>
 
           <div class="cover-action-card">
-            <h3 class="cover-action-title">Unlock your preview</h3>
+            <h3 class="cover-action-title">Open your preview</h3>
             <div class="cover-action-text">
-              Open the preview version of the book and continue to the next stage.
+              View the first pages of the book. The full book unlock comes in the next screen.
             </div>
 
-            <button class="unlock-btn" id="unlockPreviewBtn" type="button">
+            <button class="unlock-btn" id="openPreviewBtn" type="button">
               Open Book Preview
             </button>
 
             <div class="cover-note">
-              Payment and print-ready export will be connected in the next stage.
+              You’ll see the first pages first, then unlock the full book.
             </div>
           </div>
         </div>
@@ -255,8 +255,8 @@
       window.location.href = "setup.html";
     });
 
-    document.getElementById("unlockPreviewBtn").addEventListener("click", () => {
-      localStorage.setItem("paid", "true");
+    document.getElementById("openPreviewBtn").addEventListener("click", () => {
+      localStorage.removeItem("paid");
       window.location.href = "preview.html";
     });
   </script>
