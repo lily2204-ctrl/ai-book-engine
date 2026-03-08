@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lifebook - Adjust Photo</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="crop-body">
+
+  <div class="crop-shell">
+    <header class="wizard-topbar">
+      <div class="wizard-topbar-left">
+        <button class="back-link-button" id="backToWizard" type="button">← Back</button>
+      </div>
+
+      <div class="wizard-brand">
+        <div class="logo-mark small"></div>
+        <span class="wizard-brand-text">lifebook</span>
+      </div>
+
+      <div class="wizard-topbar-right"></div>
+    </header>
+
+    <main class="crop-main">
+      <div class="wizard-step-label">STEP 1 OF 5</div>
+      <h1 class="wizard-title">Adjust the photo</h1>
+      <p class="wizard-subtitle">
+        Center the face and zoom if needed.
+      </p>
+
+      <div class="crop-card">
+        <div class="crop-stage">
+          <canvas id="cropCanvas" width="320" height="320"></canvas>
+          <div class="crop-circle-mask"></div>
+        </div>
+
+        <div class="crop-controls">
+          <button class="reset-btn" id="resetCropBtn" type="button">↺</button>
+          <input type="range" id="zoomSlider" min="1" max="3" step="0.01" value="1" />
+        </div>
+
+        <button class="continue-btn" id="continueAfterCrop" type="button">Continue</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="crop.js"></script>
+</body>
+</html>
