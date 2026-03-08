@@ -44,14 +44,32 @@
       font-size: 18px;
       line-height: 1.6;
       max-width: 560px;
-      margin: 0 auto 26px;
+      margin: 0 auto 18px;
     }
 
-    .success-btn {
+    .success-order {
+      display: inline-block;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: #faf7f0;
+      color: #9c6a14;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+
+    .success-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .success-btn,
+    .success-btn-secondary {
       border: none;
       border-radius: 999px;
-      background: #e4ab4b;
-      color: white;
       font-size: 18px;
       font-weight: 700;
       padding: 18px 28px;
@@ -59,8 +77,23 @@
       transition: 0.2s ease;
     }
 
+    .success-btn {
+      background: #e4ab4b;
+      color: white;
+    }
+
     .success-btn:hover {
       background: #cf9432;
+    }
+
+    .success-btn-secondary {
+      background: white;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+
+    .success-btn-secondary:hover {
+      background: #f7f7f7;
     }
   </style>
 </head>
@@ -76,18 +109,30 @@
       <div class="success-icon">✓</div>
       <h1 class="success-title">Payment completed</h1>
       <div class="success-text">
-        Your book is now unlocked. You can continue to the full preview and view all pages.
+        Your book is now unlocked. You can continue to the full preview and open the print-ready version.
       </div>
 
-      <button class="success-btn" id="goToFullBookBtn" type="button">
-        Open Full Book
-      </button>
+      <div class="success-order" id="successOrderId">Order ID: -</div>
+
+      <div class="success-actions">
+        <button class="success-btn" id="goToFullBookBtn" type="button">Open Full Book</button>
+        <button class="success-btn-secondary" id="goToPrintBtn" type="button">Print Ready View</button>
+      </div>
     </div>
   </div>
 
   <script>
+    const orderId = localStorage.getItem("orderId");
+    if (orderId) {
+      document.getElementById("successOrderId").textContent = "Order ID: " + orderId;
+    }
+
     document.getElementById("goToFullBookBtn").addEventListener("click", () => {
       window.location.href = "preview.html";
+    });
+
+    document.getElementById("goToPrintBtn").addEventListener("click", () => {
+      window.location.href = "print.html";
     });
   </script>
 </body>
