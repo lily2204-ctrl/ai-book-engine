@@ -58,6 +58,30 @@
       margin-bottom: 24px;
     }
 
+    .success-meta {
+      margin: 0 auto 24px;
+      max-width: 520px;
+      text-align: left;
+      background: #fafafa;
+      border: 1px solid #ececec;
+      border-radius: 24px;
+      padding: 18px 20px;
+    }
+
+    .success-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+      color: #666;
+      font-size: 15px;
+    }
+
+    .success-line:last-child {
+      border-bottom: none;
+    }
+
     .success-actions {
       display: flex;
       justify-content: center;
@@ -109,10 +133,12 @@
       <div class="success-icon">✓</div>
       <h1 class="success-title">Payment completed</h1>
       <div class="success-text">
-        Your book is now unlocked. You can continue to the full preview and open the print-ready version.
+        Your book is now unlocked. The order was saved in the backend and the full book is ready to view.
       </div>
 
       <div class="success-order" id="successOrderId">Order ID: -</div>
+
+      <div class="success-meta" id="successMeta"></div>
 
       <div class="success-actions">
         <button class="success-btn" id="goToFullBookBtn" type="button">Open Full Book</button>
@@ -122,10 +148,38 @@
   </div>
 
   <script>
-    const orderId = localStorage.getItem("orderId");
-    if (orderId) {
+    const API_BASE = window.location.origin;
+    const params = new URLSearchParams(window.location.search);
+    const urlOrderId = params.get("orderId");
+    const localOrderId = localStorage.getItem("orderId");
+    const orderId = urlOrderId || localOrderId;
+
+    async function loadOrder() {
+      if (!orderId) return;
+
       document.getElementById("successOrderId").textContent = "Order ID: " + orderId;
+
+      try {
+        const res = await fetch(`${API_BASE}/order/${encodeURIComponent(orderId)}`);
+        const data = await res.json();
+
+        if (!res.ok) return;
+
+        const order = data.order;
+        const meta = document.getElementById("successMeta");
+
+        meta.innerHTML = `
+          <div class="success-line"><span>Status</span><span>${order.status}</span></div>
+          <div class="success-line"><span>Child</span><span>${order.customer?.childName || "-"}</span></div>
+          <div class="success-line"><span>Book</span><span>${order.book?.title || "-"}</span></div>
+          <div class="success-line"><span>Amount</span><span>$${order.amount}</span></div>
+        `;
+      } catch (error) {
+        console.error("Failed to load order");
+      }
     }
+
+    loadOrder();
 
     document.getElementById("goToFullBookBtn").addEventListener("click", () => {
       window.location.href = "preview.html";
