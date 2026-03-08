@@ -1,396 +1,417 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Lifebook - Preview</title>
-  <link rel="stylesheet" href="styles.css" />
-  <style>
-    .preview-shell {
-      width: min(1080px, 94vw);
-      margin: 0 auto;
-      padding: 26px 0 60px;
-    }
+import express from "express";
+import cors from "cors";
+import OpenAI from "openai";
+import path from "path";
+import fs from "fs/promises";
+import crypto from "crypto";
+import { fileURLToPath } from "url";
 
-    .preview-header-card {
-      background: white;
-      border-radius: 28px;
-      box-shadow: 0 18px 35px rgba(0,0,0,0.1);
-      padding: 20px 24px;
-      margin-bottom: 18px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: "15mb" }));
 
-    .preview-header-left h1 {
-      margin: 0 0 8px;
-      font-size: clamp(28px, 4vw, 42px);
-    }
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-    .preview-header-left p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.5;
-    }
+app.use(express.static(path.join(__dirname, "public")));
 
-    .header-action-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    .preview-grid {
-      display: grid;
-      gap: 18px;
-    }
+const DATA_DIR = path.join(__dirname, "data");
+const ORDERS_DIR = path.join(DATA_DIR, "orders");
 
-    .page-card {
-      background: white;
-      border-radius: 28px;
-      box-shadow: 0 18px 35px rgba(0,0,0,0.1);
-      padding: 24px;
-    }
+async function ensureDataDirs() {
+  await fs.mkdir(ORDERS_DIR, { recursive: true });
+}
 
-    .page-layout {
-      display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 22px;
-      align-items: start;
-    }
+function createOrderId() {
+  return `LB-${Date.now()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+}
 
-    .page-image-box {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      border-radius: 24px;
-      overflow: hidden;
-      background: linear-gradient(135deg, #f7f0e4, #fdfaf3);
-      border: 1px solid #efe2cc;
-    }
+async function saveOrder(order) {
+  const filePath = path.join(ORDERS_DIR, `${order.orderId}.json`);
+  await fs.writeFile(filePath, JSON.stringify(order, null, 2), "utf8");
+}
 
-    .page-image-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: none;
-    }
+async function loadOrder(orderId) {
+  const filePath = path.join(ORDERS_DIR, `${orderId}.json`);
+  const raw = await fs.readFile(filePath, "utf8");
+  return JSON.parse(raw);
+}
 
-    .page-loader {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      font-weight: 700;
-      color: #8b7c62;
-      padding: 20px;
-      line-height: 1.5;
-    }
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
-    .page-title {
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #b48b42;
-      font-weight: 800;
-      margin-bottom: 10px;
-    }
+/**
+ * POST /create-book
+ */
+app.post("/create-book", async (req, res) => {
+  try {
+    const { child_name, age, story_type, illustration_style, child_gender } = req.body;
 
-    .page-text {
-      font-size: 22px;
-      line-height: 1.65;
-      margin-bottom: 18px;
-    }
-
-    .page-prompt {
-      background: #faf7f0;
-      border: 1px solid #f0e5d2;
-      border-radius: 18px;
-      padding: 14px 16px;
-      color: #777;
-      line-height: 1.55;
-      font-size: 14px;
-    }
-
-    .locked-card {
-      background: linear-gradient(180deg, #fff8eb, #f7efe1);
-      border: 1px solid #f1dfbc;
-      border-radius: 28px;
-      box-shadow: 0 18px 35px rgba(0,0,0,0.08);
-      padding: 36px 28px;
-      text-align: center;
-    }
-
-    .locked-icon {
-      width: 88px;
-      height: 88px;
-      border-radius: 50%;
-      background: white;
-      color: #e4ab4b;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 42px;
-      margin: 0 auto 20px;
-      box-shadow: 0 10px 22px rgba(0,0,0,0.08);
-    }
-
-    .locked-title {
-      font-size: 34px;
-      margin: 0 0 12px;
-    }
-
-    .locked-text {
-      color: #777;
-      font-size: 18px;
-      line-height: 1.6;
-      max-width: 620px;
-      margin: 0 auto 24px;
-    }
-
-    .unlock-full-btn {
-      border: none;
-      border-radius: 999px;
-      background: #e4ab4b;
-      color: white;
-      font-size: 18px;
-      font-weight: 700;
-      padding: 18px 30px;
-      cursor: pointer;
-      transition: 0.2s ease;
-    }
-
-    .unlock-full-btn:hover {
-      background: #cf9432;
-    }
-
-    .unlock-note {
-      margin-top: 14px;
-      color: #888;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    @media (max-width: 860px) {
-      .page-layout {
-        grid-template-columns: 1fr;
-      }
-
-      .page-text {
-        font-size: 19px;
-      }
-    }
-  </style>
-</head>
-<body class="setup-body">
-
-  <div class="preview-shell">
-    <header class="wizard-topbar">
-      <div class="wizard-topbar-left">
-        <button class="back-link-button" id="backToCover" type="button">← Back</button>
-      </div>
-
-      <div class="wizard-brand">
-        <div class="logo-mark small"></div>
-        <span class="wizard-brand-text">lifebook</span>
-      </div>
-
-      <div class="wizard-topbar-right"></div>
-    </header>
-
-    <div class="preview-header-card">
-      <div class="preview-header-left">
-        <h1 id="previewBookTitle">Book Preview</h1>
-        <p id="previewBookSubtitle">Your preview is ready.</p>
-      </div>
-
-      <div class="header-action-row">
-        <button class="continue-btn" id="headerUnlockBtn" type="button" style="display:none;">
-          Unlock Full Book - $49
-        </button>
-        <button class="continue-btn" id="printReadyBtn" type="button" style="display:none;">
-          Print Ready View
-        </button>
-      </div>
-    </div>
-
-    <div class="preview-grid" id="previewGrid"></div>
-  </div>
-
-  <script>
-    const API_BASE = window.location.origin;
-
-    const rawBookData = localStorage.getItem("bookData");
-    const previewGrid = document.getElementById("previewGrid");
-    const headerUnlockBtn = document.getElementById("headerUnlockBtn");
-    const printReadyBtn = document.getElementById("printReadyBtn");
-
-    if (!rawBookData) {
-      window.location.href = "cover.html";
-    }
-
-    const bookData = JSON.parse(rawBookData);
-    const fullUnlocked = localStorage.getItem("paid") === "true";
-
-    document.getElementById("previewBookTitle").textContent =
-      bookData.title || "Your preview";
-
-    document.getElementById("previewBookSubtitle").textContent =
-      bookData.subtitle || "A personalized storybook preview";
-
-    document.getElementById("backToCover").addEventListener("click", () => {
-      window.location.href = "cover.html";
-    });
-
-    const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
-    const visiblePages = fullUnlocked ? pages : pages.slice(0, 2);
-
-    if (!fullUnlocked) {
-      headerUnlockBtn.style.display = "inline-flex";
-    } else {
-      printReadyBtn.style.display = "inline-flex";
-    }
-
-    headerUnlockBtn.addEventListener("click", goToCheckout);
-    printReadyBtn.addEventListener("click", () => {
-      window.location.href = "print.html";
-    });
-
-    function saveImageToBookData(index, imageBase64) {
-      try {
-        const raw = localStorage.getItem("bookData");
-        if (!raw) return;
-        const parsed = JSON.parse(raw);
-        if (!parsed.pages || !parsed.pages[index]) return;
-        parsed.pages[index].imageBase64 = imageBase64;
-        localStorage.setItem("bookData", JSON.stringify(parsed));
-      } catch (error) {
-        console.error("Failed to cache image");
-      }
-    }
-
-    async function generateImage(prompt, imgEl, loaderEl, pageIndex) {
-      if (pages[pageIndex]?.imageBase64) {
-        imgEl.src = `data:image/png;base64,${pages[pageIndex].imageBase64}`;
-        imgEl.style.display = "block";
-        loaderEl.style.display = "none";
-        return;
-      }
-
-      const res = await fetch(`${API_BASE}/generate-image`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          illustration_style: bookData.illustration_style || "Soft Storybook"
-        })
+    if (!child_name || !age || !story_type) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing required fields: child_name, age, story_type",
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.message || "Image generation failed");
-      }
-
-      imgEl.src = `data:image/png;base64,${data.imageBase64}`;
-      imgEl.style.display = "block";
-      loaderEl.style.display = "none";
-
-      saveImageToBookData(pageIndex, data.imageBase64);
     }
 
-    function createPageCard(page, pageIndex) {
-      const card = document.createElement("div");
-      card.className = "page-card";
+    const style = illustration_style || "Soft Storybook";
 
-      const layout = document.createElement("div");
-      layout.className = "page-layout";
+    const prompt = `
+You are a professional children's book writer and illustrator.
 
-      const imageBox = document.createElement("div");
-      imageBox.className = "page-image-box";
+Illustration style must be: ${style}.
 
-      const loader = document.createElement("div");
-      loader.className = "page-loader";
-      loader.textContent = "Generating illustration...";
+Create a magical children's story.
 
-      const image = document.createElement("img");
+Child name: ${child_name}
+Child age: ${age}
+Child gender: ${child_gender || "neutral"}
+Story direction from parent: ${story_type}
 
-      imageBox.appendChild(loader);
-      imageBox.appendChild(image);
+Return structured JSON only in this format:
 
-      const content = document.createElement("div");
+{
+  "title": "string",
+  "subtitle": "string",
+  "pages": [
+    { "text": "string (max 80 words)", "imagePrompt": "string (for an illustration)" }
+  ]
+}
 
-      const pageTitle = document.createElement("div");
-      pageTitle.className = "page-title";
-      pageTitle.textContent = `Page ${pageIndex + 1}`;
+Rules:
+- 10 pages exactly.
+- Page texts must be kid-friendly, colorful, positive, and simple.
+- imagePrompt should describe a colorful children's illustration (no brand names).
+- Keep prompts consistent for the SAME main character across pages.
+- Make the story feel premium, emotional, and memorable.
+`;
 
-      const text = document.createElement("div");
-      text.className = "page-text";
-      text.textContent = page.text || "";
-
-      const prompt = document.createElement("div");
-      prompt.className = "page-prompt";
-      prompt.innerHTML = `<strong>Illustration prompt:</strong> ${page.imagePrompt || ""}`;
-
-      content.appendChild(pageTitle);
-      content.appendChild(text);
-      content.appendChild(prompt);
-
-      layout.appendChild(imageBox);
-      layout.appendChild(content);
-      card.appendChild(layout);
-
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(async (entry) => {
-          if (entry.isIntersecting) {
-            observer.disconnect();
-            try {
-              await generateImage(page.imagePrompt || "", image, loader, pageIndex);
-            } catch (error) {
-              loader.textContent = "Failed to generate illustration";
-            }
-          }
-        });
-      }, { threshold: 0.25 });
-
-      observer.observe(card);
-
-      return card;
-    }
-
-    visiblePages.forEach((page, index) => {
-      previewGrid.appendChild(createPageCard(page, index));
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      temperature: 0.9,
     });
 
-    if (!fullUnlocked && pages.length > 2) {
-      const lockedCard = document.createElement("div");
-      lockedCard.className = "locked-card";
-      lockedCard.innerHTML = `
-        <div class="locked-icon">🔒</div>
-        <h2 class="locked-title">Unlock the rest of the story</h2>
-        <div class="locked-text">
-          You’ve seen the beginning. Unlock the full book to continue the adventure,
-          view all remaining pages, and prepare the book for print.
-        </div>
-        <button class="unlock-full-btn" id="inlineUnlockBtn" type="button">
-          Unlock Full Book - $49
-        </button>
-        <div class="unlock-note">
-          This will move you to checkout. Payment integration comes next.
-        </div>
-      `;
-      previewGrid.appendChild(lockedCard);
+    const raw = completion.choices?.[0]?.message?.content || "{}";
+    const book = JSON.parse(raw);
 
-      document.getElementById("inlineUnlockBtn").addEventListener("click", goToCheckout);
+    const title = book.title || "My Magical Story";
+    const subtitle = book.subtitle || "A personalized adventure";
+    const pages = Array.isArray(book.pages) ? book.pages.slice(0, 10) : [];
+
+    if (pages.length !== 10) {
+      return res.status(500).json({
+        status: "error",
+        message: "AI returned invalid page count. Expected 10 pages.",
+        debug: { returned: pages.length },
+      });
     }
 
-    function goToCheckout() {
-      window.location.href = "checkout.html";
+    return res.json({
+      status: "ok",
+      title,
+      subtitle,
+      illustration_style: style,
+      pages: pages.map((p) => ({
+        text: String(p.text || "").trim(),
+        imagePrompt: String(p.imagePrompt || "").trim(),
+      })),
+    });
+  } catch (err) {
+    const status = err?.status || 500;
+    const code = err?.code || "unknown_error";
+    const message = err?.message || "AI generation failed";
+
+    if (status === 429 || code === "insufficient_quota") {
+      return res.status(429).json({
+        status: "error",
+        message:
+          "OpenAI quota/billing issue. Please enable billing or add credits to generate stories/images.",
+        code,
+      });
     }
-  </script>
-</body>
-</html>
+
+    return res.status(500).json({
+      status: "error",
+      message: "AI generation failed",
+      code,
+      details: message,
+    });
+  }
+});
+
+/**
+ * POST /generate-character
+ */
+app.post("/generate-character", async (req, res) => {
+  try {
+    const { child_photo, illustration_style } = req.body;
+
+    if (!child_photo) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing child_photo",
+      });
+    }
+
+    const style = illustration_style || "Soft Storybook";
+
+    const descriptionResponse = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Analyze this child photo and describe the child for consistent children's book illustration.
+
+Return a concise but specific reusable description including:
+- hair color
+- hair length
+- skin tone
+- face shape
+- eye color
+- distinct features
+- overall vibe
+
+Keep it short but visually useful.`,
+            },
+            {
+              type: "image_url",
+              image_url: { url: child_photo },
+            },
+          ],
+        },
+      ],
+      temperature: 0.3,
+    });
+
+    const characterDescription =
+      descriptionResponse.choices?.[0]?.message?.content?.trim() ||
+      "Young child character";
+
+    const imageResponse = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt: `
+Create a premium children's book character illustration.
+
+Style: ${style}
+
+The child should strongly resemble this description:
+${characterDescription}
+
+Requirements:
+- full body
+- premium storybook quality
+- soft lighting
+- clean background
+- no text
+- warm, emotional, polished visual style
+`,
+      size: "1024x1024",
+    });
+
+    const imageData = imageResponse.data?.[0];
+    let imageBase64 = null;
+
+    if (imageData?.b64_json) {
+      imageBase64 = imageData.b64_json;
+    } else if (imageData?.url) {
+      const r = await fetch(imageData.url);
+      const buf = await r.arrayBuffer();
+      imageBase64 = Buffer.from(buf).toString("base64");
+    }
+
+    return res.json({
+      status: "ok",
+      characterImageBase64: imageBase64,
+      characterDescription,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: "Character generation failed",
+      details: err?.message,
+    });
+  }
+});
+
+/**
+ * POST /generate-image
+ */
+app.post("/generate-image", async (req, res) => {
+  try {
+    const { prompt, illustration_style } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing required field: prompt",
+      });
+    }
+
+    const style = illustration_style || "Soft Storybook";
+
+    const finalPrompt = `
+${prompt}
+
+Illustration style: ${style}.
+High quality children's book illustration.
+Colorful, detailed, soft lighting.
+No text on image.
+Premium polished composition.
+`;
+
+    const imgResp = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt: finalPrompt,
+      size: "1024x1024",
+    });
+
+    const item = imgResp?.data?.[0];
+
+    if (item?.b64_json) {
+      return res.json({ status: "ok", imageBase64: item.b64_json });
+    }
+
+    if (item?.url) {
+      const r = await fetch(item.url);
+      const arrayBuf = await r.arrayBuffer();
+      const base64 = Buffer.from(arrayBuf).toString("base64");
+      return res.json({ status: "ok", imageBase64: base64 });
+    }
+
+    return res.status(500).json({
+      status: "error",
+      message: "Image generation failed",
+      code: "no_image_returned",
+    });
+  } catch (err) {
+    const status = err?.status || 500;
+    const code = err?.code || "unknown_error";
+    const message = err?.message || "Image generation failed";
+
+    return res.status(status).json({
+      status: "error",
+      message: "Image generation failed",
+      code,
+      details: message,
+    });
+  }
+});
+
+/**
+ * POST /create-order
+ */
+app.post("/create-order", async (req, res) => {
+  try {
+    const { bookData, amount } = req.body;
+
+    if (!bookData || !bookData.title) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing bookData",
+      });
+    }
+
+    const orderId = createOrderId();
+
+    const order = {
+      orderId,
+      status: "pending",
+      amount: amount || 49,
+      currency: "USD",
+      createdAt: new Date().toISOString(),
+      paidAt: null,
+      customer: {
+        childName: bookData.childName || "",
+        childAge: bookData.childAge || "",
+      },
+      book: {
+        title: bookData.title || "",
+        subtitle: bookData.subtitle || "",
+        illustrationStyle: bookData.illustration_style || "",
+        pagesCount: Array.isArray(bookData.pages) ? bookData.pages.length : 0,
+      },
+      source: "lifebook-demo-checkout",
+    };
+
+    await saveOrder(order);
+
+    return res.json({
+      status: "ok",
+      orderId,
+      order,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to create order",
+      details: err?.message,
+    });
+  }
+});
+
+/**
+ * POST /complete-order
+ */
+app.post("/complete-order", async (req, res) => {
+  try {
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing orderId",
+      });
+    }
+
+    const order = await loadOrder(orderId);
+    order.status = "paid";
+    order.paidAt = new Date().toISOString();
+
+    await saveOrder(order);
+
+    return res.json({
+      status: "ok",
+      order,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to complete order",
+      details: err?.message,
+    });
+  }
+});
+
+/**
+ * GET /order/:orderId
+ */
+app.get("/order/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = await loadOrder(orderId);
+
+    return res.json({
+      status: "ok",
+      order,
+    });
+  } catch (err) {
+    return res.status(404).json({
+      status: "error",
+      message: "Order not found",
+    });
+  }
+});
+
+const PORT = process.env.PORT || 8080;
+
+ensureDataDirs().then(() => {
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+});
