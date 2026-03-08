@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lifebook - Checkout</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .checkout-shell {
+      width: min(980px, 94vw);
+      margin: 0 auto;
+      padding: 26px 0 60px;
+    }
+
+    .checkout-card {
+      background: white;
+      border-radius: 32px;
+      box-shadow: 0 24px 50px rgba(0,0,0,0.14);
+      padding: 28px;
+    }
+
+    .checkout-layout {
+      display: grid;
+      grid-template-columns: 1.15fr 420px;
+      gap: 24px;
+    }
+
+    .checkout-left,
+    .checkout-right {
+      background: #fff;
+      border-radius: 24px;
+    }
+
+    .checkout-section {
+      border: 1px solid #ececec;
+      border-radius: 24px;
+      padding: 22px;
+      margin-bottom: 18px;
+    }
+
+    .checkout-section h2 {
+      margin: 0 0 14px;
+      font-size: 26px;
+    }
+
+    .checkout-text {
+      color: #6d6d6d;
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    .payment-mock-box {
+      display: grid;
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .mock-input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+    }
+
+    .mock-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .pay-btn {
+      width: 100%;
+      border: none;
+      border-radius: 999px;
+      background: #e4ab4b;
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+      padding: 18px 24px;
+      cursor: pointer;
+      transition: 0.2s ease;
+      margin-top: 18px;
+    }
+
+    .pay-btn:hover {
+      background: #cf9432;
+    }
+
+    .summary-box {
+      border: 1px solid #ececec;
+      border-radius: 24px;
+      padding: 22px;
+      background: #faf7f0;
+      position: sticky;
+      top: 24px;
+    }
+
+    .summary-title {
+      margin: 0 0 16px;
+      font-size: 24px;
+    }
+
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee2cb;
+      font-size: 15px;
+      color: #666;
+    }
+
+    .summary-line.total {
+      font-weight: 800;
+      font-size: 18px;
+      color: #1f1f1f;
+      border-bottom: none;
+      padding-top: 18px;
+    }
+
+    .summary-cover {
+      width: 100%;
+      border-radius: 20px;
+      aspect-ratio: 1 / 1.2;
+      object-fit: cover;
+      background: white;
+      box-shadow: 0 12px 22px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+
+    .checkout-note {
+      margin-top: 16px;
+      color: #888;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 900px) {
+      .checkout-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .mock-row {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-box {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body class="setup-body">
+
+  <div class="checkout-shell">
+    <header class="wizard-topbar">
+      <div class="wizard-topbar-left">
+        <button class="back-link-button" id="backToPreview" type="button">← Back</button>
+      </div>
+
+      <div class="wizard-brand">
+        <div class="logo-mark small"></div>
+        <span class="wizard-brand-text">lifebook</span>
+      </div>
+
+      <div class="wizard-topbar-right"></div>
+    </header>
+
+    <div class="checkout-card">
+      <div class="checkout-layout">
+
+        <div class="checkout-left">
+          <div class="checkout-section">
+            <h2>Complete your order</h2>
+            <div class="checkout-text">
+              Unlock the full personalized book, continue the story, and prepare it for final print-ready delivery.
+            </div>
+
+            <div class="payment-mock-box">
+              <input class="mock-input" type="text" placeholder="Cardholder name" />
+              <input class="mock-input" type="text" placeholder="Card number" />
+              <div class="mock-row">
+                <input class="mock-input" type="text" placeholder="MM / YY" />
+                <input class="mock-input" type="text" placeholder="CVV" />
+              </div>
+            </div>
+
+            <button class="pay-btn" id="payNowBtn" type="button">Pay $49</button>
+
+            <div class="checkout-note">
+              Demo checkout for now. This screen will later be replaced with Shopify or Stripe.
+            </div>
+          </div>
+        </div>
+
+        <div class="checkout-right">
+          <div class="summary-box">
+            <img id="summaryCoverImage" class="summary-cover" alt="Book preview" />
+
+            <h3 class="summary-title" id="summaryBookTitle">Your Book</h3>
+
+            <div class="summary-line">
+              <span>Child</span>
+              <span id="summaryChildName">-</span>
+            </div>
+
+            <div class="summary-line">
+              <span>Style</span>
+              <span id="summaryStyle">-</span>
+            </div>
+
+            <div class="summary-line">
+              <span>Pages</span>
+              <span id="summaryPages">10</span>
+            </div>
+
+            <div class="summary-line">
+              <span>Format</span>
+              <span>Digital + Print Ready</span>
+            </div>
+
+            <div class="summary-line total">
+              <span>Total</span>
+              <span>$49</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const rawBookData = localStorage.getItem("bookData");
+
+    if (!rawBookData) {
+      window.location.href = "preview.html";
+    }
+
+    const bookData = JSON.parse(rawBookData);
+
+    document.getElementById("summaryBookTitle").textContent =
+      bookData.title || "Your Book";
+
+    document.getElementById("summaryChildName").textContent =
+      bookData.childName || "-";
+
+    document.getElementById("summaryStyle").textContent =
+      bookData.illustration_style || "-";
+
+    document.getElementById("summaryPages").textContent =
+      Array.isArray(bookData.pages) ? bookData.pages.length : "10";
+
+    const summaryCoverImage = document.getElementById("summaryCoverImage");
+
+    if (bookData.characterImageBase64) {
+      summaryCoverImage.src = `data:image/png;base64,${bookData.characterImageBase64}`;
+    } else if (localStorage.getItem("croppedPhoto")) {
+      summaryCoverImage.src = localStorage.getItem("croppedPhoto");
+    }
+
+    document.getElementById("backToPreview").addEventListener("click", () => {
+      window.location.href = "preview.html";
+    });
+
+    document.getElementById("payNowBtn").addEventListener("click", () => {
+      localStorage.setItem("paid", "true");
+      window.location.href = "success.html";
+    });
+  </script>
+</body>
+</html>
