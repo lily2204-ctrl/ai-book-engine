@@ -116,5 +116,5 @@ continueToStoryBtn.addEventListener("click", () => {
 
   localStorage.setItem("bookSetupData", JSON.stringify(setupData));
 
-  alert("Stage 2 complete. Next step will generate the story structure.");
+  window.location.href = "generate.html";
 });
