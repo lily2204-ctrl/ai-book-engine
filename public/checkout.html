@@ -25,17 +25,12 @@
       gap: 24px;
     }
 
-    .checkout-left,
-    .checkout-right {
-      background: #fff;
-      border-radius: 24px;
-    }
-
     .checkout-section {
       border: 1px solid #ececec;
       border-radius: 24px;
       padding: 22px;
       margin-bottom: 18px;
+      background: #fff;
     }
 
     .checkout-section h2 {
@@ -136,6 +131,19 @@
       line-height: 1.5;
     }
 
+    .order-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: #fff8eb;
+      color: #9c6a14;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
     @media (max-width: 900px) {
       .checkout-layout {
         grid-template-columns: 1fr;
@@ -170,31 +178,32 @@
     <div class="checkout-card">
       <div class="checkout-layout">
 
-        <div class="checkout-left">
+        <div>
           <div class="checkout-section">
+            <div class="order-badge">Secure checkout • Demo phase</div>
             <h2>Complete your order</h2>
             <div class="checkout-text">
-              Unlock the full personalized book, continue the story, and prepare it for final print-ready delivery.
+              Unlock the full personalized book, continue the story, and prepare it for print-ready delivery.
             </div>
 
             <div class="payment-mock-box">
-              <input class="mock-input" type="text" placeholder="Cardholder name" />
-              <input class="mock-input" type="text" placeholder="Card number" />
+              <input class="mock-input" id="cardholderName" type="text" placeholder="Cardholder name" />
+              <input class="mock-input" id="cardNumber" type="text" placeholder="Card number" />
               <div class="mock-row">
-                <input class="mock-input" type="text" placeholder="MM / YY" />
-                <input class="mock-input" type="text" placeholder="CVV" />
+                <input class="mock-input" id="expiryDate" type="text" placeholder="MM / YY" />
+                <input class="mock-input" id="cvv" type="text" placeholder="CVV" />
               </div>
             </div>
 
             <button class="pay-btn" id="payNowBtn" type="button">Pay $49</button>
 
             <div class="checkout-note">
-              Demo checkout for now. This screen will later be replaced with Shopify or Stripe.
+              This is a demo checkout. In the next integration phase this button will connect to Shopify or Stripe.
             </div>
           </div>
         </div>
 
-        <div class="checkout-right">
+        <div>
           <div class="summary-box">
             <img id="summaryCoverImage" class="summary-cover" alt="Book preview" />
 
@@ -265,7 +274,9 @@
     });
 
     document.getElementById("payNowBtn").addEventListener("click", () => {
+      const orderId = "LB-" + Date.now();
       localStorage.setItem("paid", "true");
+      localStorage.setItem("orderId", orderId);
       window.location.href = "success.html";
     });
   </script>
