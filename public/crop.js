@@ -151,8 +151,7 @@ continueAfterCropBtn.addEventListener("click", () => {
   const croppedPhoto = exportCanvas.toDataURL("image/png");
   localStorage.setItem("croppedPhoto", croppedPhoto);
 
-  // placeholder for next step
-  alert("Stage 1 complete. Next step will be story setup.");
+  window.location.href = "setup.html";
 });
 
 backToWizardBtn.addEventListener("click", () => {
