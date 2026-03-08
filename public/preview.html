@@ -36,6 +36,12 @@
       line-height: 1.5;
     }
 
+    .header-action-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
     .preview-grid {
       display: grid;
       gap: 18px;
@@ -202,9 +208,12 @@
         <p id="previewBookSubtitle">Your preview is ready.</p>
       </div>
 
-      <div>
+      <div class="header-action-row">
         <button class="continue-btn" id="headerUnlockBtn" type="button" style="display:none;">
           Unlock Full Book - $49
+        </button>
+        <button class="continue-btn" id="printReadyBtn" type="button" style="display:none;">
+          Print Ready View
         </button>
       </div>
     </div>
@@ -218,6 +227,7 @@
     const rawBookData = localStorage.getItem("bookData");
     const previewGrid = document.getElementById("previewGrid");
     const headerUnlockBtn = document.getElementById("headerUnlockBtn");
+    const printReadyBtn = document.getElementById("printReadyBtn");
 
     if (!rawBookData) {
       window.location.href = "cover.html";
@@ -241,9 +251,14 @@
 
     if (!fullUnlocked) {
       headerUnlockBtn.style.display = "inline-flex";
+    } else {
+      printReadyBtn.style.display = "inline-flex";
     }
 
     headerUnlockBtn.addEventListener("click", goToCheckout);
+    printReadyBtn.addEventListener("click", () => {
+      window.location.href = "print.html";
+    });
 
     function saveImageToBookData(index, imageBase64) {
       try {
