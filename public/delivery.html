@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lifebook - Delivery Center</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .delivery-shell {
+      width: min(1080px, 94vw);
+      margin: 0 auto;
+      padding: 26px 0 60px;
+    }
+
+    .delivery-hero {
+      background: white;
+      border-radius: 32px;
+      box-shadow: 0 24px 50px rgba(0,0,0,0.14);
+      padding: 28px;
+      margin-bottom: 18px;
+    }
+
+    .delivery-hero h1 {
+      margin: 0 0 10px;
+      font-size: clamp(34px, 5vw, 54px);
+    }
+
+    .delivery-hero p {
+      margin: 0;
+      color: #666;
+      font-size: 18px;
+      line-height: 1.6;
+      max-width: 700px;
+    }
+
+    .delivery-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 18px;
+    }
+
+    .delivery-card {
+      background: white;
+      border-radius: 28px;
+      box-shadow: 0 18px 35px rgba(0,0,0,0.1);
+      padding: 24px;
+    }
+
+    .delivery-card h2 {
+      margin: 0 0 14px;
+      font-size: 26px;
+    }
+
+    .delivery-card p {
+      margin: 0 0 18px;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .delivery-action {
+      display: block;
+      width: 100%;
+      border: none;
+      border-radius: 999px;
+      background: #e4ab4b;
+      color: white;
+      font-size: 17px;
+      font-weight: 700;
+      padding: 16px 22px;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: 0.2s ease;
+    }
+
+    .delivery-action:hover {
+      background: #cf9432;
+    }
+
+    .delivery-action.secondary {
+      background: white;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+
+    .delivery-action.secondary:hover {
+      background: #f8f8f8;
+    }
+
+    .delivery-summary-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+      color: #666;
+      font-size: 15px;
+    }
+
+    .delivery-summary-line:last-child {
+      border-bottom: none;
+    }
+
+    .delivery-cover {
+      width: 100%;
+      max-width: 280px;
+      aspect-ratio: 1 / 1.2;
+      object-fit: cover;
+      border-radius: 24px;
+      display: block;
+      margin-top: 10px;
+      box-shadow: 0 14px 28px rgba(0,0,0,0.12);
+      background: #fafafa;
+    }
+
+    .delivery-note {
+      margin-top: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #888;
+    }
+
+    @media (max-width: 900px) {
+      .delivery-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body class="setup-body">
+
+  <div class="delivery-shell">
+    <header class="wizard-topbar">
+      <div class="wizard-topbar-left">
+        <button class="back-link-button" id="backToSuccess" type="button">← Back</button>
+      </div>
+
+      <div class="wizard-brand">
+        <div class="logo-mark small"></div>
+        <span class="wizard-brand-text">lifebook</span>
+      </div>
+
+      <div class="wizard-topbar-right"></div>
+    </header>
+
+    <div class="delivery-hero">
+      <h1>Your book is ready</h1>
+      <p>
+        Access your full story, open the print-ready version, download the PDF, or continue to the printed-book order flow.
+      </p>
+    </div>
+
+    <div class="delivery-grid">
+      <div class="delivery-card">
+        <h2>Digital delivery</h2>
+        <p>
+          Open the full preview, use the print-ready format, or move directly to PDF download.
+        </p>
+
+        <button class="delivery-action" id="openFullPreviewBtn" type="button">Open Full Preview</button>
+        <button class="delivery-action secondary" id="openPrintReadyBtn" type="button">Open Print Ready View</button>
+        <button class="delivery-action secondary" id="downloadPdfBtn" type="button">Go to PDF Download</button>
+
+        <div class="delivery-note">
+          The PDF is generated from the print-ready view so the customer gets a clean final output.
+        </div>
+      </div>
+
+      <div class="delivery-card">
+        <h2>Order summary</h2>
+
+        <div class="delivery-summary-line">
+          <span>Order ID</span>
+          <span id="deliveryOrderId">-</span>
+        </div>
+
+        <div class="delivery-summary-line">
+          <span>Child</span>
+          <span id="deliveryChildName">-</span>
+        </div>
+
+        <div class="delivery-summary-line">
+          <span>Book</span>
+          <span id="deliveryBookTitle">-</span>
+        </div>
+
+        <div class="delivery-summary-line">
+          <span>Status</span>
+          <span id="deliveryStatus">-</span>
+        </div>
+
+        <img id="deliveryCoverImage" class="delivery-cover" alt="Book cover preview" />
+
+        <button class="delivery-action" id="orderPrintedBookBtn" type="button">Order Printed Book</button>
+
+        <div class="delivery-note">
+          For now this button leads to the print-ready flow. Later it can connect to Shopify or a print fulfillment service.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    const orderId = localStorage.getItem("orderId");
+    const rawBookData = localStorage.getItem("bookData");
+
+    if (!rawBookData) {
+      window.location.href = "preview.html";
+    }
+
+    const bookData = JSON.parse(rawBookData);
+
+    document.getElementById("deliveryOrderId").textContent = orderId || "-";
+    document.getElementById("deliveryChildName").textContent = bookData.childName || "-";
+    document.getElementById("deliveryBookTitle").textContent = bookData.title || "-";
+    document.getElementById("deliveryStatus").textContent = "paid";
+
+    const deliveryCoverImage = document.getElementById("deliveryCoverImage");
+
+    if (bookData.characterImageBase64) {
+      deliveryCoverImage.src = `data:image/png;base64,${bookData.characterImageBase64}`;
+    } else if (localStorage.getItem("croppedPhoto")) {
+      deliveryCoverImage.src = localStorage.getItem("croppedPhoto");
+    }
+
+    document.getElementById("backToSuccess").addEventListener("click", () => {
+      window.location.href = "success.html";
+    });
+
+    document.getElementById("openFullPreviewBtn").addEventListener("click", () => {
+      window.location.href = "preview.html";
+    });
+
+    document.getElementById("openPrintReadyBtn").addEventListener("click", () => {
+      window.location.href = "print.html";
+    });
+
+    document.getElementById("downloadPdfBtn").addEventListener("click", () => {
+      window.location.href = "print.html";
+    });
+
+    document.getElementById("orderPrintedBookBtn").addEventListener("click", () => {
+      window.location.href = "print.html";
+    });
+  </script>
+</body>
+</html>
