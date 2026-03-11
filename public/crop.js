@@ -5,7 +5,11 @@ const continueAfterCropBtn = document.getElementById("continueAfterCrop");
 const resetCropBtn = document.getElementById("resetCropBtn");
 const backToWizardBtn = document.getElementById("backToWizard");
 
-const uploadedPhoto = localStorage.getItem("uploadedPhoto");
+const DB_NAME = "lifebookDB";
+const STORE_NAME = "images";
+const UPLOADED_KEY = "uploadedPhoto";
+const CROPPED_KEY = "croppedPhoto";
+
 const sourceImage = new Image();
 
 let scale = 1;
@@ -16,9 +20,80 @@ let isDragging = false;
 let startDragX = 0;
 let startDragY = 0;
 let imageLoadedSuccessfully = false;
+let uploadedPhoto = null;
 
-if (!uploadedPhoto) {
-  window.location.href = "wizard.html";
+function openDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+
+    request.onupgradeneeded = function () {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+
+    request.onsuccess = function () {
+      resolve(request.result);
+    };
+
+    request.onerror = function () {
+      reject(request.error || new Error("Failed to open IndexedDB"));
+    };
+  });
+}
+
+async function getImageFromDB(key) {
+  const db = await openDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readonly");
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.get(key);
+
+    request.onsuccess = function () {
+      resolve(request.result || null);
+    };
+
+    request.onerror = function () {
+      reject(request.error || new Error("Failed to read image"));
+    };
+  });
+}
+
+async function saveImageToDB(key, dataUrl) {
+  const db = await openDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.put(dataUrl, key);
+
+    request.onsuccess = function () {
+      resolve(true);
+    };
+
+    request.onerror = function () {
+      reject(request.error || new Error("Failed to save cropped image"));
+    };
+  });
+}
+
+async function loadUploadedPhoto() {
+  try {
+    uploadedPhoto = await getImageFromDB(UPLOADED_KEY);
+
+    if (!uploadedPhoto) {
+      window.location.href = "wizard.html";
+      return;
+    }
+
+    sourceImage.src = uploadedPhoto;
+  } catch (error) {
+    console.error("Failed to load uploaded image:", error);
+    alert("Something went wrong while loading the image. Please try again.");
+    window.location.href = "wizard.html";
+  }
 }
 
 sourceImage.onload = () => {
@@ -30,12 +105,8 @@ sourceImage.onload = () => {
 sourceImage.onerror = () => {
   imageLoadedSuccessfully = false;
   alert("Something went wrong while loading the image. Please try again with a JPG, PNG, or WEBP photo.");
-  localStorage.removeItem("uploadedPhoto");
-  localStorage.removeItem("croppedPhoto");
   window.location.href = "wizard.html";
 };
-
-sourceImage.src = uploadedPhoto;
 
 function initializeImageFit() {
   const fitScaleX = cropCanvas.width / sourceImage.width;
@@ -43,10 +114,8 @@ function initializeImageFit() {
 
   baseScale = Math.min(fitScaleX, fitScaleY);
 
-  // מתחילים קצת יותר קרוב אבל לא מוגזם
   scale = baseScale * 1.15;
 
-  // טווח זום חדש, מותאם לתמונה עצמה
   zoomSlider.min = String(baseScale);
   zoomSlider.max = String(baseScale * 3.2);
   zoomSlider.step = String(baseScale * 0.01);
@@ -156,47 +225,56 @@ cropCanvas.addEventListener("touchend", () => {
   isDragging = false;
 });
 
-continueAfterCropBtn.addEventListener("click", () => {
+continueAfterCropBtn.addEventListener("click", async () => {
   if (!imageLoadedSuccessfully) {
     alert("Please upload a valid image first.");
     return;
   }
 
-  const exportCanvas = document.createElement("canvas");
-  exportCanvas.width = 1024;
-  exportCanvas.height = 1024;
-  const exportCtx = exportCanvas.getContext("2d");
+  try {
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width = 1024;
+    exportCanvas.height = 1024;
+    const exportCtx = exportCanvas.getContext("2d");
 
-  const imageWidth = sourceImage.width * scale;
-  const imageHeight = sourceImage.height * scale;
+    const imageWidth = sourceImage.width * scale;
+    const imageHeight = sourceImage.height * scale;
 
-  const centerX = (cropCanvas.width - imageWidth) / 2 + offsetX;
-  const centerY = (cropCanvas.height - imageHeight) / 2 + offsetY;
+    const centerX = (cropCanvas.width - imageWidth) / 2 + offsetX;
+    const centerY = (cropCanvas.height - imageHeight) / 2 + offsetY;
 
-  const ratio = 1024 / 320;
+    const ratio = 1024 / 320;
 
-  exportCtx.save();
-  exportCtx.beginPath();
-  exportCtx.arc(512, 512, 448, 0, Math.PI * 2);
-  exportCtx.closePath();
-  exportCtx.clip();
+    exportCtx.save();
+    exportCtx.beginPath();
+    exportCtx.arc(512, 512, 448, 0, Math.PI * 2);
+    exportCtx.closePath();
+    exportCtx.clip();
 
-  exportCtx.drawImage(
-    sourceImage,
-    centerX * ratio,
-    centerY * ratio,
-    imageWidth * ratio,
-    imageHeight * ratio
-  );
+    exportCtx.drawImage(
+      sourceImage,
+      centerX * ratio,
+      centerY * ratio,
+      imageWidth * ratio,
+      imageHeight * ratio
+    );
 
-  exportCtx.restore();
+    exportCtx.restore();
 
-  const croppedPhoto = exportCanvas.toDataURL("image/png");
-  localStorage.setItem("croppedPhoto", croppedPhoto);
+    const croppedPhoto = exportCanvas.toDataURL("image/png");
 
-  window.location.href = "setup.html";
+    await saveImageToDB(CROPPED_KEY, croppedPhoto);
+    localStorage.setItem("croppedPhoto", croppedPhoto);
+
+    window.location.href = "setup.html";
+  } catch (error) {
+    console.error("Failed to save cropped image:", error);
+    alert("Something went wrong while saving the cropped image. Please try again.");
+  }
 });
 
 backToWizardBtn.addEventListener("click", () => {
   window.location.href = "wizard.html";
 });
+
+loadUploadedPhoto();
