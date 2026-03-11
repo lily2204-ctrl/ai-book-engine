@@ -180,7 +180,7 @@
       </div>
 
       <div class="print-actions">
-        <button class="print-btn secondary" id="backToPreviewBtn" type="button">← Back</button>
+        <button class="print-btn secondary" id="backToDeliveryBtn" type="button">← Back</button>
         <button class="print-btn secondary" id="downloadPdfBtn" type="button">Download PDF</button>
         <button class="print-btn" id="printBookBtn" type="button">Print This Book</button>
       </div>
@@ -261,8 +261,8 @@
       });
     }
 
-    document.getElementById("backToPreviewBtn").addEventListener("click", () => {
-      window.location.href = "preview.html";
+    document.getElementById("backToDeliveryBtn").addEventListener("click", () => {
+      window.location.href = "delivery.html";
     });
 
     document.getElementById("printBookBtn").addEventListener("click", () => {
