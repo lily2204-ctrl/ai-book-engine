@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Lifebook - Print Ready</title>
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <style>
     body.print-body {
       background: #f3f3f3;
@@ -46,6 +48,11 @@
       background: white;
       color: #333;
       border: 1px solid #ddd;
+    }
+
+    .print-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
     }
 
     .print-book {
@@ -174,6 +181,7 @@
 
       <div class="print-actions">
         <button class="print-btn secondary" id="backToPreviewBtn" type="button">← Back</button>
+        <button class="print-btn secondary" id="downloadPdfBtn" type="button">Download PDF</button>
         <button class="print-btn" id="printBookBtn" type="button">Print This Book</button>
       </div>
     </div>
@@ -195,6 +203,7 @@
     }
 
     const printBook = document.getElementById("printBook");
+    const downloadPdfBtn = document.getElementById("downloadPdfBtn");
 
     function createCover() {
       const cover = document.createElement("div");
@@ -258,6 +267,60 @@
 
     document.getElementById("printBookBtn").addEventListener("click", () => {
       window.print();
+    });
+
+    downloadPdfBtn.addEventListener("click", async () => {
+      downloadPdfBtn.disabled = true;
+      downloadPdfBtn.textContent = "Preparing PDF...";
+
+      try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF("p", "mm", "a4");
+        const sections = Array.from(document.querySelectorAll(".print-cover, .print-page"));
+
+        for (let i = 0; i < sections.length; i++) {
+          const section = sections[i];
+
+          const canvas = await html2canvas(section, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: "#ffffff"
+          });
+
+          const imgData = canvas.toDataURL("image/jpeg", 0.92);
+
+          const pdfWidth = 210;
+          const pdfHeight = 297;
+
+          const imgWidth = pdfWidth;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+          let renderHeight = imgHeight;
+          let renderWidth = imgWidth;
+
+          if (renderHeight > pdfHeight) {
+            renderHeight = pdfHeight;
+            renderWidth = (canvas.width * renderHeight) / canvas.height;
+          }
+
+          const x = (pdfWidth - renderWidth) / 2;
+          const y = (pdfHeight - renderHeight) / 2;
+
+          if (i > 0) pdf.addPage();
+          pdf.addImage(imgData, "JPEG", x, y, renderWidth, renderHeight);
+        }
+
+        const safeTitle = (bookData.title || "lifebook-story")
+          .replace(/[^a-z0-9]/gi, "_")
+          .toLowerCase();
+
+        pdf.save(`${safeTitle}.pdf`);
+      } catch (error) {
+        alert("Failed to generate PDF. Please try again.");
+      } finally {
+        downloadPdfBtn.disabled = false;
+        downloadPdfBtn.textContent = "Download PDF";
+      }
     });
   </script>
 </body>
