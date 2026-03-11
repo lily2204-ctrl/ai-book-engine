@@ -284,10 +284,13 @@
       const res = await fetch(`${API_BASE}/generate-image`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          illustration_style: bookData.illustration_style || "Soft Storybook"
-        })
+       body: JSON.stringify({
+  prompt,
+  illustration_style: bookData.illustration_style || "Soft Storybook",
+  characterDescription: bookData.characterDescription,
+  characterDNA: bookData.characterDNA,
+  characterImage: bookData.characterImageBase64
+})
       });
 
       const data = await res.json();
