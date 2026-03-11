@@ -47,7 +47,59 @@ function isSupportedImage(file) {
   return hasSupportedMime || hasSupportedExtension;
 }
 
-function goToCropWithFile(file) {
+function compressImage(file, maxSize = 1600, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const fileReader = new FileReader();
+
+    fileReader.onload = () => {
+      const img = new Image();
+
+      img.onload = () => {
+        try {
+          let { width, height } = img;
+
+          if (width > height) {
+            if (width > maxSize) {
+              height = Math.round((height * maxSize) / width);
+              width = maxSize;
+            }
+          } else {
+            if (height > maxSize) {
+              width = Math.round((width * maxSize) / height);
+              height = maxSize;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
+          resolve(compressedDataUrl);
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      img.onerror = () => {
+        reject(new Error("Image could not be loaded"));
+      };
+
+      img.src = fileReader.result;
+    };
+
+    fileReader.onerror = () => {
+      reject(new Error("File could not be read"));
+    };
+
+    fileReader.readAsDataURL(file);
+  });
+}
+
+async function goToCropWithFile(file) {
   if (!file) return;
 
   if (!isSupportedImage(file)) {
@@ -55,38 +107,28 @@ function goToCropWithFile(file) {
     return;
   }
 
-  const reader = new FileReader();
+  try {
+    const compressedImage = await compressImage(file);
 
-  reader.onload = function (event) {
-    try {
-      const result = event.target?.result;
-
-      if (!result) {
-        alert("Failed to read the image. Please try another photo.");
-        return;
-      }
-
-      localStorage.removeItem("uploadedPhoto");
-      localStorage.removeItem("croppedPhoto");
-
-      localStorage.setItem("uploadedPhoto", result);
-
-      closeModal();
-
-      setTimeout(() => {
-        window.location.href = "crop.html";
-      }, 120);
-    } catch (error) {
-      console.error("Failed to save uploaded photo:", error);
-      alert("Something went wrong while loading the image. Please try again.");
+    if (!compressedImage) {
+      alert("Failed to process the image. Please try another photo.");
+      return;
     }
-  };
 
-  reader.onerror = function () {
-    alert("Failed to read the selected file. Please try another image.");
-  };
+    localStorage.removeItem("uploadedPhoto");
+    localStorage.removeItem("croppedPhoto");
 
-  reader.readAsDataURL(file);
+    localStorage.setItem("uploadedPhoto", compressedImage);
+
+    closeModal();
+
+    setTimeout(() => {
+      window.location.href = "crop.html";
+    }, 120);
+  } catch (error) {
+    console.error("Failed to process uploaded photo:", error);
+    alert("Something went wrong while loading the image. Please try again.");
+  }
 }
 
 openPhotoModalBtn.addEventListener("click", openModal);
@@ -108,12 +150,12 @@ chooseGalleryBtn.addEventListener("click", () => {
   galleryInput.click();
 });
 
-cameraInput.addEventListener("change", (e) => {
+cameraInput.addEventListener("change", async (e) => {
   const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
-  goToCropWithFile(file);
+  await goToCropWithFile(file);
 });
 
-galleryInput.addEventListener("change", (e) => {
+galleryInput.addEventListener("change", async (e) => {
   const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
-  goToCropWithFile(file);
+  await goToCropWithFile(file);
 });
