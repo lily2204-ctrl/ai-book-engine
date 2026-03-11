@@ -14,6 +14,62 @@ function closeModal() {
   photoModal.classList.add("hidden");
 }
 
+function resetInputs() {
+  cameraInput.value = "";
+  galleryInput.value = "";
+}
+
+function goToCropWithFile(file) {
+  if (!file) {
+    return;
+  }
+
+  // סוגי קבצים מותרים
+  const allowedTypes = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "image/heic",
+    "image/heif"
+  ];
+
+  if (file.type && !allowedTypes.includes(file.type)) {
+    alert("Please choose a valid image file (JPG, PNG, WEBP, HEIC).");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function (event) {
+    try {
+      const result = event.target?.result;
+
+      if (!result) {
+        alert("Failed to read the image. Please try another photo.");
+        return;
+      }
+
+      localStorage.setItem("uploadedPhoto", result);
+      closeModal();
+
+      // מעבר רק אחרי שמירת התמונה
+      setTimeout(() => {
+        window.location.href = "crop.html";
+      }, 120);
+    } catch (error) {
+      console.error("Failed to save uploaded photo:", error);
+      alert("Something went wrong while loading the image. Please try again.");
+    }
+  };
+
+  reader.onerror = function () {
+    alert("Failed to read the selected file. Please try another image.");
+  };
+
+  reader.readAsDataURL(file);
+}
+
 openPhotoModalBtn.addEventListener("click", openModal);
 closePhotoModalBtn.addEventListener("click", closeModal);
 
@@ -24,28 +80,21 @@ photoModal.addEventListener("click", (e) => {
 });
 
 takePhotoBtn.addEventListener("click", () => {
+  resetInputs();
   cameraInput.click();
 });
 
 chooseGalleryBtn.addEventListener("click", () => {
+  resetInputs();
   galleryInput.click();
 });
 
-function handleSelectedFile(file) {
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function (event) {
-    localStorage.setItem("uploadedPhoto", event.target.result);
-    window.location.href = "crop.html";
-  };
-  reader.readAsDataURL(file);
-}
-
 cameraInput.addEventListener("change", (e) => {
-  handleSelectedFile(e.target.files?.[0]);
+  const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+  goToCropWithFile(file);
 });
 
 galleryInput.addEventListener("change", (e) => {
-  handleSelectedFile(e.target.files?.[0]);
+  const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+  goToCropWithFile(file);
 });
