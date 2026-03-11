@@ -133,7 +133,7 @@
       <div class="success-icon">✓</div>
       <h1 class="success-title">Payment completed</h1>
       <div class="success-text">
-        Your book is now unlocked. The order was saved in the backend and the full book is ready to view or export.
+        Your order is complete and your book has moved to the delivery center.
       </div>
 
       <div class="success-order" id="successOrderId">Order ID: -</div>
@@ -141,8 +141,8 @@
       <div class="success-meta" id="successMeta"></div>
 
       <div class="success-actions">
-        <button class="success-btn" id="goToFullBookBtn" type="button">Open Full Book</button>
-        <button class="success-btn-secondary" id="goToPrintBtn" type="button">Print / PDF View</button>
+        <button class="success-btn" id="goToDeliveryBtn" type="button">Open Delivery Center</button>
+        <button class="success-btn-secondary" id="goToFullBookBtn" type="button">Open Full Book</button>
       </div>
     </div>
   </div>
@@ -181,12 +181,12 @@
 
     loadOrder();
 
-    document.getElementById("goToFullBookBtn").addEventListener("click", () => {
-      window.location.href = "preview.html";
+    document.getElementById("goToDeliveryBtn").addEventListener("click", () => {
+      window.location.href = "delivery.html";
     });
 
-    document.getElementById("goToPrintBtn").addEventListener("click", () => {
-      window.location.href = "print.html";
+    document.getElementById("goToFullBookBtn").addEventListener("click", () => {
+      window.location.href = "preview.html";
     });
   </script>
 </body>
