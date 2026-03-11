@@ -3,195 +3,191 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Lifebook - Preview</title>
+  <title>Lifebook - Checkout</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    .preview-shell {
-      width: min(1080px, 94vw);
+    .checkout-shell {
+      width: min(980px, 94vw);
       margin: 0 auto;
       padding: 26px 0 60px;
     }
 
-    .preview-header-card {
+    .checkout-card {
       background: white;
-      border-radius: 28px;
-      box-shadow: 0 18px 35px rgba(0,0,0,0.1);
-      padding: 20px 24px;
-      margin-bottom: 18px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
+      border-radius: 32px;
+      box-shadow: 0 24px 50px rgba(0,0,0,0.14);
+      padding: 28px;
     }
 
-    .preview-header-left h1 {
-      margin: 0 0 8px;
-      font-size: clamp(28px, 4vw, 42px);
-    }
-
-    .preview-header-left p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-
-    .header-action-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .preview-grid {
+    .checkout-layout {
       display: grid;
-      gap: 18px;
+      grid-template-columns: 1.15fr 420px;
+      gap: 24px;
     }
 
-    .page-card {
-      background: white;
-      border-radius: 28px;
-      box-shadow: 0 18px 35px rgba(0,0,0,0.1);
-      padding: 24px;
-    }
-
-    .page-layout {
-      display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 22px;
-      align-items: start;
-    }
-
-    .page-image-box {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 1 / 1;
+    .checkout-section {
+      border: 1px solid #ececec;
       border-radius: 24px;
-      overflow: hidden;
-      background: linear-gradient(135deg, #f7f0e4, #fdfaf3);
-      border: 1px solid #efe2cc;
-    }
-
-    .page-image-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: none;
-    }
-
-    .page-loader {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      font-weight: 700;
-      color: #8b7c62;
-      padding: 20px;
-      line-height: 1.5;
-    }
-
-    .page-title {
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #b48b42;
-      font-weight: 800;
-      margin-bottom: 10px;
-    }
-
-    .page-text {
-      font-size: 22px;
-      line-height: 1.65;
+      padding: 22px;
       margin-bottom: 18px;
+      background: #fff;
     }
 
-    .page-prompt {
-      background: #faf7f0;
-      border: 1px solid #f0e5d2;
-      border-radius: 18px;
-      padding: 14px 16px;
-      color: #777;
-      line-height: 1.55;
-      font-size: 14px;
+    .checkout-section h2 {
+      margin: 0 0 14px;
+      font-size: 26px;
     }
 
-    .locked-card {
-      background: linear-gradient(180deg, #fff8eb, #f7efe1);
-      border: 1px solid #f1dfbc;
-      border-radius: 28px;
-      box-shadow: 0 18px 35px rgba(0,0,0,0.08);
-      padding: 36px 28px;
-      text-align: center;
-    }
-
-    .locked-icon {
-      width: 88px;
-      height: 88px;
-      border-radius: 50%;
-      background: white;
-      color: #e4ab4b;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 42px;
-      margin: 0 auto 20px;
-      box-shadow: 0 10px 22px rgba(0,0,0,0.08);
-    }
-
-    .locked-title {
-      font-size: 34px;
-      margin: 0 0 12px;
-    }
-
-    .locked-text {
-      color: #777;
-      font-size: 18px;
+    .checkout-text {
+      color: #6d6d6d;
       line-height: 1.6;
-      max-width: 620px;
-      margin: 0 auto 24px;
+      font-size: 16px;
     }
 
-    .unlock-full-btn {
+    .payment-mock-box {
+      display: grid;
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .mock-input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+    }
+
+    .mock-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .pay-btn {
+      width: 100%;
       border: none;
       border-radius: 999px;
       background: #e4ab4b;
       color: white;
       font-size: 18px;
       font-weight: 700;
-      padding: 18px 30px;
+      padding: 18px 24px;
       cursor: pointer;
       transition: 0.2s ease;
+      margin-top: 18px;
     }
 
-    .unlock-full-btn:hover {
+    .pay-btn:hover {
       background: #cf9432;
     }
 
-    .unlock-note {
-      margin-top: 14px;
+    .pay-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .summary-box {
+      border: 1px solid #ececec;
+      border-radius: 24px;
+      padding: 22px;
+      background: #faf7f0;
+      position: sticky;
+      top: 24px;
+    }
+
+    .summary-title {
+      margin: 0 0 16px;
+      font-size: 24px;
+    }
+
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee2cb;
+      font-size: 15px;
+      color: #666;
+    }
+
+    .summary-line.total {
+      font-weight: 800;
+      font-size: 18px;
+      color: #1f1f1f;
+      border-bottom: none;
+      padding-top: 18px;
+    }
+
+    .summary-cover {
+      width: 100%;
+      border-radius: 20px;
+      aspect-ratio: 1 / 1.2;
+      object-fit: cover;
+      background: white;
+      box-shadow: 0 12px 22px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+
+    .checkout-note {
+      margin-top: 16px;
       color: #888;
       font-size: 13px;
       line-height: 1.5;
     }
 
-    @media (max-width: 860px) {
-      .page-layout {
+    .order-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: #fff8eb;
+      color: #9c6a14;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .checkout-error {
+      margin-top: 14px;
+      color: #c84b4b;
+      font-weight: 700;
+      min-height: 20px;
+    }
+
+    .provider-note {
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: #f8f8f8;
+      border: 1px solid #ececec;
+      color: #666;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 900px) {
+      .checkout-layout {
         grid-template-columns: 1fr;
       }
 
-      .page-text {
-        font-size: 19px;
+      .mock-row {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-box {
+        position: static;
       }
     }
   </style>
 </head>
 <body class="setup-body">
 
-  <div class="preview-shell">
+  <div class="checkout-shell">
     <header class="wizard-topbar">
       <div class="wizard-topbar-left">
-        <button class="back-link-button" id="backToCover" type="button">← Back</button>
+        <button class="back-link-button" id="backToPreview" type="button">← Back</button>
       </div>
 
       <div class="wizard-brand">
@@ -202,195 +198,170 @@
       <div class="wizard-topbar-right"></div>
     </header>
 
-    <div class="preview-header-card">
-      <div class="preview-header-left">
-        <h1 id="previewBookTitle">Book Preview</h1>
-        <p id="previewBookSubtitle">Your preview is ready.</p>
-      </div>
+    <div class="checkout-card">
+      <div class="checkout-layout">
 
-      <div class="header-action-row">
-        <button class="continue-btn" id="headerUnlockBtn" type="button" style="display:none;">
-          Unlock Full Book - $49
-        </button>
-        <button class="continue-btn" id="printReadyBtn" type="button" style="display:none;">
-          Print Ready View
-        </button>
+        <div>
+          <div class="checkout-section">
+            <div class="order-badge">Secure checkout • Delivery flow ready</div>
+            <h2>Complete your order</h2>
+            <div class="checkout-text">
+              Unlock the full personalized book, access the delivery center, open the print-ready view, and download the final PDF.
+            </div>
+
+            <div class="payment-mock-box">
+              <input class="mock-input" id="cardholderName" type="text" placeholder="Cardholder name" />
+              <input class="mock-input" id="cardNumber" type="text" placeholder="Card number" />
+              <div class="mock-row">
+                <input class="mock-input" id="expiryDate" type="text" placeholder="MM / YY" />
+                <input class="mock-input" id="cvv" type="text" placeholder="CVV" />
+              </div>
+            </div>
+
+            <button class="pay-btn" id="payNowBtn" type="button">Pay $49</button>
+
+            <div id="checkoutError" class="checkout-error"></div>
+
+            <div class="provider-note">
+              Current mode: <strong id="paymentModeLabel">Demo Checkout</strong><br/>
+              This structure is ready to be replaced later with Shopify Checkout or Stripe without rebuilding the product flow.
+            </div>
+
+            <div class="checkout-note">
+              The order will be created, marked as paid, and moved into the delivery center.
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="summary-box">
+            <img id="summaryCoverImage" class="summary-cover" alt="Book preview" />
+
+            <h3 class="summary-title" id="summaryBookTitle">Your Book</h3>
+
+            <div class="summary-line">
+              <span>Child</span>
+              <span id="summaryChildName">-</span>
+            </div>
+
+            <div class="summary-line">
+              <span>Style</span>
+              <span id="summaryStyle">-</span>
+            </div>
+
+            <div class="summary-line">
+              <span>Pages</span>
+              <span id="summaryPages">10</span>
+            </div>
+
+            <div class="summary-line">
+              <span>Format</span>
+              <span>Digital + Print Ready</span>
+            </div>
+
+            <div class="summary-line total">
+              <span>Total</span>
+              <span>$49</span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
-
-    <div class="preview-grid" id="previewGrid"></div>
   </div>
 
   <script>
     const API_BASE = window.location.origin;
+    const PAYMENT_MODE = "demo";
+    const SHOPIFY_CHECKOUT_URL = "";
 
     const rawBookData = localStorage.getItem("bookData");
-    const previewGrid = document.getElementById("previewGrid");
-    const headerUnlockBtn = document.getElementById("headerUnlockBtn");
-    const printReadyBtn = document.getElementById("printReadyBtn");
+    const checkoutError = document.getElementById("checkoutError");
+    const payNowBtn = document.getElementById("payNowBtn");
 
     if (!rawBookData) {
-      window.location.href = "cover.html";
+      window.location.href = "preview.html";
     }
 
     const bookData = JSON.parse(rawBookData);
-    const fullUnlocked = localStorage.getItem("paid") === "true";
 
-    document.getElementById("previewBookTitle").textContent =
-      bookData.title || "Your preview";
+    document.getElementById("paymentModeLabel").textContent =
+      PAYMENT_MODE === "demo" ? "Demo Checkout" : "Shopify Checkout";
 
-    document.getElementById("previewBookSubtitle").textContent =
-      bookData.subtitle || "A personalized storybook preview";
+    document.getElementById("summaryBookTitle").textContent =
+      bookData.title || "Your Book";
 
-    document.getElementById("backToCover").addEventListener("click", () => {
-      window.location.href = "cover.html";
-    });
+    document.getElementById("summaryChildName").textContent =
+      bookData.childName || "-";
 
-    const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
-    const visiblePages = fullUnlocked ? pages : pages.slice(0, 2);
+    document.getElementById("summaryStyle").textContent =
+      bookData.illustration_style || "-";
 
-    if (!fullUnlocked) {
-      headerUnlockBtn.style.display = "inline-flex";
-    } else {
-      printReadyBtn.style.display = "inline-flex";
+    document.getElementById("summaryPages").textContent =
+      Array.isArray(bookData.pages) ? bookData.pages.length : "10";
+
+    const summaryCoverImage = document.getElementById("summaryCoverImage");
+
+    if (bookData.characterImageBase64) {
+      summaryCoverImage.src = `data:image/png;base64,${bookData.characterImageBase64}`;
+    } else if (localStorage.getItem("croppedPhoto")) {
+      summaryCoverImage.src = localStorage.getItem("croppedPhoto");
     }
 
-    headerUnlockBtn.addEventListener("click", goToCheckout);
-    printReadyBtn.addEventListener("click", () => {
-      window.location.href = "print.html";
+    document.getElementById("backToPreview").addEventListener("click", () => {
+      window.location.href = "preview.html";
     });
 
-    function saveImageToBookData(index, imageBase64) {
+    payNowBtn.addEventListener("click", async () => {
+      checkoutError.textContent = "";
+      payNowBtn.disabled = true;
+      payNowBtn.textContent = "Processing...";
+
       try {
-        const raw = localStorage.getItem("bookData");
-        if (!raw) return;
-        const parsed = JSON.parse(raw);
-        if (!parsed.pages || !parsed.pages[index]) return;
-        parsed.pages[index].imageBase64 = imageBase64;
-        localStorage.setItem("bookData", JSON.stringify(parsed));
-      } catch (error) {
-        console.error("Failed to cache image");
-      }
-    }
+        if (PAYMENT_MODE === "shopify" && SHOPIFY_CHECKOUT_URL) {
+          window.location.href = SHOPIFY_CHECKOUT_URL;
+          return;
+        }
 
-    async function generateImage(prompt, imgEl, loaderEl, pageIndex) {
-      if (pages[pageIndex]?.imageBase64) {
-        imgEl.src = `data:image/png;base64,${pages[pageIndex].imageBase64}`;
-        imgEl.style.display = "block";
-        loaderEl.style.display = "none";
-        return;
-      }
-
-      const res = await fetch(`${API_BASE}/generate-image`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          illustration_style: bookData.illustration_style || "Soft Storybook"
-        })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.message || "Image generation failed");
-      }
-
-      imgEl.src = `data:image/png;base64,${data.imageBase64}`;
-      imgEl.style.display = "block";
-      loaderEl.style.display = "none";
-
-      saveImageToBookData(pageIndex, data.imageBase64);
-    }
-
-    function createPageCard(page, pageIndex) {
-      const card = document.createElement("div");
-      card.className = "page-card";
-
-      const layout = document.createElement("div");
-      layout.className = "page-layout";
-
-      const imageBox = document.createElement("div");
-      imageBox.className = "page-image-box";
-
-      const loader = document.createElement("div");
-      loader.className = "page-loader";
-      loader.textContent = "Generating illustration...";
-
-      const image = document.createElement("img");
-
-      imageBox.appendChild(loader);
-      imageBox.appendChild(image);
-
-      const content = document.createElement("div");
-
-      const pageTitle = document.createElement("div");
-      pageTitle.className = "page-title";
-      pageTitle.textContent = `Page ${pageIndex + 1}`;
-
-      const text = document.createElement("div");
-      text.className = "page-text";
-      text.textContent = page.text || "";
-
-      const prompt = document.createElement("div");
-      prompt.className = "page-prompt";
-      prompt.innerHTML = `<strong>Illustration prompt:</strong> ${page.imagePrompt || ""}`;
-
-      content.appendChild(pageTitle);
-      content.appendChild(text);
-      content.appendChild(prompt);
-
-      layout.appendChild(imageBox);
-      layout.appendChild(content);
-      card.appendChild(layout);
-
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(async (entry) => {
-          if (entry.isIntersecting) {
-            observer.disconnect();
-            try {
-              await generateImage(page.imagePrompt || "", image, loader, pageIndex);
-            } catch (error) {
-              loader.textContent = "Failed to generate illustration";
-            }
-          }
+        const createRes = await fetch(`${API_BASE}/create-order`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: 49,
+            bookData
+          })
         });
-      }, { threshold: 0.25 });
 
-      observer.observe(card);
+        const createJson = await createRes.json();
 
-      return card;
-    }
+        if (!createRes.ok) {
+          throw new Error(createJson?.message || "Failed to create order");
+        }
 
-    visiblePages.forEach((page, index) => {
-      previewGrid.appendChild(createPageCard(page, index));
+        const orderId = createJson.orderId;
+
+        const completeRes = await fetch(`${API_BASE}/complete-order`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId })
+        });
+
+        const completeJson = await completeRes.json();
+
+        if (!completeRes.ok) {
+          throw new Error(completeJson?.message || "Failed to complete order");
+        }
+
+        localStorage.setItem("paid", "true");
+        localStorage.setItem("orderId", orderId);
+
+        window.location.href = `success.html?orderId=${encodeURIComponent(orderId)}`;
+      } catch (error) {
+        checkoutError.textContent = error.message || "Something went wrong during checkout.";
+        payNowBtn.disabled = false;
+        payNowBtn.textContent = "Pay $49";
+      }
     });
-
-    if (!fullUnlocked && pages.length > 2) {
-      const lockedCard = document.createElement("div");
-      lockedCard.className = "locked-card";
-      lockedCard.innerHTML = `
-        <div class="locked-icon">🔒</div>
-        <h2 class="locked-title">Unlock the rest of the story</h2>
-        <div class="locked-text">
-          You’ve seen the beginning. Unlock the full book to continue the adventure,
-          view all remaining pages, and prepare the book for print.
-        </div>
-        <button class="unlock-full-btn" id="inlineUnlockBtn" type="button">
-          Unlock Full Book - $49
-        </button>
-        <div class="unlock-note">
-          This will move you to checkout. Payment integration comes next.
-        </div>
-      `;
-      previewGrid.appendChild(lockedCard);
-
-      document.getElementById("inlineUnlockBtn").addEventListener("click", goToCheckout);
-    }
-
-    function goToCheckout() {
-      window.location.href = "checkout.html";
-    }
   </script>
 </body>
 </html>
