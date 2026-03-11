@@ -47,7 +47,7 @@ function isSupportedImage(file) {
   return hasSupportedMime || hasSupportedExtension;
 }
 
-function compressImage(file, maxSize = 1600, quality = 0.82) {
+function compressImage(file, maxSize = 1200, quality = 0.72) {
   return new Promise((resolve, reject) => {
     const fileReader = new FileReader();
 
@@ -99,6 +99,20 @@ function compressImage(file, maxSize = 1600, quality = 0.82) {
   });
 }
 
+async function saveImageForCrop(dataUrl) {
+  try {
+    localStorage.removeItem("uploadedPhoto");
+    localStorage.removeItem("croppedPhoto");
+
+    localStorage.setItem("uploadedPhoto", dataUrl);
+    return true;
+  } catch (error) {
+    console.error("localStorage save failed:", error);
+    alert("The selected image is too large. Please choose a smaller image or try a JPG photo.");
+    return false;
+  }
+}
+
 async function goToCropWithFile(file) {
   if (!file) return;
 
@@ -108,17 +122,15 @@ async function goToCropWithFile(file) {
   }
 
   try {
-    const compressedImage = await compressImage(file);
+    const compressedImage = await compressImage(file, 1200, 0.72);
 
     if (!compressedImage) {
       alert("Failed to process the image. Please try another photo.");
       return;
     }
 
-    localStorage.removeItem("uploadedPhoto");
-    localStorage.removeItem("croppedPhoto");
-
-    localStorage.setItem("uploadedPhoto", compressedImage);
+    const saved = await saveImageForCrop(compressedImage);
+    if (!saved) return;
 
     closeModal();
 
