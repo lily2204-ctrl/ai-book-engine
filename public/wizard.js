@@ -6,6 +6,10 @@ const chooseGalleryBtn = document.getElementById("chooseGalleryBtn");
 const cameraInput = document.getElementById("cameraInput");
 const galleryInput = document.getElementById("galleryInput");
 
+const DB_NAME = "lifebookDB";
+const STORE_NAME = "images";
+const IMAGE_KEY = "uploadedPhoto";
+
 function openModal() {
   photoModal.classList.remove("hidden");
 }
@@ -47,7 +51,83 @@ function isSupportedImage(file) {
   return hasSupportedMime || hasSupportedExtension;
 }
 
-function compressImage(file, maxSize = 1200, quality = 0.72) {
+function openDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+
+    request.onupgradeneeded = function () {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+
+    request.onsuccess = function () {
+      resolve(request.result);
+    };
+
+    request.onerror = function () {
+      reject(request.error || new Error("Failed to open IndexedDB"));
+    };
+  });
+}
+
+async function saveImageToDB(dataUrl) {
+  const db = await openDatabase();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+
+    const request = store.put(dataUrl, IMAGE_KEY);
+
+    request.onsuccess = function () {
+      resolve(true);
+    };
+
+    request.onerror = function () {
+      reject(request.error || new Error("Failed to save image"));
+    };
+  });
+}
+
+async function clearStoredImages() {
+  try {
+    const db = await openDatabase();
+
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, "readwrite");
+      const store = transaction.objectStore(STORE_NAME);
+
+      const deleteUploaded = store.delete("uploadedPhoto");
+      const deleteCropped = store.delete("croppedPhoto");
+
+      let doneCount = 0;
+      function handleDone() {
+        doneCount++;
+        if (doneCount === 2) resolve();
+      }
+
+      deleteUploaded.onsuccess = handleDone;
+      deleteCropped.onsuccess = handleDone;
+
+      deleteUploaded.onerror = function () {
+        reject(deleteUploaded.error || new Error("Failed clearing uploaded photo"));
+      };
+
+      deleteCropped.onerror = function () {
+        reject(deleteCropped.error || new Error("Failed clearing cropped photo"));
+      };
+    });
+  } catch (error) {
+    console.warn("Failed to clear IndexedDB images:", error);
+  }
+
+  localStorage.removeItem("uploadedPhoto");
+  localStorage.removeItem("croppedPhoto");
+}
+
+function compressImage(file, maxSize = 1000, quality = 0.68) {
   return new Promise((resolve, reject) => {
     const fileReader = new FileReader();
 
@@ -99,20 +179,6 @@ function compressImage(file, maxSize = 1200, quality = 0.72) {
   });
 }
 
-async function saveImageForCrop(dataUrl) {
-  try {
-    localStorage.removeItem("uploadedPhoto");
-    localStorage.removeItem("croppedPhoto");
-
-    localStorage.setItem("uploadedPhoto", dataUrl);
-    return true;
-  } catch (error) {
-    console.error("localStorage save failed:", error);
-    alert("The selected image is too large. Please choose a smaller image or try a JPG photo.");
-    return false;
-  }
-}
-
 async function goToCropWithFile(file) {
   if (!file) return;
 
@@ -122,15 +188,15 @@ async function goToCropWithFile(file) {
   }
 
   try {
-    const compressedImage = await compressImage(file, 1200, 0.72);
+    const compressedImage = await compressImage(file, 1000, 0.68);
 
     if (!compressedImage) {
       alert("Failed to process the image. Please try another photo.");
       return;
     }
 
-    const saved = await saveImageForCrop(compressedImage);
-    if (!saved) return;
+    await clearStoredImages();
+    await saveImageToDB(compressedImage);
 
     closeModal();
 
