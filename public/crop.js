@@ -14,18 +14,32 @@ let offsetY = 0;
 let isDragging = false;
 let startDragX = 0;
 let startDragY = 0;
+let imageLoadedSuccessfully = false;
 
 if (!uploadedPhoto) {
   window.location.href = "wizard.html";
 }
 
-sourceImage.src = uploadedPhoto;
-
 sourceImage.onload = () => {
+  imageLoadedSuccessfully = true;
   drawCanvas();
 };
 
+sourceImage.onerror = () => {
+  imageLoadedSuccessfully = false;
+  alert(
+    "Something went wrong while loading the image. Please try again with a JPG, PNG, or WEBP photo."
+  );
+  localStorage.removeItem("uploadedPhoto");
+  localStorage.removeItem("croppedPhoto");
+  window.location.href = "wizard.html";
+};
+
+sourceImage.src = uploadedPhoto;
+
 function drawCanvas() {
+  if (!imageLoadedSuccessfully) return;
+
   cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
 
   const imageWidth = sourceImage.width * scale;
@@ -50,11 +64,13 @@ function drawCanvas() {
 }
 
 zoomSlider.addEventListener("input", (e) => {
+  if (!imageLoadedSuccessfully) return;
   scale = parseFloat(e.target.value);
   drawCanvas();
 });
 
 resetCropBtn.addEventListener("click", () => {
+  if (!imageLoadedSuccessfully) return;
   scale = 1;
   offsetX = 0;
   offsetY = 0;
@@ -63,13 +79,14 @@ resetCropBtn.addEventListener("click", () => {
 });
 
 cropCanvas.addEventListener("mousedown", (e) => {
+  if (!imageLoadedSuccessfully) return;
   isDragging = true;
   startDragX = e.offsetX;
   startDragY = e.offsetY;
 });
 
 cropCanvas.addEventListener("mousemove", (e) => {
-  if (!isDragging) return;
+  if (!isDragging || !imageLoadedSuccessfully) return;
 
   offsetX += e.offsetX - startDragX;
   offsetY += e.offsetY - startDragY;
@@ -89,6 +106,7 @@ cropCanvas.addEventListener("mouseleave", () => {
 });
 
 cropCanvas.addEventListener("touchstart", (e) => {
+  if (!imageLoadedSuccessfully) return;
   const touch = e.touches[0];
   const rect = cropCanvas.getBoundingClientRect();
   startDragX = touch.clientX - rect.left;
@@ -96,29 +114,38 @@ cropCanvas.addEventListener("touchstart", (e) => {
   isDragging = true;
 });
 
-cropCanvas.addEventListener("touchmove", (e) => {
-  if (!isDragging) return;
-  e.preventDefault();
+cropCanvas.addEventListener(
+  "touchmove",
+  (e) => {
+    if (!isDragging || !imageLoadedSuccessfully) return;
+    e.preventDefault();
 
-  const touch = e.touches[0];
-  const rect = cropCanvas.getBoundingClientRect();
-  const currentX = touch.clientX - rect.left;
-  const currentY = touch.clientY - rect.top;
+    const touch = e.touches[0];
+    const rect = cropCanvas.getBoundingClientRect();
+    const currentX = touch.clientX - rect.left;
+    const currentY = touch.clientY - rect.top;
 
-  offsetX += currentX - startDragX;
-  offsetY += currentY - startDragY;
+    offsetX += currentX - startDragX;
+    offsetY += currentY - startDragY;
 
-  startDragX = currentX;
-  startDragY = currentY;
+    startDragX = currentX;
+    startDragY = currentY;
 
-  drawCanvas();
-}, { passive: false });
+    drawCanvas();
+  },
+  { passive: false }
+);
 
 cropCanvas.addEventListener("touchend", () => {
   isDragging = false;
 });
 
 continueAfterCropBtn.addEventListener("click", () => {
+  if (!imageLoadedSuccessfully) {
+    alert("Please upload a valid image first.");
+    return;
+  }
+
   const exportCanvas = document.createElement("canvas");
   exportCanvas.width = 1024;
   exportCanvas.height = 1024;
