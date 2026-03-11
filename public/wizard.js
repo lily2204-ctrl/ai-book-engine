@@ -19,23 +19,39 @@ function resetInputs() {
   galleryInput.value = "";
 }
 
-function goToCropWithFile(file) {
-  if (!file) {
-    return;
-  }
+function showUnsupportedFormatMessage(fileName = "") {
+  const label = fileName ? ` (${fileName})` : "";
+  alert(
+    `This image format is not supported right now${label}.\n\nPlease choose a JPG, JPEG, PNG, or WEBP image.`
+  );
+}
 
-  // סוגי קבצים מותרים
-  const allowedTypes = [
+function isSupportedImage(file) {
+  if (!file) return false;
+
+  const type = (file.type || "").toLowerCase();
+  const name = (file.name || "").toLowerCase();
+
+  const supportedMimeTypes = [
     "image/jpeg",
     "image/jpg",
     "image/png",
-    "image/webp",
-    "image/heic",
-    "image/heif"
+    "image/webp"
   ];
 
-  if (file.type && !allowedTypes.includes(file.type)) {
-    alert("Please choose a valid image file (JPG, PNG, WEBP, HEIC).");
+  const supportedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+
+  const hasSupportedMime = supportedMimeTypes.includes(type);
+  const hasSupportedExtension = supportedExtensions.some((ext) => name.endsWith(ext));
+
+  return hasSupportedMime || hasSupportedExtension;
+}
+
+function goToCropWithFile(file) {
+  if (!file) return;
+
+  if (!isSupportedImage(file)) {
+    showUnsupportedFormatMessage(file.name || "");
     return;
   }
 
@@ -50,10 +66,13 @@ function goToCropWithFile(file) {
         return;
       }
 
+      localStorage.removeItem("uploadedPhoto");
+      localStorage.removeItem("croppedPhoto");
+
       localStorage.setItem("uploadedPhoto", result);
+
       closeModal();
 
-      // מעבר רק אחרי שמירת התמונה
       setTimeout(() => {
         window.location.href = "crop.html";
       }, 120);
