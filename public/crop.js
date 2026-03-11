@@ -9,6 +9,7 @@ const uploadedPhoto = localStorage.getItem("uploadedPhoto");
 const sourceImage = new Image();
 
 let scale = 1;
+let baseScale = 1;
 let offsetX = 0;
 let offsetY = 0;
 let isDragging = false;
@@ -22,20 +23,38 @@ if (!uploadedPhoto) {
 
 sourceImage.onload = () => {
   imageLoadedSuccessfully = true;
+  initializeImageFit();
   drawCanvas();
 };
 
 sourceImage.onerror = () => {
   imageLoadedSuccessfully = false;
-  alert(
-    "Something went wrong while loading the image. Please try again with a JPG, PNG, or WEBP photo."
-  );
+  alert("Something went wrong while loading the image. Please try again with a JPG, PNG, or WEBP photo.");
   localStorage.removeItem("uploadedPhoto");
   localStorage.removeItem("croppedPhoto");
   window.location.href = "wizard.html";
 };
 
 sourceImage.src = uploadedPhoto;
+
+function initializeImageFit() {
+  const fitScaleX = cropCanvas.width / sourceImage.width;
+  const fitScaleY = cropCanvas.height / sourceImage.height;
+
+  baseScale = Math.min(fitScaleX, fitScaleY);
+
+  // מתחילים קצת יותר קרוב אבל לא מוגזם
+  scale = baseScale * 1.15;
+
+  // טווח זום חדש, מותאם לתמונה עצמה
+  zoomSlider.min = String(baseScale);
+  zoomSlider.max = String(baseScale * 3.2);
+  zoomSlider.step = String(baseScale * 0.01);
+  zoomSlider.value = String(scale);
+
+  offsetX = 0;
+  offsetY = 0;
+}
 
 function drawCanvas() {
   if (!imageLoadedSuccessfully) return;
@@ -71,10 +90,7 @@ zoomSlider.addEventListener("input", (e) => {
 
 resetCropBtn.addEventListener("click", () => {
   if (!imageLoadedSuccessfully) return;
-  scale = 1;
-  offsetX = 0;
-  offsetY = 0;
-  zoomSlider.value = "1";
+  initializeImageFit();
   drawCanvas();
 });
 
