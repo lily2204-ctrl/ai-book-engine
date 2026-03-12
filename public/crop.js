@@ -231,10 +231,13 @@ continueAfterCropBtn.addEventListener("click", async () => {
     return;
   }
 
+  continueAfterCropBtn.disabled = true;
+  continueAfterCropBtn.textContent = "Saving...";
+
   try {
     const exportCanvas = document.createElement("canvas");
-    exportCanvas.width = 1024;
-    exportCanvas.height = 1024;
+    exportCanvas.width = 700;
+    exportCanvas.height = 700;
     const exportCtx = exportCanvas.getContext("2d");
 
     const imageWidth = sourceImage.width * scale;
@@ -243,11 +246,11 @@ continueAfterCropBtn.addEventListener("click", async () => {
     const centerX = (cropCanvas.width - imageWidth) / 2 + offsetX;
     const centerY = (cropCanvas.height - imageHeight) / 2 + offsetY;
 
-    const ratio = 1024 / 320;
+    const ratio = 700 / 320;
 
     exportCtx.save();
     exportCtx.beginPath();
-    exportCtx.arc(512, 512, 448, 0, Math.PI * 2);
+    exportCtx.arc(350, 350, 306, 0, Math.PI * 2);
     exportCtx.closePath();
     exportCtx.clip();
 
@@ -261,15 +264,23 @@ continueAfterCropBtn.addEventListener("click", async () => {
 
     exportCtx.restore();
 
-    const croppedPhoto = exportCanvas.toDataURL("image/png");
+    // נשמור JPEG קטן יותר כדי לא ליפול על מגבלת אחסון
+    const croppedPhoto = exportCanvas.toDataURL("image/jpeg", 0.78);
 
     await saveImageToDB(CROPPED_KEY, croppedPhoto);
-    localStorage.setItem("croppedPhoto", croppedPhoto);
+
+    try {
+      localStorage.setItem("croppedPhoto", croppedPhoto);
+    } catch (error) {
+      console.warn("localStorage croppedPhoto save skipped:", error);
+    }
 
     window.location.href = "setup.html";
   } catch (error) {
     console.error("Failed to save cropped image:", error);
     alert("Something went wrong while saving the cropped image. Please try again.");
+    continueAfterCropBtn.disabled = false;
+    continueAfterCropBtn.textContent = "Continue";
   }
 });
 
