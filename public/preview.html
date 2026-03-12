@@ -213,6 +213,8 @@
 
   <script>
     const API_BASE = window.location.origin;
+    const DB_NAME = "lifebookDB";
+    const STORE_NAME = "images";
 
     const rawBookData = localStorage.getItem("bookData");
     const previewGrid = document.getElementById("previewGrid");
@@ -223,7 +225,7 @@
       window.location.href = "cover.html";
     }
 
-    let bookData = JSON.parse(rawBookData);
+    const bookData = JSON.parse(rawBookData);
     const fullUnlocked = localStorage.getItem("paid") === "true";
 
     document.getElementById("previewBookTitle").textContent =
@@ -250,65 +252,121 @@
       window.location.href = "print.html";
     });
 
-    function persistBookData(updatedBookData) {
-      bookData = updatedBookData;
-      localStorage.setItem("bookData", JSON.stringify(updatedBookData));
+    function goToCheckout() {
+      window.location.href = "checkout.html";
     }
 
-    function saveImageToBookData(index, imageBase64) {
-      try {
-        const raw = localStorage.getItem("bookData");
-        if (!raw) return;
-        const parsed = JSON.parse(raw);
-        if (!parsed.pages || !parsed.pages[index]) return;
-        parsed.pages[index].imageBase64 = imageBase64;
-        persistBookData(parsed);
-      } catch (error) {
-        console.error("Failed to cache image");
-      }
-    }
+    function openDatabase() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
 
-    async function requestPageImage(pageIndex) {
-      const latest = JSON.parse(localStorage.getItem("bookData") || "{}");
-      const latestPages = Array.isArray(latest.pages) ? latest.pages : [];
+        request.onupgradeneeded = function () {
+          const db = request.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        };
 
-      if (latestPages[pageIndex]?.imageBase64) {
-        return latestPages[pageIndex].imageBase64;
-      }
+        request.onsuccess = function () {
+          resolve(request.result);
+        };
 
-      const prompt = latestPages[pageIndex]?.imagePrompt || "";
-      if (!prompt) {
-        throw new Error("Missing page image prompt");
-      }
-
-      const res = await fetch(`${API_BASE}/generate-image`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          illustration_style: latest.illustration_style || "Soft Storybook",
-          characterDescription: latest.characterDescription,
-          characterDNA: latest.characterDNA
-        })
+        request.onerror = function () {
+          reject(request.error || new Error("Failed to open IndexedDB"));
+        };
       });
+    }
 
-      const data = await res.json();
+    async function getImageFromDB(key) {
+      const db = await openDatabase();
 
-      if (!res.ok) {
-        throw new Error(data?.details || data?.message || "Image generation failed");
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readonly");
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.get(key);
+
+        req.onsuccess = function () {
+          resolve(req.result || null);
+        };
+
+        req.onerror = function () {
+          reject(req.error || new Error("Failed to read image from DB"));
+        };
+      });
+    }
+
+    async function saveImageToDB(key, value) {
+      const db = await openDatabase();
+
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.put(value, key);
+
+        req.onsuccess = function () {
+          resolve(true);
+        };
+
+        req.onerror = function () {
+          reject(req.error || new Error("Failed to save image to DB"));
+        };
+      });
+    }
+
+    function pageImageKey(pageIndex) {
+      return `pageImage_${pageIndex}`;
+    }
+
+    async function requestPageImageWithRetry(pageIndex, maxAttempts = 3) {
+      const existing = await getImageFromDB(pageImageKey(pageIndex));
+      if (existing) return existing;
+
+      const prompt = pages[pageIndex]?.imagePrompt || "";
+      if (!prompt) {
+        throw new Error(`Missing prompt for page ${pageIndex + 1}`);
       }
 
-      if (!data?.imageBase64) {
-        throw new Error("No image returned from server.");
+      let lastError = null;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const res = await fetch(`${API_BASE}/generate-image`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prompt,
+              illustration_style: bookData.illustration_style || "Soft Storybook",
+              characterDescription: bookData.characterDescription,
+              characterDNA: bookData.characterDNA
+            })
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data?.details || data?.message || "Image generation failed");
+          }
+
+          if (!data?.imageBase64) {
+            throw new Error("No image returned from server");
+          }
+
+          await saveImageToDB(pageImageKey(pageIndex), data.imageBase64);
+          return data.imageBase64;
+        } catch (error) {
+          lastError = error;
+          if (attempt < maxAttempts) {
+            await new Promise((resolve) => setTimeout(resolve, 900));
+          }
+        }
       }
 
-      saveImageToBookData(pageIndex, data.imageBase64);
-      return data.imageBase64;
+      throw lastError || new Error("Image generation failed");
     }
 
     async function generateImageForCard(pageIndex, imgEl, loaderEl) {
       try {
-        const imageBase64 = await requestPageImage(pageIndex);
+        const imageBase64 = await requestPageImageWithRetry(pageIndex, 3);
         imgEl.src = `data:image/png;base64,${imageBase64}`;
         imgEl.style.display = "block";
         loaderEl.style.display = "none";
@@ -393,10 +451,6 @@
       previewGrid.appendChild(lockedCard);
 
       document.getElementById("inlineUnlockBtn").addEventListener("click", goToCheckout);
-    }
-
-    function goToCheckout() {
-      window.location.href = "checkout.html";
     }
   </script>
 </body>
