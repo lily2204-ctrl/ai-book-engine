@@ -145,7 +145,7 @@
     <div class="delivery-hero">
       <h1>Your book is ready</h1>
       <p>
-        Access your full story, open the print-ready version, download the PDF, or continue to the printed-book order flow.
+        Access your full story, open the premium book reader, use the print-ready version, or download the PDF.
       </p>
     </div>
 
@@ -153,16 +153,13 @@
       <div class="delivery-card">
         <h2>Digital delivery</h2>
         <p>
-          Open the full preview, use the print-ready format, or move directly to PDF download.
+          Choose how you want to experience your personalized book.
         </p>
 
-        <button class="delivery-action" id="openFullPreviewBtn" type="button">Open Full Preview</button>
+        <button class="delivery-action" id="openReaderBtn" type="button">Open Book Reader</button>
+        <button class="delivery-action secondary" id="openFullPreviewBtn" type="button">Open Full Preview</button>
         <button class="delivery-action secondary" id="openPrintReadyBtn" type="button">Open Print Ready View</button>
         <button class="delivery-action secondary" id="downloadPdfBtn" type="button">Go to PDF Download</button>
-
-        <div class="delivery-note">
-          The PDF is generated from the print-ready view so the customer gets a clean final output.
-        </div>
       </div>
 
       <div class="delivery-card">
@@ -193,14 +190,13 @@
         <button class="delivery-action" id="orderPrintedBookBtn" type="button">Order Printed Book</button>
 
         <div class="delivery-note">
-          For now this button leads to the print-ready flow. Later it can connect to Shopify or a print fulfillment service.
+          This can later connect to Shopify printed-book ordering or fulfillment.
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    const API_BASE = window.location.origin;
     const orderId = localStorage.getItem("orderId");
     const rawBookData = localStorage.getItem("bookData");
 
@@ -216,15 +212,20 @@
     document.getElementById("deliveryStatus").textContent = "paid";
 
     const deliveryCoverImage = document.getElementById("deliveryCoverImage");
-
     if (bookData.characterImageBase64) {
       deliveryCoverImage.src = `data:image/png;base64,${bookData.characterImageBase64}`;
+    } else if (bookData.croppedPhoto) {
+      deliveryCoverImage.src = bookData.croppedPhoto;
     } else if (localStorage.getItem("croppedPhoto")) {
       deliveryCoverImage.src = localStorage.getItem("croppedPhoto");
     }
 
     document.getElementById("backToSuccess").addEventListener("click", () => {
       window.location.href = "success.html";
+    });
+
+    document.getElementById("openReaderBtn").addEventListener("click", () => {
+      window.location.href = "reader.html";
     });
 
     document.getElementById("openFullPreviewBtn").addEventListener("click", () => {
