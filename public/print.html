@@ -217,6 +217,7 @@
     const API_BASE = window.location.origin;
     const DB_NAME = "lifebookDB";
     const STORE_NAME = "images";
+    const PREFETCH_CONCURRENCY = window.innerWidth < 768 ? 2 : 3;
 
     const rawBookData = localStorage.getItem("bookData");
     const paid = localStorage.getItem("paid") === "true";
@@ -230,6 +231,9 @@
     const printStatus = document.getElementById("printStatus");
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
     const printBookBtn = document.getElementById("printBookBtn");
+    const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
+
+    const inFlightRequests = new Map();
 
     function setStatus(message = "", visible = false) {
       printStatus.textContent = message;
@@ -322,52 +326,66 @@
       const existing = await getImageFromDB(pageImageKey(pageIndex));
       if (existing) return existing;
 
-      const page = bookData.pages?.[pageIndex];
-      if (!page) {
-        throw new Error(`Missing page ${pageIndex + 1}`);
+      if (inFlightRequests.has(pageIndex)) {
+        return inFlightRequests.get(pageIndex);
       }
 
-      const prompt = page.imagePrompt || "";
-      if (!prompt) {
-        throw new Error(`Missing image prompt for page ${pageIndex + 1}`);
-      }
+      const promise = (async () => {
+        const page = pages[pageIndex];
+        if (!page) {
+          throw new Error(`Missing page ${pageIndex + 1}`);
+        }
 
-      let lastError = null;
+        const prompt = page.imagePrompt || "";
+        if (!prompt) {
+          throw new Error(`Missing image prompt for page ${pageIndex + 1}`);
+        }
 
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-          const res = await fetch(`${API_BASE}/generate-image`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              prompt,
-              illustration_style: bookData.illustration_style || "Soft Storybook",
-              characterDescription: bookData.characterDescription,
-              characterDNA: bookData.characterDNA
-            })
-          });
+        let lastError = null;
 
-          const data = await res.json();
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            const res = await fetch(`${API_BASE}/generate-image`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                prompt,
+                illustration_style: bookData.illustration_style || "Soft Storybook",
+                characterDescription: bookData.characterDescription,
+                characterDNA: bookData.characterDNA
+              })
+            });
 
-          if (!res.ok) {
-            throw new Error(data?.details || data?.message || "Image generation failed");
-          }
+            const data = await res.json();
 
-          if (!data?.imageBase64) {
-            throw new Error(`No image returned for page ${pageIndex + 1}`);
-          }
+            if (!res.ok) {
+              throw new Error(data?.details || data?.message || "Image generation failed");
+            }
 
-          await saveImageToDB(pageImageKey(pageIndex), data.imageBase64);
-          return data.imageBase64;
-        } catch (error) {
-          lastError = error;
-          if (attempt < maxAttempts) {
-            await new Promise((resolve) => setTimeout(resolve, 900));
+            if (!data?.imageBase64) {
+              throw new Error(`No image returned for page ${pageIndex + 1}`);
+            }
+
+            await saveImageToDB(pageImageKey(pageIndex), data.imageBase64);
+            return data.imageBase64;
+          } catch (error) {
+            lastError = error;
+            if (attempt < maxAttempts) {
+              await new Promise((resolve) => setTimeout(resolve, 900));
+            }
           }
         }
-      }
 
-      throw lastError || new Error("Image generation failed");
+        throw lastError || new Error("Image generation failed");
+      })();
+
+      inFlightRequests.set(pageIndex, promise);
+
+      try {
+        return await promise;
+      } finally {
+        inFlightRequests.delete(pageIndex);
+      }
     }
 
     async function createCover() {
@@ -407,7 +425,7 @@
             ${
               imageSrc
                 ? `<img class="print-page-image" src="${imageSrc}" alt="Page illustration" />`
-                : `<div class="print-page-image placeholder">Illustration will appear here</div>`
+                : `<div class="print-page-image placeholder">Illustration is being prepared</div>`
             }
           </div>
 
@@ -425,24 +443,57 @@
       printBook.innerHTML = "";
       printBook.appendChild(await createCover());
 
-      const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
       for (let i = 0; i < pages.length; i++) {
         printBook.appendChild(await createPage(pages[i], i));
       }
     }
 
-    async function ensureAllPageImages() {
-      const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
-
+    async function countReadyImages() {
+      let ready = 0;
       for (let i = 0; i < pages.length; i++) {
         const existing = await getImageFromDB(pageImageKey(i));
-        if (!existing) {
-          setStatus(`Preparing illustration ${i + 1} of ${pages.length}...`, true);
-          await requestPageImageWithRetry(i, 3);
-        }
+        if (existing) ready++;
       }
+      return ready;
+    }
 
-      setStatus("", false);
+    async function ensureAllPageImages() {
+      const queue = pages.map((_, index) => index);
+      let active = 0;
+      let completed = await countReadyImages();
+
+      return new Promise((resolve) => {
+        const runNext = () => {
+          while (active < PREFETCH_CONCURRENCY && queue.length > 0) {
+            const pageIndex = queue.shift();
+            active++;
+
+            requestPageImageWithRetry(pageIndex, 3)
+              .catch((error) => {
+                console.warn(`Page ${pageIndex + 1} failed:`, error);
+              })
+              .finally(async () => {
+                active--;
+                completed = await countReadyImages();
+                setStatus(`Preparing illustrations (${completed}/${pages.length})...`, true);
+
+                if (queue.length === 0 && active === 0) {
+                  setStatus("", false);
+                  resolve();
+                } else {
+                  runNext();
+                }
+              });
+          }
+        };
+
+        if (!pages.length) {
+          resolve();
+          return;
+        }
+
+        runNext();
+      });
     }
 
     function addImageSafe(pdf, imageDataUrl, format, x, y, w, h) {
@@ -468,11 +519,10 @@
       const pdf = new jsPDF("p", "mm", "a4");
 
       const pageWidth = 210;
-      const pageHeight = 297;
       const margin = 15;
 
       pdf.setFillColor(255, 244, 220);
-      pdf.rect(0, 0, pageWidth, pageHeight, "F");
+      pdf.rect(0, 0, 210, 297, "F");
 
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(12);
@@ -496,13 +546,11 @@
       const coverImage = getCoverImageSrc();
       addAnyImage(pdf, coverImage, 55, 140, 100, 100);
 
-      const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
-
       for (let i = 0; i < pages.length; i++) {
         pdf.addPage();
 
         pdf.setFillColor(255, 255, 255);
-        pdf.rect(0, 0, pageWidth, pageHeight, "F");
+        pdf.rect(0, 0, 210, 297, "F");
 
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(11);
@@ -532,8 +580,9 @@
     async function initializePrintView() {
       try {
         await renderBook();
-        await ensureAllPageImages();
-        await renderBook();
+        ensureAllPageImages().then(async () => {
+          await renderBook();
+        });
       } catch (error) {
         console.error("Failed to prepare print view:", error);
         setStatus(error?.message || "Failed to prepare print view.", true);
