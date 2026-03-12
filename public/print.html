@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Lifebook - Print Ready</title>
   <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <style>
     body.print-body {
@@ -356,6 +355,104 @@
       }
     }
 
+    function getCoverImageForPdf() {
+      if (bookData.characterImageBase64) {
+        return `data:image/png;base64,${bookData.characterImageBase64}`;
+      }
+      return bookData.croppedPhoto || localStorage.getItem("croppedPhoto") || "";
+    }
+
+    function addContainedImage(pdf, imageDataUrl, boxX, boxY, boxW, boxH) {
+      if (!imageDataUrl) return;
+
+      try {
+        pdf.addImage(imageDataUrl, "JPEG", boxX, boxY, boxW, boxH);
+      } catch (errJpeg) {
+        try {
+          pdf.addImage(imageDataUrl, "PNG", boxX, boxY, boxW, boxH);
+        } catch (errPng) {
+          console.error("Failed to add image to PDF:", errPng);
+        }
+      }
+    }
+
+    async function buildPdfDirectly() {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 15;
+
+      const coverImage = getCoverImageForPdf();
+
+      // Cover page
+      pdf.setFillColor(255, 244, 220);
+      pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.setTextColor(141, 107, 43);
+      pdf.text("Print Ready Edition", margin, 20);
+
+      pdf.setFontSize(24);
+      pdf.setTextColor(25, 25, 25);
+      const coverTitle = pdf.splitTextToSize(bookData.title || "Your magical story", 120);
+      pdf.text(coverTitle, margin, 40);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(14);
+      pdf.setTextColor(100, 100, 100);
+      const coverSubtitle = pdf.splitTextToSize(
+        bookData.subtitle || "A personalized adventure made just for your child.",
+        120
+      );
+      pdf.text(coverSubtitle, margin, 70);
+
+      if (coverImage) {
+        addContainedImage(pdf, coverImage, 55, 140, 100, 100);
+      }
+
+      const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
+
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+        pdf.addPage();
+
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, 0, pageWidth, pageHeight, "F");
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(11);
+        pdf.setTextColor(180, 139, 66);
+        pdf.text(`PAGE ${i + 1}`, margin, 18);
+
+        if (page.imageBase64) {
+          addContainedImage(
+            pdf,
+            `data:image/png;base64,${page.imageBase64}`,
+            margin,
+            28,
+            80,
+            80
+          );
+        }
+
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(16);
+        pdf.setTextColor(35, 35, 35);
+
+        const textLines = pdf.splitTextToSize(page.text || "", 85);
+        pdf.text(textLines, 105, 40);
+      }
+
+      const safeTitle = (bookData.title || "lifebook-story")
+        .replace(/[^a-z0-9]/gi, "_")
+        .toLowerCase();
+
+      pdf.save(`${safeTitle}.pdf`);
+    }
+
     async function initializePrintView() {
       try {
         await ensureAllPageImages();
@@ -391,50 +488,10 @@
         setStatus("Preparing all illustrations for PDF...", true);
         await ensureAllPageImages();
         await renderBook();
+        setStatus("Building downloadable PDF...", true);
 
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF("p", "mm", "a4");
-        const sections = Array.from(document.querySelectorAll(".print-cover, .print-page"));
+        await buildPdfDirectly();
 
-        for (let i = 0; i < sections.length; i++) {
-          setStatus(`Building PDF page ${i + 1} of ${sections.length}...`, true);
-
-          const section = sections[i];
-
-          const canvas = await html2canvas(section, {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: "#ffffff"
-          });
-
-          const imgData = canvas.toDataURL("image/jpeg", 0.92);
-
-          const pdfWidth = 210;
-          const pdfHeight = 297;
-
-          const imgWidth = pdfWidth;
-          const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-          let renderHeight = imgHeight;
-          let renderWidth = imgWidth;
-
-          if (renderHeight > pdfHeight) {
-            renderHeight = pdfHeight;
-            renderWidth = (canvas.width * renderHeight) / canvas.height;
-          }
-
-          const x = (pdfWidth - renderWidth) / 2;
-          const y = (pdfHeight - renderHeight) / 2;
-
-          if (i > 0) pdf.addPage();
-          pdf.addImage(imgData, "JPEG", x, y, renderWidth, renderHeight);
-        }
-
-        const safeTitle = (bookData.title || "lifebook-story")
-          .replace(/[^a-z0-9]/gi, "_")
-          .toLowerCase();
-
-        pdf.save(`${safeTitle}.pdf`);
         setStatus("", false);
       } catch (error) {
         console.error(error);
