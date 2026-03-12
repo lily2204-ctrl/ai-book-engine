@@ -1,75 +1,256 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lifebook - Upload Photo</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lifebook - Create Your Book</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body class="wizard-body">
+<body class="setup-body">
 
-  <div class="wizard-shell">
-    <header class="wizard-topbar">
-      <div class="wizard-topbar-left">
-        <a class="back-link" href="index.html">← Back</a>
+  <header class="wizard-topbar">
+    <div class="wizard-topbar-left">
+      <button class="back-link-button" type="button" onclick="window.location.href='index.html'">← Back</button>
+    </div>
+
+    <div class="wizard-brand">
+      <div class="logo-mark">
+        <div class="logo-book"><span></span></div>
+      </div>
+      <span class="wizard-brand-text">lifebook</span>
+    </div>
+
+    <div class="wizard-topbar-right"></div>
+  </header>
+
+  <main class="wizard-shell">
+    <section class="wizard-main-card">
+      <div class="wizard-header">
+        <div>
+          <div class="wizard-step-label">STEP 1 OF 5</div>
+          <h1 class="wizard-title">Create your personalized book</h1>
+          <p class="wizard-subtitle">
+            Upload a child photo, choose the visual style, and guide the story with a few simple details.
+          </p>
+        </div>
+
+        <div class="wizard-side-note">
+          The better the photo and the clearer the story direction, the more premium the final book will feel.
+        </div>
       </div>
 
-      <div class="wizard-brand">
-        <div class="logo-mark small"></div>
-        <span class="wizard-brand-text">lifebook</span>
+      <div class="wizard-grid">
+        <div class="wizard-block">
+          <h2 class="block-title">Story details</h2>
+
+          <div class="input-grid">
+            <label class="input-label">
+              Child name
+              <input id="childName" type="text" placeholder="Enter the child’s name" />
+            </label>
+
+            <label class="input-label">
+              Child age
+              <select id="childAge">
+                <option value="">Select age</option>
+                <option>1</option>
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+                <option>5</option>
+                <option>6</option>
+                <option>7</option>
+                <option>8</option>
+                <option>9</option>
+                <option>10</option>
+              </select>
+            </label>
+
+            <label class="input-label">
+              Child gender
+              <select id="childGender">
+                <option value="">Select</option>
+                <option value="boy">Boy</option>
+                <option value="girl">Girl</option>
+                <option value="neutral">Prefer neutral</option>
+              </select>
+            </label>
+
+            <label class="input-label">
+              Story direction
+              <textarea id="storyIdea" placeholder="Write a few simple lines about the kind of story you want. For example: a magical forest adventure, a brave little explorer, a bedtime story about friendship..."></textarea>
+            </label>
+          </div>
+        </div>
+
+        <div class="wizard-block">
+          <h2 class="block-title">Illustration style</h2>
+
+          <div class="style-grid" id="styleGrid">
+            <div class="style-card active" data-style="Soft Storybook">
+              <div class="style-thumb"></div>
+              <div class="style-name">Soft Storybook</div>
+              <div class="style-text">Warm, emotional, classic illustrated children’s book look.</div>
+            </div>
+
+            <div class="style-card" data-style="Pixar 3D">
+              <div class="style-thumb"></div>
+              <div class="style-name">Pixar 3D</div>
+              <div class="style-text">More dimensional, expressive, playful, and cinematic.</div>
+            </div>
+
+            <div class="style-card" data-style="Magical Fantasy">
+              <div class="style-thumb"></div>
+              <div class="style-name">Magical Fantasy</div>
+              <div class="style-text">Dreamier worlds, glowing details, wonder, and magic.</div>
+            </div>
+
+            <div class="style-card" data-style="Minimal Scandinavian">
+              <div class="style-thumb"></div>
+              <div class="style-name">Minimal Scandinavian</div>
+              <div class="style-text">Clean, modern, soft, and premium with elegant simplicity.</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="wizard-topbar-right"></div>
-    </header>
+      <div class="wizard-block" style="margin-top:18px;">
+        <h2 class="block-title">Upload the child photo</h2>
 
-    <main class="wizard-main">
-      <div class="wizard-step-label">STEP 1 OF 5</div>
+        <div class="upload-panel">
+          <div class="upload-drop" id="openPhotoModal">
+            <div class="upload-plus">+</div>
+            <div class="upload-title">Add photo</div>
+            <div class="upload-text">
+              Choose a clear image of the child to create a more polished and accurate character.
+            </div>
+          </div>
 
-      <h1 class="wizard-title">Let’s create your story hero</h1>
-      <p class="wizard-subtitle">
-        Upload a high-quality photo to begin.
-      </p>
+          <div class="photo-guide-grid">
+            <div class="guide-card good">
+              <div class="guide-image good"></div>
+              <div class="guide-content">
+                <div class="guide-title">Good photo</div>
+                <div class="guide-desc">Clear face, centered child, simple background, bright lighting.</div>
+              </div>
+            </div>
 
-      <button class="upload-circle-btn" id="openPhotoModal" type="button" aria-label="Upload photo">
-        <span>+</span>
-      </button>
+            <div class="guide-card bad">
+              <div class="guide-image bad"></div>
+              <div class="guide-content">
+                <div class="guide-title">Not ideal</div>
+                <div class="guide-desc">Too far, face is small, background is busy, not enough detail.</div>
+              </div>
+            </div>
 
-      <div class="wizard-security-note">
-        Your photos and data are kept secure and will be deleted automatically within 7 days.
+            <div class="guide-card bad">
+              <div class="guide-image bad"></div>
+              <div class="guide-content">
+                <div class="guide-title">Not ideal</div>
+                <div class="guide-desc">Face covered, side angle, dark photo, blurry expression.</div>
+              </div>
+            </div>
+
+            <div class="guide-card bad">
+              <div class="guide-image bad"></div>
+              <div class="guide-content">
+                <div class="guide-title">Not ideal</div>
+                <div class="guide-desc">Many children in one photo or an image that makes the child unclear.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="wizard-footer-actions">
+          <button class="secondary-btn" type="button" onclick="window.location.href='index.html'">Back Home</button>
+          <button class="continue-btn" id="goToSetupBtn" type="button">Continue</button>
+        </div>
       </div>
-    </main>
-  </div>
+    </section>
+  </main>
 
-  <!-- Photo selection modal -->
   <div class="modal-overlay hidden" id="photoModal">
     <div class="modal-card">
       <button class="modal-close" id="closePhotoModal" type="button">×</button>
 
-      <h2 class="modal-title">Main character photo</h2>
-      <div class="modal-highlight">Tips for choosing the first photo:</div>
+      <h2 class="modal-title">Choose the best photo for the book</h2>
       <p class="modal-text">
-        Upload a clear front-facing image with the face centered.
-        This helps us create a more accurate and premium-looking character.
+        A strong photo gives the AI a much better base for creating a premium child character throughout the story.
       </p>
 
-      <div class="example-row">
-        <div class="example-avatar good">✓</div>
-        <div class="example-avatar bad">×</div>
-        <div class="example-avatar bad">×</div>
-        <div class="example-avatar bad">×</div>
+      <div class="modal-guide-grid">
+        <div class="modal-guide-card good">
+          <div class="modal-guide-image good"></div>
+          <div class="modal-guide-body">
+            <div class="modal-guide-title">Best option</div>
+            <div class="modal-guide-desc">One child, front-facing, clean face, bright and centered.</div>
+          </div>
+        </div>
+
+        <div class="modal-guide-card bad">
+          <div class="modal-guide-image bad"></div>
+          <div class="modal-guide-body">
+            <div class="modal-guide-title">Too many people</div>
+            <div class="modal-guide-desc">Group photos make it harder to isolate the child clearly.</div>
+          </div>
+        </div>
+
+        <div class="modal-guide-card bad">
+          <div class="modal-guide-image bad"></div>
+          <div class="modal-guide-body">
+            <div class="modal-guide-title">Face too hidden</div>
+            <div class="modal-guide-desc">Covered face, strong angle, or blur reduce character quality.</div>
+          </div>
+        </div>
+
+        <div class="modal-guide-card bad">
+          <div class="modal-guide-image bad"></div>
+          <div class="modal-guide-body">
+            <div class="modal-guide-title">Too dark or distant</div>
+            <div class="modal-guide-desc">The child should appear clearly and take up enough space in the photo.</div>
+          </div>
+        </div>
       </div>
 
-      <div class="modal-safe-note">
-        Your photos remain secure and are deleted automatically within 7 days.
+      <div class="modal-actions">
+        <button class="gold-btn" id="takePhotoBtn" type="button">Take Photo</button>
+        <button class="white-btn" id="chooseGalleryBtn" type="button">Choose from Gallery</button>
       </div>
 
-      <button class="modal-action-btn" id="takePhotoBtn" type="button">Take Photo</button>
-      <button class="modal-action-btn secondary" id="chooseGalleryBtn" type="button">Choose from Gallery</button>
-
-      <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden />
-      <input type="file" id="galleryInput" accept="image/*" hidden />
+      <input id="cameraInput" type="file" accept="image/*" capture="environment" class="hidden" />
+      <input id="galleryInput" type="file" accept="image/*" class="hidden" />
     </div>
   </div>
+
+  <script>
+    let selectedStyle = "Soft Storybook";
+
+    const styleCards = document.querySelectorAll(".style-card");
+    styleCards.forEach((card) => {
+      card.addEventListener("click", () => {
+        styleCards.forEach((item) => item.classList.remove("active"));
+        card.classList.add("active");
+        selectedStyle = card.dataset.style || "Soft Storybook";
+      });
+    });
+
+    document.getElementById("goToSetupBtn").addEventListener("click", () => {
+      const childName = document.getElementById("childName").value.trim();
+      const childAge = document.getElementById("childAge").value;
+      const childGender = document.getElementById("childGender").value;
+      const storyIdea = document.getElementById("storyIdea").value.trim();
+
+      localStorage.setItem("bookSetupData", JSON.stringify({
+        childName,
+        childAge,
+        childGender,
+        storyIdea,
+        illustrationStyle: selectedStyle
+      }));
+
+      document.getElementById("openPhotoModal").click();
+    });
+  </script>
 
   <script src="wizard.js"></script>
 </body>
