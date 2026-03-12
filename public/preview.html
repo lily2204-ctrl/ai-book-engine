@@ -223,7 +223,7 @@
       window.location.href = "cover.html";
     }
 
-    const bookData = JSON.parse(rawBookData);
+    let bookData = JSON.parse(rawBookData);
     const fullUnlocked = localStorage.getItem("paid") === "true";
 
     document.getElementById("previewBookTitle").textContent =
@@ -250,6 +250,11 @@
       window.location.href = "print.html";
     });
 
+    function persistBookData(updatedBookData) {
+      bookData = updatedBookData;
+      localStorage.setItem("bookData", JSON.stringify(updatedBookData));
+    }
+
     function saveImageToBookData(index, imageBase64) {
       try {
         const raw = localStorage.getItem("bookData");
@@ -257,47 +262,56 @@
         const parsed = JSON.parse(raw);
         if (!parsed.pages || !parsed.pages[index]) return;
         parsed.pages[index].imageBase64 = imageBase64;
-        localStorage.setItem("bookData", JSON.stringify(parsed));
+        persistBookData(parsed);
       } catch (error) {
         console.error("Failed to cache image");
       }
     }
 
-    async function generateImage(prompt, imgEl, loaderEl, pageIndex) {
-      if (pages[pageIndex]?.imageBase64) {
-        imgEl.src = `data:image/png;base64,${pages[pageIndex].imageBase64}`;
-        imgEl.style.display = "block";
-        loaderEl.style.display = "none";
-        return;
+    async function requestPageImage(pageIndex) {
+      const latest = JSON.parse(localStorage.getItem("bookData") || "{}");
+      const latestPages = Array.isArray(latest.pages) ? latest.pages : [];
+
+      if (latestPages[pageIndex]?.imageBase64) {
+        return latestPages[pageIndex].imageBase64;
       }
 
+      const prompt = latestPages[pageIndex]?.imagePrompt || "";
+      if (!prompt) {
+        throw new Error("Missing page image prompt");
+      }
+
+      const res = await fetch(`${API_BASE}/generate-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          illustration_style: latest.illustration_style || "Soft Storybook",
+          characterDescription: latest.characterDescription,
+          characterDNA: latest.characterDNA
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.details || data?.message || "Image generation failed");
+      }
+
+      if (!data?.imageBase64) {
+        throw new Error("No image returned from server.");
+      }
+
+      saveImageToBookData(pageIndex, data.imageBase64);
+      return data.imageBase64;
+    }
+
+    async function generateImageForCard(pageIndex, imgEl, loaderEl) {
       try {
-        const res = await fetch(`${API_BASE}/generate-image`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prompt,
-            illustration_style: bookData.illustration_style || "Soft Storybook",
-            characterDescription: bookData.characterDescription,
-            characterDNA: bookData.characterDNA
-          })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data?.details || data?.message || "Image generation failed");
-        }
-
-        if (!data?.imageBase64) {
-          throw new Error("No image returned from server.");
-        }
-
-        imgEl.src = `data:image/png;base64,${data.imageBase64}`;
+        const imageBase64 = await requestPageImage(pageIndex);
+        imgEl.src = `data:image/png;base64,${imageBase64}`;
         imgEl.style.display = "block";
         loaderEl.style.display = "none";
-
-        saveImageToBookData(pageIndex, data.imageBase64);
       } catch (error) {
         console.error("Preview image generation failed:", error);
         loaderEl.textContent = "Failed to generate illustration";
@@ -319,6 +333,7 @@
       loader.textContent = "Generating illustration...";
 
       const image = document.createElement("img");
+      image.alt = "Page illustration";
 
       imageBox.appendChild(loader);
       imageBox.appendChild(image);
@@ -344,10 +359,10 @@
         entries.forEach(async (entry) => {
           if (entry.isIntersecting) {
             observer.disconnect();
-            await generateImage(page.imagePrompt || "", image, loader, pageIndex);
+            await generateImageForCard(pageIndex, image, loader);
           }
         });
-      }, { threshold: 0.25 });
+      }, { threshold: 0.15 });
 
       observer.observe(card);
 
