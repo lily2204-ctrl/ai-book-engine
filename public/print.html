@@ -60,6 +60,17 @@
       gap: 22px;
     }
 
+    .print-status {
+      margin-bottom: 16px;
+      padding: 14px 18px;
+      border-radius: 18px;
+      background: #fff8eb;
+      border: 1px solid #f1dfbc;
+      color: #8d6b2b;
+      font-weight: 700;
+      display: none;
+    }
+
     .print-cover,
     .print-page {
       background: white;
@@ -125,6 +136,7 @@
       border-radius: 24px;
       background: #f7f0e4;
       border: 1px solid #efe2cc;
+      display: block;
     }
 
     .print-page-number {
@@ -152,8 +164,9 @@
         background: white;
       }
 
-      .print-topbar {
-        display: none;
+      .print-topbar,
+      .print-status {
+        display: none !important;
       }
 
       .print-cover,
@@ -186,17 +199,19 @@
       </div>
     </div>
 
+    <div class="print-status" id="printStatus"></div>
     <div class="print-book" id="printBook"></div>
   </div>
 
   <script>
-    const rawBookData = localStorage.getItem("bookData");
+    const API_BASE = window.location.origin;
 
+    const rawBookData = localStorage.getItem("bookData");
     if (!rawBookData) {
       window.location.href = "preview.html";
     }
 
-    const bookData = JSON.parse(rawBookData);
+    let bookData = JSON.parse(rawBookData);
 
     if (localStorage.getItem("paid") !== "true") {
       window.location.href = "preview.html";
@@ -204,6 +219,83 @@
 
     const printBook = document.getElementById("printBook");
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
+    const printStatus = document.getElementById("printStatus");
+
+    function persistBookData(updatedBookData) {
+      bookData = updatedBookData;
+      localStorage.setItem("bookData", JSON.stringify(updatedBookData));
+    }
+
+    function saveImageToBookData(index, imageBase64) {
+      const raw = localStorage.getItem("bookData");
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed.pages || !parsed.pages[index]) return;
+      parsed.pages[index].imageBase64 = imageBase64;
+      persistBookData(parsed);
+    }
+
+    function setStatus(message = "", visible = false) {
+      printStatus.textContent = message;
+      printStatus.style.display = visible ? "block" : "none";
+    }
+
+    async function requestPageImage(pageIndex) {
+      const latest = JSON.parse(localStorage.getItem("bookData") || "{}");
+      const latestPages = Array.isArray(latest.pages) ? latest.pages : [];
+
+      if (latestPages[pageIndex]?.imageBase64) {
+        return latestPages[pageIndex].imageBase64;
+      }
+
+      const prompt = latestPages[pageIndex]?.imagePrompt || "";
+      if (!prompt) {
+        throw new Error(`Missing image prompt for page ${pageIndex + 1}`);
+      }
+
+      const res = await fetch(`${API_BASE}/generate-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          illustration_style: latest.illustration_style || "Soft Storybook",
+          characterDescription: latest.characterDescription,
+          characterDNA: latest.characterDNA
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.details || data?.message || "Image generation failed");
+      }
+
+      if (!data?.imageBase64) {
+        throw new Error("No image returned from server.");
+      }
+
+      saveImageToBookData(pageIndex, data.imageBase64);
+      return data.imageBase64;
+    }
+
+    async function ensureAllPageImages() {
+      const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
+
+      for (let i = 0; i < pages.length; i++) {
+        if (!pages[i]?.imageBase64) {
+          setStatus(`Preparing illustration ${i + 1} of ${pages.length}...`, true);
+          const imageBase64 = await requestPageImage(i);
+          pages[i].imageBase64 = imageBase64;
+        }
+      }
+
+      const refreshed = JSON.parse(localStorage.getItem("bookData") || "{}");
+      if (refreshed?.pages) {
+        bookData = refreshed;
+      }
+
+      setStatus("", false);
+    }
 
     function createCover() {
       const cover = document.createElement("div");
@@ -212,7 +304,7 @@
       const coverImage =
         bookData.characterImageBase64
           ? `data:image/png;base64,${bookData.characterImageBase64}`
-          : localStorage.getItem("croppedPhoto");
+          : (bookData.croppedPhoto || localStorage.getItem("croppedPhoto") || "");
 
       cover.innerHTML = `
         <div>
@@ -222,7 +314,7 @@
         </div>
 
         <div>
-          <img class="print-cover-image" src="${coverImage || ""}" alt="Book cover image" />
+          <img class="print-cover-image" src="${coverImage}" alt="Book cover image" />
         </div>
       `;
 
@@ -253,20 +345,42 @@
       return pageCard;
     }
 
-    printBook.appendChild(createCover());
+    async function renderBook() {
+      printBook.innerHTML = "";
+      printBook.appendChild(createCover());
 
-    if (Array.isArray(bookData.pages)) {
-      bookData.pages.forEach((page, index) => {
-        printBook.appendChild(createPage(page, index));
-      });
+      if (Array.isArray(bookData.pages)) {
+        bookData.pages.forEach((page, index) => {
+          printBook.appendChild(createPage(page, index));
+        });
+      }
+    }
+
+    async function initializePrintView() {
+      try {
+        await ensureAllPageImages();
+        await renderBook();
+      } catch (error) {
+        console.error("Failed to prepare print view:", error);
+        setStatus("Failed to prepare all illustrations. Please try again.", true);
+      }
     }
 
     document.getElementById("backToDeliveryBtn").addEventListener("click", () => {
       window.location.href = "delivery.html";
     });
 
-    document.getElementById("printBookBtn").addEventListener("click", () => {
-      window.print();
+    document.getElementById("printBookBtn").addEventListener("click", async () => {
+      try {
+        setStatus("Preparing all pages for printing...", true);
+        await ensureAllPageImages();
+        await renderBook();
+        setStatus("", false);
+        window.print();
+      } catch (error) {
+        console.error(error);
+        setStatus("Failed to prepare the book for printing. Please try again.", true);
+      }
     });
 
     downloadPdfBtn.addEventListener("click", async () => {
@@ -274,11 +388,17 @@
       downloadPdfBtn.textContent = "Preparing PDF...";
 
       try {
+        setStatus("Preparing all illustrations for PDF...", true);
+        await ensureAllPageImages();
+        await renderBook();
+
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF("p", "mm", "a4");
         const sections = Array.from(document.querySelectorAll(".print-cover, .print-page"));
 
         for (let i = 0; i < sections.length; i++) {
+          setStatus(`Building PDF page ${i + 1} of ${sections.length}...`, true);
+
           const section = sections[i];
 
           const canvas = await html2canvas(section, {
@@ -315,13 +435,17 @@
           .toLowerCase();
 
         pdf.save(`${safeTitle}.pdf`);
+        setStatus("", false);
       } catch (error) {
-        alert("Failed to generate PDF. Please try again.");
+        console.error(error);
+        setStatus("Failed to generate PDF. Please try again.", true);
       } finally {
         downloadPdfBtn.disabled = false;
         downloadPdfBtn.textContent = "Download PDF";
       }
     });
+
+    initializePrintView();
   </script>
 </body>
 </html>
