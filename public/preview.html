@@ -165,6 +165,13 @@
       line-height: 1.5;
     }
 
+    .prefetch-note {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #8b7c62;
+      font-weight: 700;
+    }
+
     @media (max-width: 860px) {
       .page-layout {
         grid-template-columns: 1fr;
@@ -196,6 +203,7 @@
       <div class="preview-header-left">
         <h1 id="previewBookTitle">Book Preview</h1>
         <p id="previewBookSubtitle">Your preview is ready.</p>
+        <div id="prefetchNote" class="prefetch-note"></div>
       </div>
 
       <div class="header-action-row">
@@ -215,11 +223,13 @@
     const API_BASE = window.location.origin;
     const DB_NAME = "lifebookDB";
     const STORE_NAME = "images";
+    const PREFETCH_CONCURRENCY = window.innerWidth < 768 ? 2 : 3;
 
     const rawBookData = localStorage.getItem("bookData");
     const previewGrid = document.getElementById("previewGrid");
     const headerUnlockBtn = document.getElementById("headerUnlockBtn");
     const printReadyBtn = document.getElementById("printReadyBtn");
+    const prefetchNote = document.getElementById("prefetchNote");
 
     if (!rawBookData) {
       window.location.href = "cover.html";
@@ -227,6 +237,10 @@
 
     const bookData = JSON.parse(rawBookData);
     const fullUnlocked = localStorage.getItem("paid") === "true";
+    const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
+    const visiblePages = fullUnlocked ? pages : pages.slice(0, 2);
+
+    const inFlightRequests = new Map();
 
     document.getElementById("previewBookTitle").textContent =
       bookData.title || "Your preview";
@@ -237,9 +251,6 @@
     document.getElementById("backToCover").addEventListener("click", () => {
       window.location.href = "cover.html";
     });
-
-    const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
-    const visiblePages = fullUnlocked ? pages : pages.slice(0, 2);
 
     if (!fullUnlocked) {
       headerUnlockBtn.style.display = "inline-flex";
@@ -321,47 +332,61 @@
       const existing = await getImageFromDB(pageImageKey(pageIndex));
       if (existing) return existing;
 
-      const prompt = pages[pageIndex]?.imagePrompt || "";
-      if (!prompt) {
-        throw new Error(`Missing prompt for page ${pageIndex + 1}`);
+      if (inFlightRequests.has(pageIndex)) {
+        return inFlightRequests.get(pageIndex);
       }
 
-      let lastError = null;
+      const promise = (async () => {
+        const prompt = pages[pageIndex]?.imagePrompt || "";
+        if (!prompt) {
+          throw new Error(`Missing prompt for page ${pageIndex + 1}`);
+        }
 
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-          const res = await fetch(`${API_BASE}/generate-image`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              prompt,
-              illustration_style: bookData.illustration_style || "Soft Storybook",
-              characterDescription: bookData.characterDescription,
-              characterDNA: bookData.characterDNA
-            })
-          });
+        let lastError = null;
 
-          const data = await res.json();
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            const res = await fetch(`${API_BASE}/generate-image`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                prompt,
+                illustration_style: bookData.illustration_style || "Soft Storybook",
+                characterDescription: bookData.characterDescription,
+                characterDNA: bookData.characterDNA
+              })
+            });
 
-          if (!res.ok) {
-            throw new Error(data?.details || data?.message || "Image generation failed");
-          }
+            const data = await res.json();
 
-          if (!data?.imageBase64) {
-            throw new Error("No image returned from server");
-          }
+            if (!res.ok) {
+              throw new Error(data?.details || data?.message || "Image generation failed");
+            }
 
-          await saveImageToDB(pageImageKey(pageIndex), data.imageBase64);
-          return data.imageBase64;
-        } catch (error) {
-          lastError = error;
-          if (attempt < maxAttempts) {
-            await new Promise((resolve) => setTimeout(resolve, 900));
+            if (!data?.imageBase64) {
+              throw new Error("No image returned from server");
+            }
+
+            await saveImageToDB(pageImageKey(pageIndex), data.imageBase64);
+            return data.imageBase64;
+          } catch (error) {
+            lastError = error;
+            if (attempt < maxAttempts) {
+              await new Promise((resolve) => setTimeout(resolve, 900));
+            }
           }
         }
-      }
 
-      throw lastError || new Error("Image generation failed");
+        throw lastError || new Error("Image generation failed");
+      })();
+
+      inFlightRequests.set(pageIndex, promise);
+
+      try {
+        return await promise;
+      } finally {
+        inFlightRequests.delete(pageIndex);
+      }
     }
 
     async function generateImageForCard(pageIndex, imgEl, loaderEl) {
@@ -427,6 +452,66 @@
       return card;
     }
 
+    async function countReadyImages() {
+      let ready = 0;
+      for (let i = 0; i < pages.length; i++) {
+        const existing = await getImageFromDB(pageImageKey(i));
+        if (existing) ready++;
+      }
+      return ready;
+    }
+
+    async function updatePrefetchNote() {
+      const ready = await countReadyImages();
+      if (fullUnlocked) {
+        prefetchNote.textContent = ready === pages.length
+          ? "All illustrations are ready."
+          : `Preparing illustrations in background (${ready}/${pages.length})...`;
+      } else {
+        prefetchNote.textContent = "";
+      }
+    }
+
+    async function prefetchAllImagesInBackground() {
+      if (!fullUnlocked || !pages.length) return;
+
+      await updatePrefetchNote();
+
+      const queue = pages.map((_, index) => index);
+      let active = 0;
+      let completed = await countReadyImages();
+
+      return new Promise((resolve) => {
+        const runNext = () => {
+          while (active < PREFETCH_CONCURRENCY && queue.length > 0) {
+            const pageIndex = queue.shift();
+            active++;
+
+            requestPageImageWithRetry(pageIndex, 3)
+              .catch((error) => {
+                console.warn(`Background prefetch failed for page ${pageIndex + 1}:`, error);
+              })
+              .finally(async () => {
+                active--;
+                completed = await countReadyImages();
+                prefetchNote.textContent =
+                  completed === pages.length
+                    ? "All illustrations are ready."
+                    : `Preparing illustrations in background (${completed}/${pages.length})...`;
+
+                if (queue.length === 0 && active === 0) {
+                  resolve();
+                } else {
+                  runNext();
+                }
+              });
+          }
+        };
+
+        runNext();
+      });
+    }
+
     visiblePages.forEach((page, index) => {
       previewGrid.appendChild(createPageCard(page, index));
     });
@@ -451,6 +536,10 @@
       previewGrid.appendChild(lockedCard);
 
       document.getElementById("inlineUnlockBtn").addEventListener("click", goToCheckout);
+    }
+
+    if (fullUnlocked) {
+      prefetchAllImagesInBackground();
     }
   </script>
 </body>
