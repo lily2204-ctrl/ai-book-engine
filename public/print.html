@@ -215,6 +215,9 @@
 
   <script>
     const API_BASE = window.location.origin;
+    const DB_NAME = "lifebookDB";
+    const STORE_NAME = "images";
+
     const rawBookData = localStorage.getItem("bookData");
     const paid = localStorage.getItem("paid") === "true";
 
@@ -222,7 +225,7 @@
       window.location.href = "preview.html";
     }
 
-    let bookData = JSON.parse(rawBookData);
+    const bookData = JSON.parse(rawBookData);
     const printBook = document.getElementById("printBook");
     const printStatus = document.getElementById("printStatus");
     const downloadPdfBtn = document.getElementById("downloadPdfBtn");
@@ -233,9 +236,65 @@
       printStatus.style.display = visible ? "block" : "none";
     }
 
-    function persistBookData(updatedBookData) {
-      bookData = updatedBookData;
-      localStorage.setItem("bookData", JSON.stringify(updatedBookData));
+    function openDatabase() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+
+        request.onupgradeneeded = function () {
+          const db = request.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        };
+
+        request.onsuccess = function () {
+          resolve(request.result);
+        };
+
+        request.onerror = function () {
+          reject(request.error || new Error("Failed to open IndexedDB"));
+        };
+      });
+    }
+
+    async function getImageFromDB(key) {
+      const db = await openDatabase();
+
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readonly");
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.get(key);
+
+        req.onsuccess = function () {
+          resolve(req.result || null);
+        };
+
+        req.onerror = function () {
+          reject(req.error || new Error("Failed to read image from DB"));
+        };
+      });
+    }
+
+    async function saveImageToDB(key, value) {
+      const db = await openDatabase();
+
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.put(value, key);
+
+        req.onsuccess = function () {
+          resolve(true);
+        };
+
+        req.onerror = function () {
+          reject(req.error || new Error("Failed to save image to DB"));
+        };
+      });
+    }
+
+    function pageImageKey(pageIndex) {
+      return `pageImage_${pageIndex}`;
     }
 
     function getCoverImageSrc() {
@@ -251,14 +310,67 @@
       return "";
     }
 
-    function getPageImageSrc(page) {
-      if (page?.imageBase64) {
-        return `data:image/png;base64,${page.imageBase64}`;
+    async function getPageImageSrc(pageIndex) {
+      const fromDb = await getImageFromDB(pageImageKey(pageIndex));
+      if (fromDb) {
+        return `data:image/png;base64,${fromDb}`;
       }
       return "";
     }
 
-    function createCover() {
+    async function requestPageImageWithRetry(pageIndex, maxAttempts = 3) {
+      const existing = await getImageFromDB(pageImageKey(pageIndex));
+      if (existing) return existing;
+
+      const page = bookData.pages?.[pageIndex];
+      if (!page) {
+        throw new Error(`Missing page ${pageIndex + 1}`);
+      }
+
+      const prompt = page.imagePrompt || "";
+      if (!prompt) {
+        throw new Error(`Missing image prompt for page ${pageIndex + 1}`);
+      }
+
+      let lastError = null;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const res = await fetch(`${API_BASE}/generate-image`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prompt,
+              illustration_style: bookData.illustration_style || "Soft Storybook",
+              characterDescription: bookData.characterDescription,
+              characterDNA: bookData.characterDNA
+            })
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data?.details || data?.message || "Image generation failed");
+          }
+
+          if (!data?.imageBase64) {
+            throw new Error(`No image returned for page ${pageIndex + 1}`);
+          }
+
+          await saveImageToDB(pageImageKey(pageIndex), data.imageBase64);
+          return data.imageBase64;
+        } catch (error) {
+          lastError = error;
+          if (attempt < maxAttempts) {
+            await new Promise((resolve) => setTimeout(resolve, 900));
+          }
+        }
+      }
+
+      throw lastError || new Error("Image generation failed");
+    }
+
+    async function createCover() {
       const cover = document.createElement("div");
       cover.className = "print-cover";
 
@@ -283,11 +395,11 @@
       return cover;
     }
 
-    function createPage(page, index) {
+    async function createPage(page, index) {
       const pageCard = document.createElement("div");
       pageCard.className = "print-page";
 
-      const imageSrc = getPageImageSrc(page);
+      const imageSrc = await getPageImageSrc(index);
 
       pageCard.innerHTML = `
         <div class="print-page-layout">
@@ -309,71 +421,27 @@
       return pageCard;
     }
 
-    function renderBook() {
+    async function renderBook() {
       printBook.innerHTML = "";
-      printBook.appendChild(createCover());
+      printBook.appendChild(await createCover());
 
       const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
-      pages.forEach((page, index) => {
-        printBook.appendChild(createPage(page, index));
-      });
-    }
-
-    async function requestPageImage(pageIndex) {
-      const latest = JSON.parse(localStorage.getItem("bookData") || "{}");
-      const latestPages = Array.isArray(latest.pages) ? latest.pages : [];
-      const page = latestPages[pageIndex];
-
-      if (!page) {
-        throw new Error(`Missing page ${pageIndex + 1}`);
+      for (let i = 0; i < pages.length; i++) {
+        printBook.appendChild(await createPage(pages[i], i));
       }
-
-      if (page.imageBase64) {
-        return page.imageBase64;
-      }
-
-      const prompt = page.imagePrompt || "";
-      if (!prompt) {
-        throw new Error(`Missing image prompt for page ${pageIndex + 1}`);
-      }
-
-      const res = await fetch(`${API_BASE}/generate-image`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          illustration_style: latest.illustration_style || "Soft Storybook",
-          characterDescription: latest.characterDescription,
-          characterDNA: latest.characterDNA
-        })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.details || data?.message || "Image generation failed");
-      }
-
-      if (!data?.imageBase64) {
-        throw new Error(`No image returned for page ${pageIndex + 1}`);
-      }
-
-      latest.pages[pageIndex].imageBase64 = data.imageBase64;
-      persistBookData(latest);
-      return data.imageBase64;
     }
 
     async function ensureAllPageImages() {
       const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
 
       for (let i = 0; i < pages.length; i++) {
-        if (!pages[i]?.imageBase64) {
+        const existing = await getImageFromDB(pageImageKey(i));
+        if (!existing) {
           setStatus(`Preparing illustration ${i + 1} of ${pages.length}...`, true);
-          await requestPageImage(i);
+          await requestPageImageWithRetry(i, 3);
         }
       }
 
-      bookData = JSON.parse(localStorage.getItem("bookData") || "{}");
       setStatus("", false);
     }
 
@@ -395,7 +463,7 @@
       );
     }
 
-    function buildPdfDirectly() {
+    async function buildPdfDirectly() {
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF("p", "mm", "a4");
 
@@ -403,7 +471,6 @@
       const pageHeight = 297;
       const margin = 15;
 
-      // Cover
       pdf.setFillColor(255, 244, 220);
       pdf.rect(0, 0, pageWidth, pageHeight, "F");
 
@@ -429,11 +496,9 @@
       const coverImage = getCoverImageSrc();
       addAnyImage(pdf, coverImage, 55, 140, 100, 100);
 
-      // Internal pages
       const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
 
       for (let i = 0; i < pages.length; i++) {
-        const page = pages[i];
         pdf.addPage();
 
         pdf.setFillColor(255, 255, 255);
@@ -444,14 +509,16 @@
         pdf.setTextColor(180, 139, 66);
         pdf.text(`PAGE ${i + 1}`, margin, 18);
 
-        const pageImage = getPageImageSrc(page);
-        addAnyImage(pdf, pageImage, margin, 28, 80, 80);
+        const imageBase64 = await getImageFromDB(pageImageKey(i));
+        if (imageBase64) {
+          addAnyImage(pdf, `data:image/png;base64,${imageBase64}`, margin, 28, 80, 80);
+        }
 
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(16);
         pdf.setTextColor(35, 35, 35);
 
-        const textLines = pdf.splitTextToSize(page?.text || "", 85);
+        const textLines = pdf.splitTextToSize(pages[i]?.text || "", 85);
         pdf.text(textLines, 105, 40);
       }
 
@@ -464,13 +531,12 @@
 
     async function initializePrintView() {
       try {
-        renderBook();
+        await renderBook();
         await ensureAllPageImages();
-        renderBook();
+        await renderBook();
       } catch (error) {
         console.error("Failed to prepare print view:", error);
         setStatus(error?.message || "Failed to prepare print view.", true);
-        renderBook();
       }
     }
 
@@ -483,7 +549,7 @@
         printBookBtn.disabled = true;
         setStatus("Preparing all pages for printing...", true);
         await ensureAllPageImages();
-        renderBook();
+        await renderBook();
         setStatus("", false);
         window.print();
       } catch (error) {
@@ -501,10 +567,10 @@
         setStatus("Preparing all illustrations for PDF...", true);
 
         await ensureAllPageImages();
-        renderBook();
+        await renderBook();
 
         setStatus("Building downloadable PDF...", true);
-        buildPdfDirectly();
+        await buildPdfDirectly();
 
         setStatus("", false);
       } catch (error) {
