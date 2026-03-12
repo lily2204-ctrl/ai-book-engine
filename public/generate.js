@@ -11,22 +11,70 @@ function setStepState(stepElement, state) {
   if (state === "done") stepElement.classList.add("done");
 }
 
-function getFriendlyErrorMessage(error) {
-  const raw = String(error?.message || "").toLowerCase();
+function getFriendlyErrorMessage(errorMessage) {
+  const raw = String(errorMessage || "").toLowerCase();
 
   if (raw.includes("quota") || raw.includes("billing") || raw.includes("insufficient_quota")) {
     return "The AI image/story quota has been exceeded. Please add credits or enable billing in OpenAI, then try again.";
   }
 
+  if (raw.includes("missing child_photo")) {
+    return "The uploaded child image was not found. Please go back and upload the photo again.";
+  }
+
   if (raw.includes("character generation failed")) {
-    return "Failed to generate the character from the uploaded image. Please go back and try another photo.";
+    return "Failed to generate the child character. Please try another image or try again in a moment.";
   }
 
   if (raw.includes("book generation failed")) {
     return "Failed to generate the story. Please try again in a moment.";
   }
 
-  return error?.message || "Something went wrong while generating the book.";
+  if (raw.includes("image generation failed")) {
+    return "Failed to generate the illustration. Please try again in a moment.";
+  }
+
+  return errorMessage || "Something went wrong while generating the book.";
+}
+
+async function readIndexedDBCroppedPhoto() {
+  try {
+    const request = indexedDB.open("lifebookDB", 1);
+
+    const db = await new Promise((resolve, reject) => {
+      request.onupgradeneeded = function () {
+        const upgradeDb = request.result;
+        if (!upgradeDb.objectStoreNames.contains("images")) {
+          upgradeDb.createObjectStore("images");
+        }
+      };
+
+      request.onsuccess = function () {
+        resolve(request.result);
+      };
+
+      request.onerror = function () {
+        reject(request.error || new Error("Failed to open IndexedDB"));
+      };
+    });
+
+    return await new Promise((resolve, reject) => {
+      const transaction = db.transaction("images", "readonly");
+      const store = transaction.objectStore("images");
+      const getRequest = store.get("croppedPhoto");
+
+      getRequest.onsuccess = function () {
+        resolve(getRequest.result || null);
+      };
+
+      getRequest.onerror = function () {
+        reject(getRequest.error || new Error("Failed to read cropped photo"));
+      };
+    });
+  } catch (error) {
+    console.warn("Failed reading cropped photo from IndexedDB:", error);
+    return null;
+  }
 }
 
 async function runGenerationFlow() {
@@ -42,29 +90,34 @@ async function runGenerationFlow() {
   try {
     let characterData = null;
 
-    if (setupData.croppedPhoto) {
-      setStepState(stepCharacter, "active");
-
-      const charRes = await fetch(`${API_BASE}/generate-character`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          child_photo: setupData.croppedPhoto,
-          illustration_style: setupData.illustrationStyle
-        })
-      });
-
-      const charJson = await charRes.json();
-
-      if (!charRes.ok) {
-        throw new Error(charJson?.message || "Character generation failed");
-      }
-
-      characterData = charJson;
-      setStepState(stepCharacter, "done");
-    } else {
-      setStepState(stepCharacter, "done");
+    let childPhoto = setupData.croppedPhoto || localStorage.getItem("croppedPhoto");
+    if (!childPhoto) {
+      childPhoto = await readIndexedDBCroppedPhoto();
     }
+
+    if (!childPhoto) {
+      throw new Error("Missing child_photo");
+    }
+
+    setStepState(stepCharacter, "active");
+
+    const charRes = await fetch(`${API_BASE}/generate-character`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        child_photo: childPhoto,
+        illustration_style: setupData.illustrationStyle
+      })
+    });
+
+    const charJson = await charRes.json();
+
+    if (!charRes.ok) {
+      throw new Error(charJson?.details || charJson?.message || "Character generation failed");
+    }
+
+    characterData = charJson;
+    setStepState(stepCharacter, "done");
 
     setStepState(stepStory, "active");
 
@@ -83,7 +136,7 @@ async function runGenerationFlow() {
     const bookJson = await bookRes.json();
 
     if (!bookRes.ok) {
-      throw new Error(bookJson?.message || "Book generation failed");
+      throw new Error(bookJson?.details || bookJson?.message || "Book generation failed");
     }
 
     if (characterData) {
@@ -97,7 +150,7 @@ async function runGenerationFlow() {
     bookJson.childGender = setupData.childGender;
     bookJson.storyIdea = setupData.storyIdea;
     bookJson.illustration_style = setupData.illustrationStyle;
-    bookJson.croppedPhoto = setupData.croppedPhoto;
+    bookJson.croppedPhoto = childPhoto;
 
     localStorage.setItem("bookData", JSON.stringify(bookJson));
 
@@ -108,10 +161,9 @@ async function runGenerationFlow() {
       setStepState(stepCover, "done");
       window.location.href = "cover.html";
     }, 900);
-
   } catch (error) {
     console.error(error);
-    generateError.textContent = getFriendlyErrorMessage(error);
+    generateError.textContent = getFriendlyErrorMessage(error?.message || "");
   }
 }
 
