@@ -11,6 +11,24 @@ function setStepState(stepElement, state) {
   if (state === "done") stepElement.classList.add("done");
 }
 
+function getFriendlyErrorMessage(error) {
+  const raw = String(error?.message || "").toLowerCase();
+
+  if (raw.includes("quota") || raw.includes("billing") || raw.includes("insufficient_quota")) {
+    return "The AI image/story quota has been exceeded. Please add credits or enable billing in OpenAI, then try again.";
+  }
+
+  if (raw.includes("character generation failed")) {
+    return "Failed to generate the character from the uploaded image. Please go back and try another photo.";
+  }
+
+  if (raw.includes("book generation failed")) {
+    return "Failed to generate the story. Please try again in a moment.";
+  }
+
+  return error?.message || "Something went wrong while generating the book.";
+}
+
 async function runGenerationFlow() {
   const rawSetup = localStorage.getItem("bookSetupData");
 
@@ -71,6 +89,7 @@ async function runGenerationFlow() {
     if (characterData) {
       bookJson.characterImageBase64 = characterData.characterImageBase64;
       bookJson.characterDescription = characterData.characterDescription;
+      bookJson.characterDNA = characterData.characterDNA;
     }
 
     bookJson.childName = setupData.childName;
@@ -78,6 +97,7 @@ async function runGenerationFlow() {
     bookJson.childGender = setupData.childGender;
     bookJson.storyIdea = setupData.storyIdea;
     bookJson.illustration_style = setupData.illustrationStyle;
+    bookJson.croppedPhoto = setupData.croppedPhoto;
 
     localStorage.setItem("bookData", JSON.stringify(bookJson));
 
@@ -91,7 +111,7 @@ async function runGenerationFlow() {
 
   } catch (error) {
     console.error(error);
-    generateError.textContent = error.message || "Something went wrong while generating the book.";
+    generateError.textContent = getFriendlyErrorMessage(error);
   }
 }
 
