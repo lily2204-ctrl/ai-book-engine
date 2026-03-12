@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lifebook - Book Reader</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body.reader-body {
+      background: radial-gradient(circle at top, #f5f0e7 0%, #e9e3d8 100%);
+      min-height: 100vh;
+    }
+
+    .reader-shell {
+      width: min(1240px, 95vw);
+      margin: 0 auto;
+      padding: 26px 0 60px;
+    }
+
+    .reader-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .reader-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .reader-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 14px 22px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      background: white;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+
+    .reader-btn.primary {
+      background: #e4ab4b;
+      color: white;
+      border: none;
+    }
+
+    .reader-stage {
+      perspective: 1600px;
+    }
+
+    .reader-book {
+      min-height: 720px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      box-shadow: 0 34px 70px rgba(0,0,0,0.18);
+      border-radius: 30px;
+      overflow: hidden;
+    }
+
+    .reader-page {
+      background: #fffdf9;
+      padding: 28px;
+      position: relative;
+      min-height: 720px;
+      transition: transform 0.35s ease, box-shadow 0.35s ease;
+    }
+
+    .reader-page.left {
+      box-shadow: inset -14px 0 22px rgba(0,0,0,0.05);
+    }
+
+    .reader-page.right {
+      box-shadow: inset 14px 0 22px rgba(0,0,0,0.05);
+    }
+
+    .reader-page.left::after,
+    .reader-page.right::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 12px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.08), rgba(0,0,0,0.02));
+    }
+
+    .reader-page.left::after {
+      right: -6px;
+      border-radius: 12px;
+    }
+
+    .reader-page.right::before {
+      left: -6px;
+      border-radius: 12px;
+    }
+
+    .reader-page-image {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 22px;
+      background: #f7f0e4;
+      border: 1px solid #efe2cc;
+      display: block;
+    }
+
+    .reader-page-image.placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9a8458;
+      font-weight: 700;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .reader-page-number {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #b48b42;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .reader-page-text {
+      font-size: 24px;
+      line-height: 1.75;
+      color: #252525;
+    }
+
+    .reader-cover {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: linear-gradient(155deg, #fff4dc 0%, #f4e9d8 100%);
+    }
+
+    .reader-cover-title {
+      font-size: clamp(42px, 5vw, 62px);
+      line-height: 0.98;
+      margin: 18px 0 14px;
+      font-weight: 900;
+    }
+
+    .reader-cover-subtitle {
+      font-size: 22px;
+      line-height: 1.5;
+      color: #666;
+    }
+
+    .reader-cover-image {
+      width: 100%;
+      max-width: 320px;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 26px;
+      display: block;
+      background: rgba(255,255,255,0.6);
+      box-shadow: 0 18px 35px rgba(0,0,0,0.18);
+    }
+
+    .reader-progress {
+      margin-top: 18px;
+      color: #7d6f56;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    @media (max-width: 980px) {
+      .reader-book {
+        grid-template-columns: 1fr;
+      }
+
+      .reader-page.left::after,
+      .reader-page.right::before {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body class="reader-body">
+  <div class="reader-shell">
+    <div class="reader-topbar">
+      <div class="wizard-brand">
+        <div class="logo-mark small"></div>
+        <span class="wizard-brand-text">lifebook</span>
+      </div>
+
+      <div class="reader-actions">
+        <button class="reader-btn" id="backToPrintBtn" type="button">← Back</button>
+        <button class="reader-btn" id="prevSpreadBtn" type="button">Previous</button>
+        <button class="reader-btn primary" id="nextSpreadBtn" type="button">Next</button>
+      </div>
+    </div>
+
+    <div class="reader-stage">
+      <div class="reader-book" id="readerBook"></div>
+    </div>
+
+    <div class="reader-progress" id="readerProgress"></div>
+  </div>
+
+  <script>
+    const DB_NAME = "lifebookDB";
+    const STORE_NAME = "images";
+
+    const rawBookData = localStorage.getItem("bookData");
+    const paid = localStorage.getItem("paid") === "true";
+
+    if (!rawBookData || !paid) {
+      window.location.href = "preview.html";
+    }
+
+    const bookData = JSON.parse(rawBookData);
+    const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
+    const readerBook = document.getElementById("readerBook");
+    const readerProgress = document.getElementById("readerProgress");
+
+    let spreadIndex = -1;
+
+    function openDatabase() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+
+        request.onupgradeneeded = function () {
+          const db = request.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        };
+
+        request.onsuccess = function () {
+          resolve(request.result);
+        };
+
+        request.onerror = function () {
+          reject(request.error || new Error("Failed to open IndexedDB"));
+        };
+      });
+    }
+
+    async function getImageFromDB(key) {
+      const db = await openDatabase();
+
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, "readonly");
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.get(key);
+
+        req.onsuccess = function () {
+          resolve(req.result || null);
+        };
+
+        req.onerror = function () {
+          reject(req.error || new Error("Failed to read image from DB"));
+        };
+      });
+    }
+
+    function pageImageKey(pageIndex) {
+      return `pageImage_${pageIndex}`;
+    }
+
+    function getCoverImageSrc() {
+      if (bookData.characterImageBase64) {
+        return `data:image/png;base64,${bookData.characterImageBase64}`;
+      }
+      if (bookData.croppedPhoto) {
+        return bookData.croppedPhoto;
+      }
+      if (localStorage.getItem("croppedPhoto")) {
+        return localStorage.getItem("croppedPhoto");
+      }
+      return "";
+    }
+
+    async function renderSpread() {
+      readerBook.innerHTML = "";
+
+      if (spreadIndex === -1) {
+        const coverImage = getCoverImageSrc();
+
+        readerBook.innerHTML = `
+          <div class="reader-page reader-cover left">
+            <div>
+              <div class="reader-page-number">Book Cover</div>
+              <div class="reader-cover-title">${bookData.title || "Your magical story"}</div>
+              <div class="reader-cover-subtitle">${bookData.subtitle || "A personalized adventure made just for your child."}</div>
+            </div>
+
+            <div>
+              ${
+                coverImage
+                  ? `<img class="reader-cover-image" src="${coverImage}" alt="Book cover image" />`
+                  : `<div class="reader-cover-image reader-page-image placeholder">Cover illustration</div>`
+              }
+            </div>
+          </div>
+
+          <div class="reader-page right">
+            <div class="reader-page-number">Opening</div>
+            <div class="reader-page-text">
+              Welcome to your personalized Lifebook story. Turn the page to begin the adventure.
+            </div>
+          </div>
+        `;
+
+        readerProgress.textContent = `Cover`;
+        return;
+      }
+
+      const page = pages[spreadIndex];
+      const imageBase64 = await getImageFromDB(pageImageKey(spreadIndex));
+
+      readerBook.innerHTML = `
+        <div class="reader-page left">
+          ${
+            imageBase64
+              ? `<img class="reader-page-image" src="data:image/png;base64,${imageBase64}" alt="Page illustration" />`
+              : `<div class="reader-page-image placeholder">Illustration is still being prepared</div>`
+          }
+        </div>
+
+        <div class="reader-page right">
+          <div class="reader-page-number">Page ${spreadIndex + 1}</div>
+          <div class="reader-page-text">${page?.text || ""}</div>
+        </div>
+      `;
+
+      readerProgress.textContent = `Page ${spreadIndex + 1} of ${pages.length}`;
+    }
+
+    document.getElementById("backToPrintBtn").addEventListener("click", () => {
+      window.location.href = "print.html";
+    });
+
+    document.getElementById("prevSpreadBtn").addEventListener("click", async () => {
+      if (spreadIndex > -1) {
+        spreadIndex--;
+        await renderSpread();
+      }
+    });
+
+    document.getElementById("nextSpreadBtn").addEventListener("click", async () => {
+      if (spreadIndex < pages.length - 1) {
+        spreadIndex++;
+        await renderSpread();
+      }
+    });
+
+    renderSpread();
+  </script>
+</body>
+</html>
