@@ -103,17 +103,7 @@
     .page-text {
       font-size: 22px;
       line-height: 1.65;
-      margin-bottom: 18px;
-    }
-
-    .page-prompt {
-      background: #faf7f0;
-      border: 1px solid #f0e5d2;
-      border-radius: 18px;
-      padding: 14px 16px;
-      color: #777;
-      line-height: 1.55;
-      font-size: 14px;
+      margin-bottom: 0;
     }
 
     .locked-card {
@@ -281,29 +271,37 @@
         return;
       }
 
-      const res = await fetch(`${API_BASE}/generate-image`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          illustration_style: bookData.illustration_style || "Soft Storybook",
-          characterDescription: bookData.characterDescription,
-          characterDNA: bookData.characterDNA,
-          characterImage: bookData.characterImageBase64
-        })
-      });
+      try {
+        const res = await fetch(`${API_BASE}/generate-image`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt,
+            illustration_style: bookData.illustration_style || "Soft Storybook",
+            characterDescription: bookData.characterDescription,
+            characterDNA: bookData.characterDNA
+          })
+        });
 
-      const data = await res.json();
+        const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data?.message || "Image generation failed");
+        if (!res.ok) {
+          throw new Error(data?.details || data?.message || "Image generation failed");
+        }
+
+        if (!data?.imageBase64) {
+          throw new Error("No image returned from server.");
+        }
+
+        imgEl.src = `data:image/png;base64,${data.imageBase64}`;
+        imgEl.style.display = "block";
+        loaderEl.style.display = "none";
+
+        saveImageToBookData(pageIndex, data.imageBase64);
+      } catch (error) {
+        console.error("Preview image generation failed:", error);
+        loaderEl.textContent = "Failed to generate illustration";
       }
-
-      imgEl.src = `data:image/png;base64,${data.imageBase64}`;
-      imgEl.style.display = "block";
-      loaderEl.style.display = "none";
-
-      saveImageToBookData(pageIndex, data.imageBase64);
     }
 
     function createPageCard(page, pageIndex) {
@@ -335,13 +333,8 @@
       text.className = "page-text";
       text.textContent = page.text || "";
 
-      const prompt = document.createElement("div");
-      prompt.className = "page-prompt";
-      prompt.innerHTML = `<strong>Illustration prompt:</strong> ${page.imagePrompt || ""}`;
-
       content.appendChild(pageTitle);
       content.appendChild(text);
-      content.appendChild(prompt);
 
       layout.appendChild(imageBox);
       layout.appendChild(content);
@@ -351,11 +344,7 @@
         entries.forEach(async (entry) => {
           if (entry.isIntersecting) {
             observer.disconnect();
-            try {
-              await generateImage(page.imagePrompt || "", image, loader, pageIndex);
-            } catch (error) {
-              loader.textContent = "Failed to generate illustration";
-            }
+            await generateImage(page.imagePrompt || "", image, loader, pageIndex);
           }
         });
       }, { threshold: 0.25 });
