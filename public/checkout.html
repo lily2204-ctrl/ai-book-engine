@@ -7,15 +7,20 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     .checkout-shell {
-      width: min(980px, 94vw);
+      width: min(1080px, 94vw);
       margin: 0 auto;
       padding: 26px 0 60px;
+      position:relative;
+      z-index:2;
     }
 
     .checkout-card {
-      background: white;
-      border-radius: 32px;
-      box-shadow: 0 24px 50px rgba(0,0,0,0.14);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
+        linear-gradient(180deg, rgba(18,23,41,0.98), rgba(14,18,33,0.99));
+      border:1px solid rgba(240,196,109,0.14);
+      border-radius: 34px;
+      box-shadow: 0 24px 50px rgba(0,0,0,0.20);
       padding: 28px;
     }
 
@@ -26,20 +31,21 @@
     }
 
     .checkout-section {
-      border: 1px solid #ececec;
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: 24px;
       padding: 22px;
       margin-bottom: 18px;
-      background: #fff;
+      background: rgba(255,255,255,0.04);
     }
 
     .checkout-section h2 {
       margin: 0 0 14px;
-      font-size: 26px;
+      font-size: 30px;
+      color:#f7efdf;
     }
 
     .checkout-text {
-      color: #6d6d6d;
+      color: #c9bca8;
       line-height: 1.6;
       font-size: 16px;
     }
@@ -54,8 +60,15 @@
       width: 100%;
       padding: 14px 16px;
       border-radius: 16px;
-      border: 1px solid #ddd;
+      border: 1px solid rgba(255,255,255,0.10);
+      background:rgba(255,255,255,0.05);
+      color:#fff3e2;
       font-size: 16px;
+      font-family:Inter, Arial, sans-serif;
+    }
+
+    .mock-input::placeholder{
+      color:#b9ac97;
     }
 
     .mock-row {
@@ -68,18 +81,16 @@
       width: 100%;
       border: none;
       border-radius: 999px;
-      background: #e4ab4b;
+      background:
+        linear-gradient(180deg, rgba(255,232,191,0.18) 0%, rgba(255,255,255,0.02) 18%),
+        linear-gradient(180deg, #e0ad57 0%, #be7b28 100%);
       color: white;
       font-size: 18px;
       font-weight: 700;
       padding: 18px 24px;
       cursor: pointer;
-      transition: 0.2s ease;
       margin-top: 18px;
-    }
-
-    .pay-btn:hover {
-      background: #cf9432;
+      font-family:Georgia, "Times New Roman", serif;
     }
 
     .pay-btn:disabled {
@@ -88,17 +99,18 @@
     }
 
     .summary-box {
-      border: 1px solid #ececec;
-      border-radius: 24px;
+      border: 1px solid rgba(240,196,109,0.14);
+      border-radius: 26px;
       padding: 22px;
-      background: #faf7f0;
+      background: rgba(255,255,255,0.04);
       position: sticky;
       top: 24px;
     }
 
     .summary-title {
       margin: 0 0 16px;
-      font-size: 24px;
+      font-size: 26px;
+      color:#f7efdf;
     }
 
     .summary-line {
@@ -106,32 +118,32 @@
       justify-content: space-between;
       gap: 12px;
       padding: 10px 0;
-      border-bottom: 1px solid #eee2cb;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
       font-size: 15px;
-      color: #666;
+      color: #d3c4b0;
     }
 
     .summary-line.total {
       font-weight: 800;
-      font-size: 18px;
-      color: #1f1f1f;
+      font-size: 20px;
+      color: #f3deb4;
       border-bottom: none;
       padding-top: 18px;
     }
 
     .summary-cover {
       width: 100%;
-      border-radius: 20px;
+      border-radius: 24px;
       aspect-ratio: 1 / 1.2;
       object-fit: cover;
-      background: white;
-      box-shadow: 0 12px 22px rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.08);
+      box-shadow: 0 12px 22px rgba(0,0,0,0.18);
       margin-bottom: 16px;
     }
 
     .checkout-note {
       margin-top: 16px;
-      color: #888;
+      color: #a89985;
       font-size: 13px;
       line-height: 1.5;
     }
@@ -142,8 +154,9 @@
       gap: 8px;
       padding: 10px 14px;
       border-radius: 999px;
-      background: #fff8eb;
-      color: #9c6a14;
+      background: rgba(240,196,109,0.08);
+      color: #efc878;
+      border:1px solid rgba(240,196,109,0.16);
       font-size: 13px;
       font-weight: 700;
       margin-bottom: 12px;
@@ -151,7 +164,7 @@
 
     .checkout-error {
       margin-top: 14px;
-      color: #c84b4b;
+      color: #ff8f8f;
       font-weight: 700;
       min-height: 20px;
     }
@@ -160,9 +173,9 @@
       margin-top: 10px;
       padding: 12px 14px;
       border-radius: 16px;
-      background: #f8f8f8;
-      border: 1px solid #ececec;
-      color: #666;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #bfae97;
       font-size: 14px;
       line-height: 1.5;
     }
@@ -191,7 +204,9 @@
       </div>
 
       <div class="wizard-brand">
-        <div class="logo-mark small"></div>
+        <div class="logo-mark small">
+          <div class="logo-book"><span></span></div>
+        </div>
         <span class="wizard-brand-text">lifebook</span>
       </div>
 
@@ -200,13 +215,12 @@
 
     <div class="checkout-card">
       <div class="checkout-layout">
-
         <div>
           <div class="checkout-section">
-            <div class="order-badge">Secure checkout • Delivery flow ready</div>
+            <div class="order-badge">Secure checkout • Premium access</div>
             <h2>Complete your order</h2>
             <div class="checkout-text">
-              Unlock the full personalized book, access the delivery center, open the print-ready view, and download the final PDF.
+              Unlock the full personalized book, access the premium reader, open the print-ready version, and download the final PDF.
             </div>
 
             <div class="payment-mock-box">
@@ -218,17 +232,17 @@
               </div>
             </div>
 
-            <button class="pay-btn" id="payNowBtn" type="button">Pay $49</button>
+            <button class="pay-btn" id="payNowBtn" type="button">Pay $39</button>
 
             <div id="checkoutError" class="checkout-error"></div>
 
             <div class="provider-note">
               Current mode: <strong id="paymentModeLabel">Demo Checkout</strong><br/>
-              This structure is ready to be replaced later with Shopify Checkout or Stripe without rebuilding the product flow.
+              Later this screen will lead into Shopify Checkout for the real payment flow.
             </div>
 
             <div class="checkout-note">
-              The order will be created, marked as paid, and moved into the delivery center.
+              After payment, the customer is moved to the delivery center.
             </div>
           </div>
         </div>
@@ -261,11 +275,10 @@
 
             <div class="summary-line total">
               <span>Total</span>
-              <span>$49</span>
+              <span>$39</span>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
@@ -327,7 +340,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            amount: 49,
+            amount: 39,
             bookData
           })
         });
@@ -359,7 +372,7 @@
       } catch (error) {
         checkoutError.textContent = error.message || "Something went wrong during checkout.";
         payNowBtn.disabled = false;
-        payNowBtn.textContent = "Pay $49";
+        payNowBtn.textContent = "Pay $39";
       }
     });
   </script>
