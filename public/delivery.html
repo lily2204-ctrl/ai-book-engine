@@ -6,146 +6,140 @@
   <title>Lifebook - Delivery Center</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    .delivery-shell {
-      width: min(1080px, 94vw);
-      margin: 0 auto;
-      padding: 26px 0 60px;
+    .delivery-shell{
+      width:min(1240px, 94vw);
+      margin:0 auto;
+      padding-bottom:60px;
+      position:relative;
+      z-index:2;
     }
 
-    .delivery-hero {
-      background: white;
-      border-radius: 32px;
-      box-shadow: 0 24px 50px rgba(0,0,0,0.14);
-      padding: 28px;
-      margin-bottom: 18px;
+    .delivery-hero{
+      background:
+        radial-gradient(circle at top center, rgba(241,188,101,0.12) 0%, transparent 25%),
+        linear-gradient(180deg, rgba(18,23,41,0.98), rgba(14,18,33,0.99));
+      border:1px solid rgba(240,196,109,0.18);
+      border-radius:36px;
+      box-shadow:var(--shadow);
+      padding:30px;
+      margin-bottom:18px;
     }
 
-    .delivery-hero h1 {
-      margin: 0 0 10px;
-      font-size: clamp(34px, 5vw, 54px);
+    .delivery-hero h1{
+      margin:0 0 10px;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:clamp(38px, 5vw, 60px);
+      line-height:.96;
+      color:#f9f1e4;
     }
 
-    .delivery-hero p {
-      margin: 0;
-      color: #666;
-      font-size: 18px;
-      line-height: 1.6;
-      max-width: 700px;
+    .delivery-hero p{
+      margin:0;
+      color:#cfc0ab;
+      font-size:18px;
+      line-height:1.7;
+      max-width:760px;
     }
 
-    .delivery-grid {
-      display: grid;
-      grid-template-columns: 1.2fr 1fr;
-      gap: 18px;
+    .delivery-grid{
+      display:grid;
+      grid-template-columns:1.15fr 0.85fr;
+      gap:18px;
     }
 
-    .delivery-card {
-      background: white;
-      border-radius: 28px;
-      box-shadow: 0 18px 35px rgba(0,0,0,0.1);
-      padding: 24px;
+    .delivery-card{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
+        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:30px;
+      box-shadow:var(--shadow-soft);
+      padding:24px;
     }
 
-    .delivery-card h2 {
-      margin: 0 0 14px;
-      font-size: 26px;
+    .delivery-card h2{
+      margin:0 0 14px;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:30px;
+      color:#f7efdf;
     }
 
-    .delivery-card p {
-      margin: 0 0 18px;
-      color: #666;
-      line-height: 1.6;
+    .delivery-card p{
+      margin:0 0 18px;
+      color:#cfc0ab;
+      line-height:1.65;
+      font-size:16px;
     }
 
-    .delivery-action {
-      display: block;
-      width: 100%;
-      border: none;
-      border-radius: 999px;
-      background: #e4ab4b;
-      color: white;
-      font-size: 17px;
-      font-weight: 700;
-      padding: 16px 22px;
-      cursor: pointer;
-      margin-top: 12px;
-      transition: 0.2s ease;
+    .delivery-action{
+      display:block;
+      width:100%;
+      margin-top:12px;
     }
 
-    .delivery-action:hover {
-      background: #cf9432;
+    .delivery-summary-line{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      padding:10px 0;
+      border-bottom:1px solid rgba(255,255,255,0.08);
+      color:#d3c4b0;
+      font-size:15px;
     }
 
-    .delivery-action.secondary {
-      background: white;
-      color: #333;
-      border: 1px solid #ddd;
+    .delivery-summary-line:last-child{
+      border-bottom:none;
     }
 
-    .delivery-action.secondary:hover {
-      background: #f8f8f8;
+    .delivery-cover{
+      width:100%;
+      max-width:280px;
+      aspect-ratio:1 / 1.2;
+      object-fit:cover;
+      border-radius:24px;
+      display:block;
+      margin-top:14px;
+      box-shadow:0 14px 28px rgba(0,0,0,0.18);
+      background:rgba(255,255,255,0.08);
     }
 
-    .delivery-summary-line {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 0;
-      border-bottom: 1px solid #eee;
-      color: #666;
-      font-size: 15px;
+    .delivery-note{
+      margin-top:16px;
+      font-size:14px;
+      line-height:1.5;
+      color:#a89985;
     }
 
-    .delivery-summary-line:last-child {
-      border-bottom: none;
-    }
-
-    .delivery-cover {
-      width: 100%;
-      max-width: 280px;
-      aspect-ratio: 1 / 1.2;
-      object-fit: cover;
-      border-radius: 24px;
-      display: block;
-      margin-top: 10px;
-      box-shadow: 0 14px 28px rgba(0,0,0,0.12);
-      background: #fafafa;
-    }
-
-    .delivery-note {
-      margin-top: 16px;
-      font-size: 14px;
-      line-height: 1.5;
-      color: #888;
-    }
-
-    @media (max-width: 900px) {
-      .delivery-grid {
-        grid-template-columns: 1fr;
+    @media (max-width:900px){
+      .delivery-grid{
+        grid-template-columns:1fr;
       }
     }
   </style>
 </head>
 <body class="setup-body">
 
-  <div class="delivery-shell">
-    <header class="wizard-topbar">
-      <div class="wizard-topbar-left">
-        <button class="back-link-button" id="backToSuccess" type="button">← Back</button>
+  <header class="wizard-topbar">
+    <div class="wizard-topbar-left">
+      <button class="back-link-button" id="backToSuccess" type="button">← Back</button>
+    </div>
+
+    <div class="wizard-brand">
+      <div class="logo-mark">
+        <div class="logo-book"><span></span></div>
       </div>
+      <span class="wizard-brand-text">lifebook</span>
+    </div>
 
-      <div class="wizard-brand">
-        <div class="logo-mark small"></div>
-        <span class="wizard-brand-text">lifebook</span>
-      </div>
+    <div class="wizard-topbar-right"></div>
+  </header>
 
-      <div class="wizard-topbar-right"></div>
-    </header>
-
+  <main class="delivery-shell">
     <div class="delivery-hero">
+      <div class="eyebrow">Delivery Center</div>
       <h1>Your book is ready</h1>
       <p>
-        Access your full story, open the premium book reader, use the print-ready version, or download the PDF.
+        Access your full story, open the premium book reader, use the print-ready version, or continue toward the downloadable PDF.
       </p>
     </div>
 
@@ -156,10 +150,10 @@
           Choose how you want to experience your personalized book.
         </p>
 
-        <button class="delivery-action" id="openReaderBtn" type="button">Open Book Reader</button>
-        <button class="delivery-action secondary" id="openFullPreviewBtn" type="button">Open Full Preview</button>
-        <button class="delivery-action secondary" id="openPrintReadyBtn" type="button">Open Print Ready View</button>
-        <button class="delivery-action secondary" id="downloadPdfBtn" type="button">Go to PDF Download</button>
+        <button class="continue-btn delivery-action" id="openReaderBtn" type="button">Open Book Reader</button>
+        <button class="secondary-btn delivery-action" id="openFullPreviewBtn" type="button">Open Full Preview</button>
+        <button class="secondary-btn delivery-action" id="openPrintReadyBtn" type="button">Open Print Ready View</button>
+        <button class="secondary-btn delivery-action" id="downloadPdfBtn" type="button">Go to PDF Download</button>
       </div>
 
       <div class="delivery-card">
@@ -187,14 +181,14 @@
 
         <img id="deliveryCoverImage" class="delivery-cover" alt="Book cover preview" />
 
-        <button class="delivery-action" id="orderPrintedBookBtn" type="button">Order Printed Book</button>
+        <button class="continue-btn delivery-action" id="orderPrintedBookBtn" type="button">Order Printed Book</button>
 
         <div class="delivery-note">
-          This can later connect to Shopify printed-book ordering or fulfillment.
+          Later this button can connect to Shopify for a printed product workflow.
         </div>
       </div>
     </div>
-  </div>
+  </main>
 
   <script>
     const orderId = localStorage.getItem("orderId");
