@@ -6,201 +6,210 @@
   <title>Lifebook - Preview</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    .preview-shell {
-      width: min(1080px, 94vw);
-      margin: 0 auto;
-      padding: 26px 0 60px;
+    .preview-shell{
+      width:min(1240px, 94vw);
+      margin:0 auto;
+      padding-bottom:60px;
+      position:relative;
+      z-index:2;
     }
 
-    .preview-header-card {
-      background: white;
-      border-radius: 28px;
-      box-shadow: 0 18px 35px rgba(0,0,0,0.1);
-      padding: 20px 24px;
-      margin-bottom: 18px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
+    .preview-header-card{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
+        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
+      border:1px solid rgba(240,196,109,0.14);
+      border-radius:36px;
+      box-shadow:var(--shadow);
+      padding:24px 26px;
+      margin-bottom:18px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:16px;
+      flex-wrap:wrap;
     }
 
-    .preview-header-left h1 {
-      margin: 0 0 8px;
-      font-size: clamp(28px, 4vw, 42px);
+    .preview-header-left h1{
+      margin:0 0 8px;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:clamp(34px, 5vw, 58px);
+      line-height:.96;
+      color:#f9f1e4;
     }
 
-    .preview-header-left p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.5;
+    .preview-header-left p{
+      margin:0;
+      color:#cfc0ab;
+      line-height:1.6;
+      font-size:18px;
     }
 
-    .header-action-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
+    .header-action-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
     }
 
-    .preview-grid {
-      display: grid;
-      gap: 18px;
+    .preview-grid{
+      display:grid;
+      gap:18px;
     }
 
-    .page-card {
-      background: white;
-      border-radius: 28px;
-      box-shadow: 0 18px 35px rgba(0,0,0,0.1);
-      padding: 24px;
+    .page-card{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
+        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:30px;
+      box-shadow:var(--shadow-soft);
+      padding:24px;
     }
 
-    .page-layout {
-      display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 22px;
-      align-items: start;
+    .page-layout{
+      display:grid;
+      grid-template-columns:340px 1fr;
+      gap:22px;
+      align-items:start;
     }
 
-    .page-image-box {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      border-radius: 24px;
-      overflow: hidden;
-      background: linear-gradient(135deg, #f7f0e4, #fdfaf3);
-      border: 1px solid #efe2cc;
+    .page-image-box{
+      position:relative;
+      width:100%;
+      aspect-ratio:1/1;
+      border-radius:24px;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(255,247,225,0.20) 0%, transparent 24%),
+        linear-gradient(180deg, #e8dfd3 0%, #c7c0b1 30%, #88a2c8 55%, #3d5b8e 100%);
+      border:1px solid rgba(240,196,109,0.16);
     }
 
-    .page-image-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: none;
+    .page-image-box img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:none;
     }
 
-    .page-loader {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      font-weight: 700;
-      color: #8b7c62;
-      padding: 20px;
-      line-height: 1.5;
+    .page-loader{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      font-weight:700;
+      color:#f6ecda;
+      padding:20px;
+      line-height:1.5;
+      background:rgba(7,10,18,0.18);
     }
 
-    .page-title {
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #b48b42;
-      font-weight: 800;
-      margin-bottom: 10px;
+    .page-title{
+      font-size:14px;
+      text-transform:uppercase;
+      letter-spacing:1px;
+      color:#efc878;
+      font-weight:800;
+      margin-bottom:10px;
     }
 
-    .page-text {
-      font-size: 22px;
-      line-height: 1.65;
-      margin-bottom: 0;
+    .page-text{
+      font-size:22px;
+      line-height:1.75;
+      color:#f3eadb;
+      margin-bottom:0;
     }
 
-    .locked-card {
-      background: linear-gradient(180deg, #fff8eb, #f7efe1);
-      border: 1px solid #f1dfbc;
-      border-radius: 28px;
-      box-shadow: 0 18px 35px rgba(0,0,0,0.08);
-      padding: 36px 28px;
-      text-align: center;
+    .locked-card{
+      background:
+        radial-gradient(circle at top center, rgba(241,188,101,0.12) 0%, transparent 25%),
+        linear-gradient(180deg, rgba(18,23,41,0.98), rgba(14,18,33,0.99));
+      border:1px solid rgba(240,196,109,0.18);
+      border-radius:30px;
+      box-shadow:var(--shadow-soft);
+      padding:38px 30px;
+      text-align:center;
     }
 
-    .locked-icon {
-      width: 88px;
-      height: 88px;
-      border-radius: 50%;
-      background: white;
-      color: #e4ab4b;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 42px;
-      margin: 0 auto 20px;
-      box-shadow: 0 10px 22px rgba(0,0,0,0.08);
+    .locked-icon{
+      width:88px;
+      height:88px;
+      border-radius:50%;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 18%),
+        linear-gradient(180deg, #e2b05b 0%, #b97722 100%);
+      color:white;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:42px;
+      margin:0 auto 20px;
+      box-shadow:0 14px 28px rgba(167,103,23,0.28);
     }
 
-    .locked-title {
-      font-size: 34px;
-      margin: 0 0 12px;
+    .locked-title{
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:38px;
+      margin:0 0 12px;
+      color:#f9f1e4;
     }
 
-    .locked-text {
-      color: #777;
-      font-size: 18px;
-      line-height: 1.6;
-      max-width: 620px;
-      margin: 0 auto 24px;
+    .locked-text{
+      color:#cfc0ab;
+      font-size:18px;
+      line-height:1.6;
+      max-width:620px;
+      margin:0 auto 24px;
     }
 
-    .unlock-full-btn {
-      border: none;
-      border-radius: 999px;
-      background: #e4ab4b;
-      color: white;
-      font-size: 18px;
-      font-weight: 700;
-      padding: 18px 30px;
-      cursor: pointer;
-      transition: 0.2s ease;
+    .unlock-note{
+      margin-top:14px;
+      color:#a89985;
+      font-size:13px;
+      line-height:1.5;
     }
 
-    .unlock-full-btn:hover {
-      background: #cf9432;
+    .prefetch-note{
+      margin-top:10px;
+      font-size:13px;
+      color:#efc878;
+      font-weight:700;
     }
 
-    .unlock-note {
-      margin-top: 14px;
-      color: #888;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .prefetch-note {
-      margin-top: 10px;
-      font-size: 13px;
-      color: #8b7c62;
-      font-weight: 700;
-    }
-
-    @media (max-width: 860px) {
-      .page-layout {
-        grid-template-columns: 1fr;
+    @media (max-width:860px){
+      .page-layout{
+        grid-template-columns:1fr;
       }
 
-      .page-text {
-        font-size: 19px;
+      .page-text{
+        font-size:19px;
       }
     }
   </style>
 </head>
 <body class="setup-body">
 
-  <div class="preview-shell">
-    <header class="wizard-topbar">
-      <div class="wizard-topbar-left">
-        <button class="back-link-button" id="backToCover" type="button">← Back</button>
+  <header class="wizard-topbar">
+    <div class="wizard-topbar-left">
+      <button class="back-link-button" id="backToCover" type="button">← Back</button>
+    </div>
+
+    <div class="wizard-brand">
+      <div class="logo-mark">
+        <div class="logo-book"><span></span></div>
       </div>
+      <span class="wizard-brand-text">lifebook</span>
+    </div>
 
-      <div class="wizard-brand">
-        <div class="logo-mark small"></div>
-        <span class="wizard-brand-text">lifebook</span>
-      </div>
+    <div class="wizard-topbar-right"></div>
+  </header>
 
-      <div class="wizard-topbar-right"></div>
-    </header>
-
+  <main class="preview-shell">
     <div class="preview-header-card">
       <div class="preview-header-left">
+        <div class="eyebrow">Step 5 of 5</div>
         <h1 id="previewBookTitle">Book Preview</h1>
         <p id="previewBookSubtitle">Your preview is ready.</p>
         <div id="prefetchNote" class="prefetch-note"></div>
@@ -208,7 +217,7 @@
 
       <div class="header-action-row">
         <button class="continue-btn" id="headerUnlockBtn" type="button" style="display:none;">
-          Unlock Full Book - $49
+          Unlock Full Book - $39
         </button>
         <button class="continue-btn" id="printReadyBtn" type="button" style="display:none;">
           Print Ready View
@@ -217,7 +226,7 @@
     </div>
 
     <div class="preview-grid" id="previewGrid"></div>
-  </div>
+  </main>
 
   <script>
     const API_BASE = window.location.origin;
@@ -461,55 +470,43 @@
       return ready;
     }
 
-    async function updatePrefetchNote() {
-      const ready = await countReadyImages();
-      if (fullUnlocked) {
-        prefetchNote.textContent = ready === pages.length
-          ? "All illustrations are ready."
-          : `Preparing illustrations in background (${ready}/${pages.length})...`;
-      } else {
-        prefetchNote.textContent = "";
-      }
-    }
-
     async function prefetchAllImagesInBackground() {
       if (!fullUnlocked || !pages.length) return;
 
-      await updatePrefetchNote();
-
       const queue = pages.map((_, index) => index);
       let active = 0;
-      let completed = await countReadyImages();
 
-      return new Promise((resolve) => {
-        const runNext = () => {
-          while (active < PREFETCH_CONCURRENCY && queue.length > 0) {
-            const pageIndex = queue.shift();
-            active++;
+      const runQueue = async () => {
+        while (active < PREFETCH_CONCURRENCY && queue.length > 0) {
+          const pageIndex = queue.shift();
+          active++;
 
-            requestPageImageWithRetry(pageIndex, 3)
-              .catch((error) => {
-                console.warn(`Background prefetch failed for page ${pageIndex + 1}:`, error);
-              })
-              .finally(async () => {
-                active--;
-                completed = await countReadyImages();
-                prefetchNote.textContent =
-                  completed === pages.length
-                    ? "All illustrations are ready."
-                    : `Preparing illustrations in background (${completed}/${pages.length})...`;
+          requestPageImageWithRetry(pageIndex, 3)
+            .catch((error) => {
+              console.warn(`Background prefetch failed for page ${pageIndex + 1}:`, error);
+            })
+            .finally(async () => {
+              active--;
+              const completed = await countReadyImages();
+              prefetchNote.textContent =
+                completed === pages.length
+                  ? "All illustrations are ready."
+                  : `Preparing illustrations in background (${completed}/${pages.length})...`;
 
-                if (queue.length === 0 && active === 0) {
-                  resolve();
-                } else {
-                  runNext();
-                }
-              });
-          }
-        };
+              if (queue.length > 0) {
+                runQueue();
+              }
+            });
+        }
+      };
 
-        runNext();
-      });
+      const completed = await countReadyImages();
+      prefetchNote.textContent =
+        completed === pages.length
+          ? "All illustrations are ready."
+          : `Preparing illustrations in background (${completed}/${pages.length})...`;
+
+      runQueue();
     }
 
     visiblePages.forEach((page, index) => {
@@ -524,13 +521,13 @@
         <h2 class="locked-title">Unlock the rest of the story</h2>
         <div class="locked-text">
           You’ve seen the beginning. Unlock the full book to continue the adventure,
-          view all remaining pages, and prepare the book for print.
+          open the premium reader, and access the print-ready version and PDF.
         </div>
-        <button class="unlock-full-btn" id="inlineUnlockBtn" type="button">
-          Unlock Full Book - $49
+        <button class="continue-btn" id="inlineUnlockBtn" type="button">
+          Unlock Full Book - $39
         </button>
         <div class="unlock-note">
-          This will move you to checkout. Payment integration comes next.
+          You’ll continue to the secure checkout screen.
         </div>
       `;
       previewGrid.appendChild(lockedCard);
