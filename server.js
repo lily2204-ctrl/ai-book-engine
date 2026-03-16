@@ -2,85 +2,207 @@ import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
 import path from "path";
-import fs from "fs/promises";
-import crypto from "crypto";
 import { fileURLToPath } from "url";
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "15mb" }));
+app.use(express.json({ limit: "25mb" }));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use(express.static(path.join(__dirname, "public")));
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
-const DATA_DIR = path.join(__dirname, "data");
-const ORDERS_DIR = path.join(DATA_DIR, "orders");
-
-async function ensureDataDirs() {
-  await fs.mkdir(ORDERS_DIR, { recursive: true });
-}
-
-function createOrderId() {
-  return `LB-${Date.now()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
-}
-
-async function saveOrder(order) {
-  const filePath = path.join(ORDERS_DIR, `${order.orderId}.json`);
-  await fs.writeFile(filePath, JSON.stringify(order, null, 2), "utf8");
-}
-
-async function loadOrder(orderId) {
-  const filePath = path.join(ORDERS_DIR, `${orderId}.json`);
-  const raw = await fs.readFile(filePath, "utf8");
-  return JSON.parse(raw);
-}
-
-function buildOpenAIErrorPayload(err, fallbackMessage) {
-  const status = err?.status || 500;
-  const code = err?.code || "unknown_error";
-  const details = err?.message || fallbackMessage;
-
-  if (
-    status === 429 ||
-    code === "insufficient_quota" ||
-    details.toLowerCase().includes("quota") ||
-    details.toLowerCase().includes("billing")
-  ) {
-    return {
-      statusCode: 429,
-      body: {
-        status: "error",
-        message: "OpenAI billing/quota issue.",
-        code,
-        details
-      }
-    };
-  }
-
-  return {
-    statusCode: status,
-    body: {
-      status: "error",
-      message: fallbackMessage,
-      code,
-      details
-    }
-  };
-}
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+function safeJsonParse(raw, fallback = {}) {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+function buildCharacterPromptCore(characterDNA, style) {
+  const hair = characterDNA.hair || "soft child hair";
+  const skin = characterDNA.skin || "natural skin tone";
+  const eyes = characterDNA.eyes || "gentle expressive eyes";
+  const face = characterDNA.face || "soft child face";
+  const vibe = characterDNA.vibe || "warm curious child";
+  const ageLook = characterDNA.ageLook || "young child";
+  const outfit = characterDNA.outfit || "simple timeless child outfit";
+
+  return `
+Main character reference:
+- ${ageLook}
+- Hair: ${hair}
+- Skin tone: ${skin}
+- Eyes: ${eyes}
+- Face: ${face}
+- Outfit style: ${outfit}
+- General vibe: ${vibe}
+
+Keep this exact same child character consistent across all illustrations.
+Do not change the child's identity, age appearance, hair color, skin tone, or facial structure.
+Illustration style must be: ${style}.
+`.trim();
+}
+
+/**
+ * STEP 1
+ * Generate character DNA + character sheet
+ */
+app.post("/generate-character-reference", async (req, res) => {
+  try {
+    const {
+      child_photo,
+      child_name,
+      age,
+      gender,
+      illustration_style
+    } = req.body;
+
+    if (!child_photo) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing child_photo"
+      });
+    }
+
+    const style = illustration_style || "Soft Storybook";
+
+    const dnaCompletion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `
+Analyze the uploaded child photo and return ONLY JSON.
+
+Goal:
+Create a highly reusable character DNA for a personalized children's storybook.
+
+Return this exact JSON structure:
+{
+  "hair": "string",
+  "skin": "string",
+  "eyes": "string",
+  "face": "string",
+  "ageLook": "string",
+  "outfit": "string",
+  "vibe": "string",
+  "summary": "string"
+}
+
+Rules:
+- Keep it concise
+- Keep it visual
+- Do not mention camera quality
+- Do not mention background unless it affects the child
+- Focus only on the child appearance
+- outfit can be inferred as simple child outfit if unclear
+              `.trim()
+            },
+            {
+              type: "image_url",
+              image_url: { url: child_photo }
+            }
+          ]
+        }
+      ],
+      temperature: 0.2
+    });
+
+    const dnaRaw = dnaCompletion.choices?.[0]?.message?.content || "{}";
+    const characterDNA = safeJsonParse(dnaRaw, {
+      hair: "soft brown child hair",
+      skin: "natural warm skin tone",
+      eyes: "bright child eyes",
+      face: "soft rounded child face",
+      ageLook: "young child",
+      outfit: "simple timeless child outfit",
+      vibe: "warm curious child",
+      summary: "A warm curious child hero for a magical storybook."
+    });
+
+    const promptCore = buildCharacterPromptCore(characterDNA, style);
+
+    const characterSheetPrompt = `
+Create a premium children's storybook character sheet.
+
+Style: ${style}
+
+${promptCore}
+
+Create ONE clean composition showing the same child character in:
+- front view
+- slight side view
+- full body storybook pose
+
+Background:
+- clean soft storybook background
+- minimal and elegant
+- no text
+- no watermark
+
+This is a character reference sheet for a premium children's personalized book.
+`.trim();
+
+    const imageResp = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt: characterSheetPrompt,
+      size: "1024x1024"
+    });
+
+    const imageItem = imageResp?.data?.[0];
+    let characterSheetBase64 = null;
+
+    if (imageItem?.b64_json) {
+      characterSheetBase64 = imageItem.b64_json;
+    } else if (imageItem?.url) {
+      const r = await fetch(imageItem.url);
+      const arr = await r.arrayBuffer();
+      characterSheetBase64 = Buffer.from(arr).toString("base64");
+    }
+
+    return res.json({
+      status: "ok",
+      characterDNA,
+      characterPromptCore: promptCore,
+      characterSummary: characterDNA.summary || "",
+      characterSheetBase64
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: "Character reference generation failed",
+      details: err?.message || "unknown_error"
+    });
+  }
+});
+
+/**
+ * STEP 2
+ * Generate story structure using the character reference
+ */
 app.post("/create-book", async (req, res) => {
   try {
-    const { child_name, age, story_type, illustration_style, child_gender } = req.body;
+    const {
+      child_name,
+      age,
+      gender,
+      story_type,
+      illustration_style,
+      character_reference
+    } = req.body;
 
     if (!child_name || !age || !story_type) {
       return res.status(400).json({
@@ -90,53 +212,67 @@ app.post("/create-book", async (req, res) => {
     }
 
     const style = illustration_style || "Soft Storybook";
+    const characterSummary = character_reference?.characterSummary || "A warm curious child hero";
+    const characterPromptCore = character_reference?.characterPromptCore || "";
 
     const prompt = `
-You are a professional children's book writer.
+You are a premium personalized children's book writer.
 
-Create a magical premium children's story.
+Create a magical storybook for a child.
 
 Child name: ${child_name}
-Age: ${age}
-Gender: ${child_gender || "neutral"}
-Story direction from parent: ${story_type}
+Child age: ${age}
+Child gender: ${gender || "not specified"}
+Story direction: ${story_type}
+Illustration style: ${style}
 
-Return JSON only in this format:
+Character summary:
+${characterSummary}
 
+Character consistency instructions:
+${characterPromptCore}
+
+Return ONLY JSON in this exact structure:
 {
   "title": "string",
   "subtitle": "string",
   "pages": [
-    { "text": "string", "imagePrompt": "string" }
+    {
+      "text": "string",
+      "imagePrompt": "string"
+    }
   ]
 }
 
 Rules:
-- 10 pages exactly
-- each page text must be short, emotional, child-friendly, and premium
-- imagePrompt must describe the scene visually for a storybook illustrator
-- keep the same main child character consistent across all pages
-`;
+- Exactly 10 story pages
+- Each page text must be 35-70 words
+- The child must clearly be the hero
+- Keep story warm, magical, premium, emotional
+- imagePrompt must describe the same child consistently
+- Do not include page numbers inside text
+- No brand names
+`.trim();
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
-      temperature: 0.9
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.8
     });
 
     const raw = completion.choices?.[0]?.message?.content || "{}";
-    const book = JSON.parse(raw);
+    const book = safeJsonParse(raw, {});
 
-    const title = book.title || "My Magical Story";
-    const subtitle = book.subtitle || "A personalized adventure";
+    const title = book.title || `The Magical Adventure of ${child_name}`;
+    const subtitle = book.subtitle || "A story where you are the hero";
     const pages = Array.isArray(book.pages) ? book.pages.slice(0, 10) : [];
 
     if (pages.length !== 10) {
       return res.status(500).json({
         status: "error",
-        message: "AI returned invalid page count. Expected 10 pages.",
-        details: `Returned ${pages.length} pages instead of 10.`
+        message: "AI returned invalid page count",
+        debug: { returned: pages.length }
       });
     }
 
@@ -151,305 +287,90 @@ Rules:
       }))
     });
   } catch (err) {
-    const payload = buildOpenAIErrorPayload(err, "Book generation failed");
-    return res.status(payload.statusCode).json(payload.body);
+    return res.status(500).json({
+      status: "error",
+      message: "Book generation failed",
+      details: err?.message || "unknown_error"
+    });
   }
 });
 
-app.post("/generate-character", async (req, res) => {
-  try {
-    const { child_photo, illustration_style } = req.body;
-
-    if (!child_photo) {
-      return res.status(400).json({
-        status: "error",
-        message: "Missing child_photo"
-      });
-    }
-
-    const style = illustration_style || "Soft Storybook";
-
-    const analysis = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `
-Analyze the child in this image and return a reusable character profile for a premium children's storybook.
-
-Return JSON only in this format:
-
-{
-  "characterDescription": "",
-  "characterDNA": {
-    "hairColor": "",
-    "hairLength": "",
-    "skinTone": "",
-    "eyeColor": "",
-    "faceShape": "",
-    "ageLook": "",
-    "distinctiveFeatures": "",
-    "overallVibe": ""
-  }
-}
-`
-            },
-            {
-              type: "image_url",
-              image_url: { url: child_photo }
-            }
-          ]
-        }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.2
-    });
-
-    const profileRaw = analysis.choices?.[0]?.message?.content || "{}";
-    const profile = JSON.parse(profileRaw);
-
-    const characterPrompt = `
-Create a premium children's book character illustration.
-
-Style: ${style}
-
-Character description:
-${profile.characterDescription || "young child character"}
-
-Character DNA:
-Hair: ${profile.characterDNA?.hairColor || ""}
-Hair length: ${profile.characterDNA?.hairLength || ""}
-Skin tone: ${profile.characterDNA?.skinTone || ""}
-Eye color: ${profile.characterDNA?.eyeColor || ""}
-Face shape: ${profile.characterDNA?.faceShape || ""}
-Age look: ${profile.characterDNA?.ageLook || ""}
-Distinctive features: ${profile.characterDNA?.distinctiveFeatures || ""}
-Overall vibe: ${profile.characterDNA?.overallVibe || ""}
-
-Rules:
-- one main child character
-- full body
-- premium storybook quality
-- clean soft background
-- warm soft lighting
-- no text
-`;
-
-    const image = await openai.images.generate({
-      model: "gpt-image-1",
-      prompt: characterPrompt,
-      size: "1024x1024"
-    });
-
-    const imageData = image.data?.[0];
-    let characterImageBase64 = null;
-
-    if (imageData?.b64_json) {
-      characterImageBase64 = imageData.b64_json;
-    } else if (imageData?.url) {
-      const r = await fetch(imageData.url);
-      const buf = await r.arrayBuffer();
-      characterImageBase64 = Buffer.from(buf).toString("base64");
-    }
-
-    return res.json({
-      status: "ok",
-      characterDescription: profile.characterDescription || "",
-      characterDNA: profile.characterDNA || {},
-      characterImageBase64
-    });
-  } catch (err) {
-    const payload = buildOpenAIErrorPayload(err, "Character generation failed");
-    return res.status(payload.statusCode).json(payload.body);
-  }
-});
-
+/**
+ * STEP 3
+ * Generate final page image with character consistency
+ */
 app.post("/generate-image", async (req, res) => {
   try {
     const {
       prompt,
       illustration_style,
-      characterDescription,
-      characterDNA
+      characterPromptCore
     } = req.body;
 
     if (!prompt) {
       return res.status(400).json({
         status: "error",
-        message: "Missing prompt"
+        message: "Missing required field: prompt"
       });
     }
 
     const style = illustration_style || "Soft Storybook";
 
     const finalPrompt = `
-Create a premium children's book illustration.
+Create a premium children's storybook illustration.
 
-Illustration style:
-${style}
+Illustration style: ${style}
 
-Main character lock:
-${characterDescription || "young child character"}
-
-Character DNA:
-Hair: ${characterDNA?.hairColor || ""}
-Hair length: ${characterDNA?.hairLength || ""}
-Skin tone: ${characterDNA?.skinTone || ""}
-Eye color: ${characterDNA?.eyeColor || ""}
-Face shape: ${characterDNA?.faceShape || ""}
-Age look: ${characterDNA?.ageLook || ""}
-Distinctive features: ${characterDNA?.distinctiveFeatures || ""}
-Overall vibe: ${characterDNA?.overallVibe || ""}
+Character consistency:
+${characterPromptCore || "Keep the same main child character consistent."}
 
 Scene:
 ${prompt}
 
 Rules:
-- the child must remain visually consistent across pages
-- same child, same look, same vibe
-- premium illustrated storybook
-- no text in image
-- warm polished composition
-`;
+- same child identity
+- same face structure
+- same hair and skin tone
+- warm magical storybook aesthetic
+- no text
+- no watermark
+- elegant composition
+`.trim();
 
-    const img = await openai.images.generate({
+    const imgResp = await openai.images.generate({
       model: "gpt-image-1",
       prompt: finalPrompt,
       size: "1024x1024"
     });
 
-    const imageData = img.data?.[0];
-    let imageBase64 = null;
+    const item = imgResp?.data?.[0];
 
-    if (imageData?.b64_json) {
-      imageBase64 = imageData.b64_json;
-    } else if (imageData?.url) {
-      const r = await fetch(imageData.url);
-      const buf = await r.arrayBuffer();
-      imageBase64 = Buffer.from(buf).toString("base64");
+    if (item?.b64_json) {
+      return res.json({ status: "ok", imageBase64: item.b64_json });
     }
 
-    if (!imageBase64) {
-      return res.status(500).json({
-        status: "error",
-        message: "Image generation failed",
-        details: "No image data returned from OpenAI."
-      });
+    if (item?.url) {
+      const r = await fetch(item.url);
+      const arr = await r.arrayBuffer();
+      const base64 = Buffer.from(arr).toString("base64");
+      return res.json({ status: "ok", imageBase64: base64 });
     }
 
-    return res.json({
-      status: "ok",
-      imageBase64
-    });
-  } catch (err) {
-    const payload = buildOpenAIErrorPayload(err, "Image generation failed");
-    return res.status(payload.statusCode).json(payload.body);
-  }
-});
-
-app.post("/create-order", async (req, res) => {
-  try {
-    const { bookData, amount } = req.body;
-
-    if (!bookData || !bookData.title) {
-      return res.status(400).json({
-        status: "error",
-        message: "Missing bookData"
-      });
-    }
-
-    const orderId = createOrderId();
-
-    const order = {
-      orderId,
-      status: "pending",
-      amount: amount || 49,
-      currency: "USD",
-      createdAt: new Date().toISOString(),
-      paidAt: null,
-      customer: {
-        childName: bookData.childName || "",
-        childAge: bookData.childAge || ""
-      },
-      book: {
-        title: bookData.title || "",
-        subtitle: bookData.subtitle || "",
-        illustrationStyle: bookData.illustration_style || "",
-        pagesCount: Array.isArray(bookData.pages) ? bookData.pages.length : 0
-      },
-      source: "lifebook-demo-checkout"
-    };
-
-    await saveOrder(order);
-
-    return res.json({
-      status: "ok",
-      orderId,
-      order
+    return res.status(500).json({
+      status: "error",
+      message: "Image generation failed",
+      code: "no_image_returned"
     });
   } catch (err) {
     return res.status(500).json({
       status: "error",
-      message: "Failed to create order",
-      details: err?.message || "Unknown server error"
-    });
-  }
-});
-
-app.post("/complete-order", async (req, res) => {
-  try {
-    const { orderId } = req.body;
-
-    if (!orderId) {
-      return res.status(400).json({
-        status: "error",
-        message: "Missing orderId"
-      });
-    }
-
-    const order = await loadOrder(orderId);
-    order.status = "paid";
-    order.paidAt = new Date().toISOString();
-
-    await saveOrder(order);
-
-    return res.json({
-      status: "ok",
-      order
-    });
-  } catch (err) {
-    return res.status(500).json({
-      status: "error",
-      message: "Failed to complete order",
-      details: err?.message || "Unknown server error"
-    });
-  }
-});
-
-app.get("/order/:orderId", async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const order = await loadOrder(orderId);
-
-    return res.json({
-      status: "ok",
-      order
-    });
-  } catch (err) {
-    return res.status(404).json({
-      status: "error",
-      message: "Order not found"
+      message: "Image generation failed",
+      details: err?.message || "unknown_error"
     });
   }
 });
 
 const PORT = process.env.PORT || 8080;
-
-ensureDataDirs().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
