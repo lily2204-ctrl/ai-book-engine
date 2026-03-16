@@ -1,170 +1,131 @@
 const API_BASE = window.location.origin;
 
+const rawSetup = localStorage.getItem("bookSetupData");
+const croppedPhoto = localStorage.getItem("croppedPhoto");
+
+const generateBookBtn = document.getElementById("generateBookBtn");
+const backToSetupBtn = document.getElementById("backToSetupBtn");
+const backToCropBtn = document.getElementById("backToCropBtn");
+const generateStatus = document.getElementById("generateStatus");
+
 const stepCharacter = document.getElementById("stepCharacter");
 const stepStory = document.getElementById("stepStory");
-const stepCover = document.getElementById("stepCover");
-const generateError = document.getElementById("generateError");
+const stepPreview = document.getElementById("stepPreview");
 
-function setStepState(stepElement, state) {
-  stepElement.classList.remove("active", "done");
-  if (state === "active") stepElement.classList.add("active");
-  if (state === "done") stepElement.classList.add("done");
+const uploadedPhotoPreview = document.getElementById("uploadedPhotoPreview");
+const characterSheetPreview = document.getElementById("characterSheetPreview");
+
+if (!rawSetup || !croppedPhoto) {
+  window.location.href = "setup.html";
 }
 
-function getFriendlyErrorMessage(errorMessage) {
-  const raw = String(errorMessage || "").toLowerCase();
+const setupData = JSON.parse(rawSetup);
 
-  if (raw.includes("quota") || raw.includes("billing") || raw.includes("insufficient_quota")) {
-    return "The AI image/story quota has been exceeded. Please add credits or enable billing in OpenAI, then try again.";
-  }
+uploadedPhotoPreview.src = croppedPhoto;
 
-  if (raw.includes("missing child_photo")) {
-    return "The uploaded child image was not found. Please go back and upload the photo again.";
-  }
-
-  if (raw.includes("character generation failed")) {
-    return "Failed to generate the child character. Please try another image or try again in a moment.";
-  }
-
-  if (raw.includes("book generation failed")) {
-    return "Failed to generate the story. Please try again in a moment.";
-  }
-
-  if (raw.includes("image generation failed")) {
-    return "Failed to generate the illustration. Please try again in a moment.";
-  }
-
-  return errorMessage || "Something went wrong while generating the book.";
+function setActiveStep(stepElement, text) {
+  [stepCharacter, stepStory, stepPreview].forEach((el) => el.classList.remove("active"));
+  stepElement.classList.add("active");
+  generateStatus.textContent = text;
 }
 
-async function readIndexedDBCroppedPhoto() {
+function buildBookDataPayload(bookResponse, characterRef) {
+  return {
+    childName: setupData.childName || "",
+    childAge: setupData.childAge || "",
+    childGender: setupData.childGender || "",
+    storyIdea: setupData.storyIdea || "",
+    illustration_style: setupData.illustrationStyle || "Soft Storybook",
+    title: bookResponse.title,
+    subtitle: bookResponse.subtitle,
+    pages: bookResponse.pages || [],
+    characterDNA: characterRef.characterDNA,
+    characterPromptCore: characterRef.characterPromptCore,
+    characterSummary: characterRef.characterSummary,
+    characterSheetBase64: characterRef.characterSheetBase64,
+    croppedPhoto
+  };
+}
+
+async function generateCharacterReference() {
+  setActiveStep(stepCharacter, "Creating character reference...");
+
+  const res = await fetch(`${API_BASE}/generate-character-reference`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      child_photo: croppedPhoto,
+      child_name: setupData.childName || "",
+      age: setupData.childAge || "",
+      gender: setupData.childGender || "",
+      illustration_style: setupData.illustrationStyle || "Soft Storybook"
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data?.message || "Failed to create character reference");
+  }
+
+  if (data.characterSheetBase64) {
+    characterSheetPreview.src = `data:image/png;base64,${data.characterSheetBase64}`;
+  }
+
+  localStorage.setItem("characterReference", JSON.stringify(data));
+  return data;
+}
+
+async function generateBook(characterRef) {
+  setActiveStep(stepStory, "Building the story structure...");
+
+  const res = await fetch(`${API_BASE}/create-book`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      child_name: setupData.childName || "",
+      age: setupData.childAge || "",
+      gender: setupData.childGender || "",
+      story_type: setupData.storyIdea || "A magical adventure",
+      illustration_style: setupData.illustrationStyle || "Soft Storybook",
+      character_reference: characterRef
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data?.message || "Failed to generate book");
+  }
+
+  return data;
+}
+
+generateBookBtn.addEventListener("click", async () => {
   try {
-    const request = indexedDB.open("lifebookDB", 1);
+    generateBookBtn.disabled = true;
 
-    const db = await new Promise((resolve, reject) => {
-      request.onupgradeneeded = function () {
-        const upgradeDb = request.result;
-        if (!upgradeDb.objectStoreNames.contains("images")) {
-          upgradeDb.createObjectStore("images");
-        }
-      };
+    const characterRef = await generateCharacterReference();
+    const bookResponse = await generateBook(characterRef);
 
-      request.onsuccess = function () {
-        resolve(request.result);
-      };
+    setActiveStep(stepPreview, "Preparing cover and preview...");
 
-      request.onerror = function () {
-        reject(request.error || new Error("Failed to open IndexedDB"));
-      };
-    });
-
-    return await new Promise((resolve, reject) => {
-      const transaction = db.transaction("images", "readonly");
-      const store = transaction.objectStore("images");
-      const getRequest = store.get("croppedPhoto");
-
-      getRequest.onsuccess = function () {
-        resolve(getRequest.result || null);
-      };
-
-      getRequest.onerror = function () {
-        reject(getRequest.error || new Error("Failed to read cropped photo"));
-      };
-    });
-  } catch (error) {
-    console.warn("Failed reading cropped photo from IndexedDB:", error);
-    return null;
-  }
-}
-
-async function runGenerationFlow() {
-  const rawSetup = localStorage.getItem("bookSetupData");
-
-  if (!rawSetup) {
-    window.location.href = "setup.html";
-    return;
-  }
-
-  const setupData = JSON.parse(rawSetup);
-
-  try {
-    let characterData = null;
-
-    let childPhoto = setupData.croppedPhoto || localStorage.getItem("croppedPhoto");
-    if (!childPhoto) {
-      childPhoto = await readIndexedDBCroppedPhoto();
-    }
-
-    if (!childPhoto) {
-      throw new Error("Missing child_photo");
-    }
-
-    setStepState(stepCharacter, "active");
-
-    const charRes = await fetch(`${API_BASE}/generate-character`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        child_photo: childPhoto,
-        illustration_style: setupData.illustrationStyle
-      })
-    });
-
-    const charJson = await charRes.json();
-
-    if (!charRes.ok) {
-      throw new Error(charJson?.details || charJson?.message || "Character generation failed");
-    }
-
-    characterData = charJson;
-    setStepState(stepCharacter, "done");
-
-    setStepState(stepStory, "active");
-
-    const bookRes = await fetch(`${API_BASE}/create-book`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        child_name: setupData.childName,
-        age: setupData.childAge,
-        story_type: setupData.storyIdea,
-        illustration_style: setupData.illustrationStyle,
-        child_gender: setupData.childGender
-      })
-    });
-
-    const bookJson = await bookRes.json();
-
-    if (!bookRes.ok) {
-      throw new Error(bookJson?.details || bookJson?.message || "Book generation failed");
-    }
-
-    if (characterData) {
-      bookJson.characterImageBase64 = characterData.characterImageBase64;
-      bookJson.characterDescription = characterData.characterDescription;
-      bookJson.characterDNA = characterData.characterDNA;
-    }
-
-    bookJson.childName = setupData.childName;
-    bookJson.childAge = setupData.childAge;
-    bookJson.childGender = setupData.childGender;
-    bookJson.storyIdea = setupData.storyIdea;
-    bookJson.illustration_style = setupData.illustrationStyle;
-    bookJson.croppedPhoto = childPhoto;
-
-    localStorage.setItem("bookData", JSON.stringify(bookJson));
-
-    setStepState(stepStory, "done");
-    setStepState(stepCover, "active");
+    const bookData = buildBookDataPayload(bookResponse, characterRef);
+    localStorage.setItem("bookData", JSON.stringify(bookData));
 
     setTimeout(() => {
-      setStepState(stepCover, "done");
       window.location.href = "cover.html";
-    }, 900);
+    }, 700);
   } catch (error) {
-    console.error(error);
-    generateError.textContent = getFriendlyErrorMessage(error?.message || "");
+    generateStatus.textContent = error.message || "Something went wrong.";
+    generateBookBtn.disabled = false;
   }
-}
+});
 
-runGenerationFlow();
+backToSetupBtn.addEventListener("click", () => {
+  window.location.href = "setup.html";
+});
+
+backToCropBtn.addEventListener("click", () => {
+  window.location.href = "crop.html";
+});
