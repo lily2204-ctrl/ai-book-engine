@@ -1,161 +1,211 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lifebook - Creating Your Story</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lifebook - Generating</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    .generate-shell {
-      width: min(860px, 94vw);
-      margin: 0 auto;
-      padding: 40px 0 60px;
-      text-align: center;
+    .generate-shell{
+      width:min(1240px, 94vw);
+      margin:0 auto;
+      padding-bottom:60px;
+      position:relative;
+      z-index:2;
     }
 
-    .generate-card {
-      background: white;
-      border-radius: 30px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.12);
-      padding: 40px 28px;
-      max-width: 760px;
-      margin: 0 auto;
+    .generate-layout{
+      display:grid;
+      grid-template-columns:1fr 420px;
+      gap:20px;
     }
 
-    .generate-spinner-wrap {
-      width: 120px;
-      height: 120px;
-      margin: 10px auto 28px;
-      border-radius: 50%;
-      background: #fff5df;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .generate-card{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
+        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
+      border:1px solid rgba(240,196,109,0.14);
+      border-radius:36px;
+      box-shadow:var(--shadow);
+      padding:28px;
     }
 
-    .generate-spinner {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      border: 6px solid #f3d8a0;
-      border-top-color: #e4ab4b;
-      animation: spin 1s linear infinite;
+    .generate-card h1{
+      margin:0 0 10px;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:clamp(36px, 5vw, 58px);
+      line-height:.96;
+      color:#f9f1e4;
     }
 
-    .generate-title {
-      font-size: clamp(30px, 4vw, 48px);
-      margin: 0 0 14px;
-      line-height: 1.08;
+    .generate-card p{
+      margin:0 0 18px;
+      color:#cfc0ab;
+      font-size:18px;
+      line-height:1.65;
     }
 
-    .generate-subtitle {
-      color: var(--muted);
-      font-size: 20px;
-      line-height: 1.55;
-      margin: 0 auto 30px;
-      max-width: 620px;
+    .step-list{
+      display:grid;
+      gap:14px;
+      margin-top:22px;
     }
 
-    .generate-steps {
-      margin-top: 20px;
-      display: grid;
-      gap: 14px;
-      text-align: left;
-      max-width: 560px;
-      margin-left: auto;
-      margin-right: auto;
+    .step-item{
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
+      padding:16px 18px;
+      border-radius:20px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.08);
+      color:#d8c9b4;
     }
 
-    .generate-step {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      padding: 14px 16px;
-      background: #faf7f0;
-      border-radius: 18px;
-      border: 1px solid #f1e2c4;
+    .step-item.active{
+      border-color:rgba(240,196,109,0.28);
+      background:rgba(240,196,109,0.07);
     }
 
-    .generate-step-dot {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #d8d8d8;
-      flex-shrink: 0;
+    .step-dot{
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      flex:0 0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      background:rgba(255,255,255,0.08);
+      color:#f7efdf;
     }
 
-    .generate-step.active .generate-step-dot {
-      background: #e4ab4b;
-      box-shadow: 0 0 0 6px rgba(228,171,75,0.15);
+    .step-item.active .step-dot{
+      background:linear-gradient(180deg, #f0c46d 0%, #d38f2e 100%);
+      color:white;
     }
 
-    .generate-step.done .generate-step-dot {
-      background: #7bbd67;
-      box-shadow: 0 0 0 6px rgba(123,189,103,0.14);
+    .generate-side{
+      display:grid;
+      gap:18px;
     }
 
-    .generate-step-text {
-      font-weight: 700;
+    .preview-panel{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
+        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:30px;
+      box-shadow:var(--shadow-soft);
+      padding:20px;
     }
 
-    .generate-error {
-      margin-top: 24px;
-      color: #c84b4b;
-      font-weight: 700;
-      min-height: 24px;
+    .preview-panel h3{
+      margin:0 0 14px;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:24px;
+      color:#f7efdf;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    .preview-image{
+      width:100%;
+      border-radius:22px;
+      background:rgba(255,255,255,0.06);
+      object-fit:cover;
+      min-height:220px;
+    }
+
+    .generate-actions{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top:22px;
+    }
+
+    .status-text{
+      margin-top:16px;
+      font-size:15px;
+      color:#efc878;
+      font-weight:700;
+      min-height:24px;
+    }
+
+    @media (max-width:980px){
+      .generate-layout{
+        grid-template-columns:1fr;
+      }
     }
   </style>
 </head>
 <body class="setup-body">
-
-  <div class="generate-shell">
-    <div class="wizard-topbar">
-      <div class="wizard-topbar-left"></div>
-
-      <div class="wizard-brand">
-        <div class="logo-mark small"></div>
-        <span class="wizard-brand-text">lifebook</span>
-      </div>
-
-      <div class="wizard-topbar-right"></div>
+  <header class="wizard-topbar">
+    <div class="wizard-topbar-left">
+      <button class="back-link-button" id="backToCropBtn" type="button">← Back</button>
     </div>
 
-    <div class="wizard-step-label">STEP 3 OF 5</div>
-
-    <div class="generate-card">
-      <div class="generate-spinner-wrap">
-        <div class="generate-spinner"></div>
-      </div>
-
-      <h1 class="generate-title">We’re building your book</h1>
-      <p class="generate-subtitle">
-        Our AI is preparing the character, the story structure, and the premium cover.
-      </p>
-
-      <div class="generate-steps">
-        <div class="generate-step active" id="stepCharacter">
-          <div class="generate-step-dot"></div>
-          <div class="generate-step-text">Creating the child character reference</div>
-        </div>
-
-        <div class="generate-step" id="stepStory">
-          <div class="generate-step-dot"></div>
-          <div class="generate-step-text">Generating the title, subtitle, and story pages</div>
-        </div>
-
-        <div class="generate-step" id="stepCover">
-          <div class="generate-step-dot"></div>
-          <div class="generate-step-text">Preparing the premium cover preview</div>
-        </div>
-      </div>
-
-      <div id="generateError" class="generate-error"></div>
+    <div class="wizard-brand">
+      <img class="brand-image" src="assets/logo.png" alt="Lifebook logo" />
     </div>
-  </div>
+
+    <div class="wizard-topbar-right"></div>
+  </header>
+
+  <main class="generate-shell">
+    <div class="generate-layout">
+      <section class="generate-card">
+        <div class="wizard-step-label">Step 3 of 5</div>
+        <h1>Generating your book</h1>
+        <p>
+          First we create the child character reference. Then we build the story structure and prepare the book preview.
+        </p>
+
+        <div class="step-list">
+          <div class="step-item" id="stepCharacter">
+            <div class="step-dot">1</div>
+            <div>
+              <strong>Create Character Reference</strong><br/>
+              Analyze the uploaded child photo and build a consistent character DNA.
+            </div>
+          </div>
+
+          <div class="step-item" id="stepStory">
+            <div class="step-dot">2</div>
+            <div>
+              <strong>Build Story Structure</strong><br/>
+              Generate the title, subtitle, and all story pages.
+            </div>
+          </div>
+
+          <div class="step-item" id="stepPreview">
+            <div class="step-dot">3</div>
+            <div>
+              <strong>Prepare Preview</strong><br/>
+              Save everything for the cover and preview pages.
+            </div>
+          </div>
+        </div>
+
+        <div class="status-text" id="generateStatus">Ready to begin.</div>
+
+        <div class="generate-actions">
+          <button class="continue-btn" id="generateBookBtn" type="button">Generate Book</button>
+          <button class="secondary-btn" id="backToSetupBtn" type="button">Back to Setup</button>
+        </div>
+      </section>
+
+      <aside class="generate-side">
+        <div class="preview-panel">
+          <h3>Uploaded photo</h3>
+          <img class="preview-image" id="uploadedPhotoPreview" alt="Uploaded child photo" />
+        </div>
+
+        <div class="preview-panel">
+          <h3>Character reference</h3>
+          <img class="preview-image" id="characterSheetPreview" alt="Character reference sheet" />
+        </div>
+      </aside>
+    </div>
+  </main>
 
   <script src="generate.js"></script>
 </body>
