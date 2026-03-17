@@ -5,45 +5,262 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lifebook - Adjust Photo</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .crop-shell{
+      width:min(1100px, 94vw);
+      margin:0 auto;
+      padding-bottom:60px;
+      position:relative;
+      z-index:2;
+    }
+
+    .crop-card{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
+        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
+      border:1px solid rgba(240,196,109,0.14);
+      border-radius:36px;
+      box-shadow:var(--shadow);
+      padding:28px;
+    }
+
+    .crop-head{
+      margin-bottom:20px;
+    }
+
+    .crop-head h1{
+      margin:0 0 10px;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:clamp(34px, 5vw, 54px);
+      line-height:.96;
+      color:#f9f1e4;
+    }
+
+    .crop-head p{
+      margin:0;
+      color:#cfc0ab;
+      font-size:18px;
+      line-height:1.65;
+      max-width:760px;
+    }
+
+    .crop-layout{
+      display:grid;
+      grid-template-columns: minmax(320px, 620px) 1fr;
+      gap:22px;
+      align-items:start;
+    }
+
+    .crop-stage-card{
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:28px;
+      padding:20px;
+    }
+
+    .crop-stage{
+      width:100%;
+      aspect-ratio:1/1;
+      position:relative;
+      border-radius:24px;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 55%, rgba(0,0,0,0.08) 100%);
+    }
+
+    #cropCanvas{
+      width:100%;
+      height:100%;
+      display:block;
+      touch-action:none;
+      cursor:grab;
+    }
+
+    #cropCanvas:active{
+      cursor:grabbing;
+    }
+
+    .crop-circle-mask{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      border-radius:24px;
+      box-shadow: inset 0 0 0 9999px rgba(0,0,0,0.30);
+      -webkit-mask:
+        radial-gradient(circle 42% at 50% 50%, transparent 0 99%, #000 100%);
+      mask:
+        radial-gradient(circle 42% at 50% 50%, transparent 0 99%, #000 100%);
+    }
+
+    .crop-ring{
+      position:absolute;
+      inset:50%;
+      width:84%;
+      height:84%;
+      transform:translate(-50%, -50%);
+      border-radius:50%;
+      border:4px solid #E4AB4B;
+      box-shadow:0 0 0 8px rgba(228,171,75,0.08);
+      pointer-events:none;
+    }
+
+    .crop-controls{
+      margin-top:18px;
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+
+    .reset-btn{
+      width:54px;
+      height:54px;
+      border:none;
+      border-radius:50%;
+      background:rgba(255,255,255,0.06);
+      color:#f7efdf;
+      font-size:24px;
+      cursor:pointer;
+      border:1px solid rgba(255,255,255,0.08);
+    }
+
+    .zoom-wrap{
+      flex:1;
+    }
+
+    .zoom-label{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:8px;
+      color:#d9ccb8;
+      font-size:14px;
+      font-weight:700;
+    }
+
+    #zoomSlider{
+      width:100%;
+      accent-color:#E4AB4B;
+    }
+
+    .crop-side{
+      display:grid;
+      gap:16px;
+    }
+
+    .crop-tip-card{
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:24px;
+      padding:18px;
+    }
+
+    .crop-tip-card h3{
+      margin:0 0 10px;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:24px;
+      color:#f7efdf;
+    }
+
+    .crop-tip-card p{
+      margin:0;
+      color:#c7baa8;
+      line-height:1.6;
+      font-size:15px;
+    }
+
+    .crop-action-row{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top:22px;
+    }
+
+    @media (max-width:980px){
+      .crop-layout{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width:640px){
+      .crop-card{
+        padding:20px;
+      }
+
+      .crop-action-row{
+        flex-direction:column;
+      }
+
+      .continue-btn,
+      .secondary-btn{
+        width:100%;
+      }
+    }
+  </style>
 </head>
 <body class="crop-body">
 
-  <div class="crop-shell">
-    <header class="wizard-topbar">
-      <div class="wizard-topbar-left">
-        <button class="back-link-button" id="backToWizard" type="button">← Back</button>
+  <header class="wizard-topbar">
+    <div class="wizard-topbar-left">
+      <button class="back-link-button" id="backToWizard" type="button">← Back</button>
+    </div>
+
+    <div class="wizard-brand">
+      <img class="brand-image" src="assets/logo.png" alt="Lifebook logo" />
+    </div>
+
+    <div class="wizard-topbar-right"></div>
+  </header>
+
+  <main class="crop-shell">
+    <section class="crop-card">
+      <div class="crop-head">
+        <div class="wizard-step-label">Step 2 of 5</div>
+        <h1>Adjust the child photo</h1>
+        <p>
+          Center the face inside the circle and zoom if needed. This will be used to build a better character reference for the storybook.
+        </p>
       </div>
 
-      <div class="wizard-brand">
-        <div class="logo-mark small"></div>
-        <span class="wizard-brand-text">lifebook</span>
-      </div>
+      <div class="crop-layout">
+        <div class="crop-stage-card">
+          <div class="crop-stage">
+            <canvas id="cropCanvas" width="900" height="900"></canvas>
+            <div class="crop-circle-mask"></div>
+            <div class="crop-ring"></div>
+          </div>
 
-      <div class="wizard-topbar-right"></div>
-    </header>
+          <div class="crop-controls">
+            <button class="reset-btn" id="resetCropBtn" type="button">↺</button>
 
-    <main class="crop-main">
-      <div class="wizard-step-label">STEP 1 OF 5</div>
-      <h1 class="wizard-title">Adjust the photo</h1>
-      <p class="wizard-subtitle">
-        Center the face and zoom if needed.
-      </p>
+            <div class="zoom-wrap">
+              <div class="zoom-label">
+                <span>Zoom</span>
+                <span id="zoomValue">100%</span>
+              </div>
+              <input type="range" id="zoomSlider" min="0.8" max="3" step="0.01" value="1" />
+            </div>
+          </div>
 
-      <div class="crop-card">
-        <div class="crop-stage">
-          <canvas id="cropCanvas" width="320" height="320"></canvas>
-          <div class="crop-circle-mask"></div>
+          <div class="crop-action-row">
+            <button class="secondary-btn" id="chooseNewPhotoBtn" type="button">Choose Another Photo</button>
+            <button class="continue-btn" id="continueAfterCrop" type="button">Continue</button>
+          </div>
         </div>
 
-        <div class="crop-controls">
-          <button class="reset-btn" id="resetCropBtn" type="button">↺</button>
-          <input type="range" id="zoomSlider" min="1" max="3" step="0.01" value="1" />
-        </div>
+        <div class="crop-side">
+          <div class="crop-tip-card">
+            <h3>Best result</h3>
+            <p>One child, front-facing, face centered, and bright enough to clearly see the features.</p>
+          </div>
 
-        <button class="continue-btn" id="continueAfterCrop" type="button">Continue</button>
+          <div class="crop-tip-card">
+            <h3>Why this matters</h3>
+            <p>The crop becomes the visual base for the character reference, so a clean centered face gives the most premium result.</p>
+          </div>
+        </div>
       </div>
-    </main>
-  </div>
+    </section>
+  </main>
 
   <script src="crop.js"></script>
 </body>
