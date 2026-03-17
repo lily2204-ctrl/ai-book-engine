@@ -1,3 +1,5 @@
+import { getBookData, updateBookData } from "./state.js";
+
 const backToCropBtn = document.getElementById("backToCrop");
 const previewCroppedPhoto = document.getElementById("previewCroppedPhoto");
 const childNameInput = document.getElementById("childName");
@@ -8,10 +10,11 @@ const continueToStoryBtn = document.getElementById("continueToStoryBtn");
 const setupError = document.getElementById("setupError");
 const styleSelectorGrid = document.getElementById("styleSelectorGrid");
 
-const croppedPhoto = localStorage.getItem("croppedPhoto");
+const data = getBookData();
+const croppedPhoto = data.croppedPhoto;
 
 if (!croppedPhoto) {
-  window.location.href = "wizard.html";
+  window.location.href = "crop.html";
 }
 
 previewCroppedPhoto.src = croppedPhoto;
@@ -32,10 +35,10 @@ const illustrationStyles = [
   "Classic Fairytale",
   "Whimsical Watercolor",
   "Gentle Pastel",
-  "Modern Picture Book"
+  "Modern Picture Book",
 ];
 
-let selectedStyle = "Soft Storybook";
+let selectedStyle = data.illustrationStyle || "Soft Storybook";
 
 function renderStyleOptions() {
   styleSelectorGrid.innerHTML = "";
@@ -44,9 +47,11 @@ function renderStyleOptions() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "style-option";
+
     if (style === selectedStyle) {
       button.classList.add("active");
     }
+
     button.textContent = style;
 
     button.addEventListener("click", () => {
@@ -60,23 +65,10 @@ function renderStyleOptions() {
 
 renderStyleOptions();
 
-const existingSetup = localStorage.getItem("bookSetupData");
-if (existingSetup) {
-  try {
-    const parsed = JSON.parse(existingSetup);
-
-    if (parsed.childName) childNameInput.value = parsed.childName;
-    if (parsed.childAge) childAgeSelect.value = parsed.childAge;
-    if (parsed.childGender) childGenderSelect.value = parsed.childGender;
-    if (parsed.storyIdea) storyIdeaTextarea.value = parsed.storyIdea;
-    if (parsed.illustrationStyle) {
-      selectedStyle = parsed.illustrationStyle;
-      renderStyleOptions();
-    }
-  } catch (error) {
-    console.error("Failed to parse saved setup data");
-  }
-}
+if (data.childName) childNameInput.value = data.childName;
+if (data.childAge) childAgeSelect.value = data.childAge;
+if (data.childGender) childGenderSelect.value = data.childGender;
+if (data.storyIdea) storyIdeaTextarea.value = data.storyIdea;
 
 backToCropBtn.addEventListener("click", () => {
   window.location.href = "crop.html";
@@ -105,16 +97,14 @@ continueToStoryBtn.addEventListener("click", () => {
     return;
   }
 
-  const setupData = {
+  updateBookData({
     childName,
     childAge,
     childGender,
     illustrationStyle: selectedStyle,
     storyIdea,
-    croppedPhoto
-  };
-
-  localStorage.setItem("bookSetupData", JSON.stringify(setupData));
+    croppedPhoto,
+  });
 
   window.location.href = "generate.html";
 });
