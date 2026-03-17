@@ -1,110 +1,53 @@
-import { getBookData, updateBookData } from "./js/state.js";
+import { getBookData } from "./js/state.js";
 
 const backToCropBtn = document.getElementById("backToCrop");
-const previewCroppedPhoto = document.getElementById("previewCroppedPhoto");
-const childNameInput = document.getElementById("childName");
-const childAgeSelect = document.getElementById("childAge");
-const childGenderSelect = document.getElementById("childGender");
-const storyIdeaTextarea = document.getElementById("storyIdea");
 const continueToStoryBtn = document.getElementById("continueToStoryBtn");
-const setupError = document.getElementById("setupError");
-const styleSelectorGrid = document.getElementById("styleSelectorGrid");
+const previewCroppedPhoto = document.getElementById("previewCroppedPhoto");
+const setupSummary = document.getElementById("setupSummary");
 
 const data = getBookData();
-const croppedPhoto = data.croppedPhoto;
 
-if (!croppedPhoto) {
+if (!data.croppedPhoto) {
   window.location.href = "crop.html";
 }
 
-previewCroppedPhoto.src = croppedPhoto;
-
-for (let age = 1; age <= 10; age++) {
-  const option = document.createElement("option");
-  option.value = String(age);
-  option.textContent = String(age);
-  if (age === 5) option.selected = true;
-  childAgeSelect.appendChild(option);
+if (previewCroppedPhoto) {
+  previewCroppedPhoto.src = data.croppedPhoto;
 }
 
-const illustrationStyles = [
-  "Soft Storybook",
-  "Pixar 3D",
-  "Magical Fantasy",
-  "Minimal Scandinavian",
-  "Classic Fairytale",
-  "Whimsical Watercolor",
-  "Gentle Pastel",
-  "Modern Picture Book",
-];
+if (setupSummary) {
+  setupSummary.innerHTML = `
+    <div class="summary-row">
+      <span class="summary-label">Child name</span>
+      <span class="summary-value">${data.childName || "-"}</span>
+    </div>
 
-let selectedStyle = data.illustrationStyle || "Soft Storybook";
+    <div class="summary-row">
+      <span class="summary-label">Age</span>
+      <span class="summary-value">${data.childAge || "-"}</span>
+    </div>
 
-function renderStyleOptions() {
-  styleSelectorGrid.innerHTML = "";
+    <div class="summary-row">
+      <span class="summary-label">Gender</span>
+      <span class="summary-value">${data.childGender || "-"}</span>
+    </div>
 
-  illustrationStyles.forEach((style) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "style-option";
+    <div class="summary-row">
+      <span class="summary-label">Illustration style</span>
+      <span class="summary-value">${data.illustrationStyle || "-"}</span>
+    </div>
 
-    if (style === selectedStyle) {
-      button.classList.add("active");
-    }
-
-    button.textContent = style;
-
-    button.addEventListener("click", () => {
-      selectedStyle = style;
-      renderStyleOptions();
-    });
-
-    styleSelectorGrid.appendChild(button);
-  });
+    <div class="summary-row summary-row-text">
+      <span class="summary-label">Story direction</span>
+      <span class="summary-value">${data.storyIdea || "-"}</span>
+    </div>
+  `;
 }
 
-renderStyleOptions();
-
-if (data.childName) childNameInput.value = data.childName;
-if (data.childAge) childAgeSelect.value = data.childAge;
-if (data.childGender) childGenderSelect.value = data.childGender;
-if (data.storyIdea) storyIdeaTextarea.value = data.storyIdea;
-
-backToCropBtn.addEventListener("click", () => {
+backToCropBtn?.addEventListener("click", () => {
   window.location.href = "crop.html";
 });
 
-continueToStoryBtn.addEventListener("click", () => {
-  const childName = childNameInput.value.trim();
-  const childAge = childAgeSelect.value;
-  const childGender = childGenderSelect.value;
-  const storyIdea = storyIdeaTextarea.value.trim();
-
-  setupError.textContent = "";
-
-  if (!childName) {
-    setupError.textContent = "Please enter the child's name.";
-    return;
-  }
-
-  if (!childGender) {
-    setupError.textContent = "Please select a gender.";
-    return;
-  }
-
-  if (!storyIdea || storyIdea.length < 12) {
-    setupError.textContent = "Please write at least a short story idea.";
-    return;
-  }
-
-  updateBookData({
-    childName,
-    childAge,
-    childGender,
-    illustrationStyle: selectedStyle,
-    storyIdea,
-    croppedPhoto,
-  });
-
+continueToStoryBtn?.addEventListener("click", () => {
   window.location.href = "generate.html";
 });
