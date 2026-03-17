@@ -1,4 +1,4 @@
-import { clearBookData, getBookData, updateBookData } from "./state.js";
+import { clearBookData, getBookData, updateBookData } from "./js/state.js";
 
 const openPhotoModal = document.getElementById("openPhotoModal");
 const photoModal = document.getElementById("photoModal");
