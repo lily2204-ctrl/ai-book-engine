@@ -35,19 +35,36 @@ function buildCharacterPromptCore(characterDNA, style) {
   const vibe = characterDNA.vibe || "warm curious child";
   const ageLook = characterDNA.ageLook || "young child";
   const outfit = characterDNA.outfit || "simple timeless child outfit";
+  const signature = characterDNA.signature || "gentle smile and warm childlike presence";
 
   return `
-Main character reference:
-- ${ageLook}
+MAIN CHILD CHARACTER - LOCKED VISUAL IDENTITY
+
+This is the exact same child in every illustration.
+Do not redesign or reinterpret the child.
+
+Locked identity:
+- Age appearance: ${ageLook}
 - Hair: ${hair}
 - Skin tone: ${skin}
 - Eyes: ${eyes}
-- Face: ${face}
+- Face structure: ${face}
 - Outfit style: ${outfit}
 - General vibe: ${vibe}
+- Signature visual trait: ${signature}
 
-Keep this exact same child character consistent across all illustrations.
-Do not change the child's identity, age appearance, hair color, skin tone, or facial structure.
+Hard consistency rules:
+- same child identity in every image
+- same face shape
+- same hair look and color
+- same skin tone
+- same eye look
+- same child age appearance
+- same overall proportions
+- do not make the child look like a different person
+- do not randomly change hairstyle, facial structure, or ethnicity
+- keep the same premium children's storybook aesthetic
+
 Illustration style must be: ${style}.
 `.trim();
 }
@@ -88,7 +105,7 @@ app.post("/generate-character-reference", async (req, res) => {
 Analyze the uploaded child photo and return ONLY JSON.
 
 Goal:
-Create a highly reusable character DNA for a personalized children's storybook.
+Create a highly specific, conservative, reusable character DNA for a personalized children's storybook.
 
 Return this exact JSON structure:
 {
@@ -99,16 +116,25 @@ Return this exact JSON structure:
   "ageLook": "string",
   "outfit": "string",
   "vibe": "string",
+  "signature": "string",
   "summary": "string"
 }
 
 Rules:
-- Keep it concise
-- Keep it visual
+- Be specific and visually stable
+- Do not invent dramatic features that are not visible
+- Keep the child description conservative and reusable
 - Do not mention camera quality
 - Do not mention background unless it affects the child
 - Focus only on the child appearance
 - outfit can be inferred as simple child outfit if unclear
+- signature must be a short unique anchor like:
+  "soft rounded cheeks and bright curious eyes"
+  or
+  "gentle smile with a calm warm presence"
+
+Important:
+This DNA will be reused to keep the same child consistent across the whole book.
               `.trim()
             },
             {
@@ -118,7 +144,7 @@ Rules:
           ]
         }
       ],
-      temperature: 0.2
+      temperature: 0.1
     });
 
     const dnaRaw = dnaCompletion.choices?.[0]?.message?.content || "{}";
@@ -130,36 +156,39 @@ Rules:
       ageLook: "young child",
       outfit: "simple timeless child outfit",
       vibe: "warm curious child",
+      signature: "soft rounded cheeks and bright curious eyes",
       summary: "A warm curious child hero for a magical storybook."
     });
 
     const promptCore = buildCharacterPromptCore(characterDNA, style);
 
     const characterSheetPrompt = `
-Create a premium children's storybook character sheet.
-
-Style: ${style}
+Create a premium children's storybook character reference sheet.
 
 ${promptCore}
 
-Create ONE clean composition showing the same child character in:
-- front view
-- slight side view
-- full body storybook pose
+Create one elegant reference sheet showing the exact same child in:
+- one close portrait
+- one slight side angle
+- one full body pose
 
-Background:
-- clean soft storybook background
-- minimal and elegant
+Visual rules:
+- this must clearly feel like the same child in all 3 views
+- premium children's book quality
+- soft polished storybook rendering
+- minimal elegant background
+- no extra characters
 - no text
 - no watermark
-
-This is a character reference sheet for a premium children's personalized book.
+- do not redesign the child between poses
 `.trim();
 
     const imageResp = await openai.images.generate({
       model: "gpt-image-1",
       prompt: characterSheetPrompt,
-      size: "1024x1024"
+      size: "1024x1024",
+      quality: "medium",
+      output_format: "jpeg"
     });
 
     const imageItem = imageResp?.data?.[0];
@@ -249,7 +278,10 @@ Rules:
 - Each page text must be 35-70 words
 - The child must clearly be the hero
 - Keep story warm, magical, premium, emotional
-- imagePrompt must describe the same child consistently
+- imagePrompt must describe the exact same child consistently
+- imagePrompt must never redesign the child
+- every imagePrompt must assume the child already has a locked visual identity
+- do not describe a new child in each page
 - Do not include page numbers inside text
 - No brand names
 `.trim();
@@ -297,14 +329,15 @@ Rules:
 
 /**
  * STEP 3
- * Generate final page image with character consistency
+ * Generate final page image with stronger character consistency
  */
 app.post("/generate-image", async (req, res) => {
   try {
     const {
       prompt,
       illustration_style,
-      characterPromptCore
+      characterPromptCore,
+      characterSummary
     } = req.body;
 
     if (!prompt) {
@@ -321,26 +354,38 @@ Create a premium children's storybook illustration.
 
 Illustration style: ${style}
 
-Character consistency:
+LOCKED CHILD CHARACTER:
 ${characterPromptCore || "Keep the same main child character consistent."}
 
-Scene:
+SHORT CHARACTER SUMMARY:
+${characterSummary || "A warm curious child hero."}
+
+SCENE TO ILLUSTRATE:
 ${prompt}
 
-Rules:
-- same child identity
-- same face structure
-- same hair and skin tone
-- warm magical storybook aesthetic
+HARD RULES:
+- this must be the exact same child as the character reference
+- same face shape
+- same hair appearance
+- same skin tone
+- same eye look
+- same age appearance
+- same child identity across the entire book
+- do not redesign the child
+- do not age up or age down the child
+- do not randomize facial features
+- warm magical premium storybook feeling
+- elegant composition
 - no text
 - no watermark
-- elegant composition
 `.trim();
 
     const imgResp = await openai.images.generate({
       model: "gpt-image-1",
       prompt: finalPrompt,
-      size: "1024x1024"
+      size: "1024x1024",
+      quality: "medium",
+      output_format: "jpeg"
     });
 
     const item = imgResp?.data?.[0];
