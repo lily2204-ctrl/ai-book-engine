@@ -1,3 +1,5 @@
+import { getBookData, updateBookData } from "./state.js";
+
 const cropCanvas = document.getElementById("cropCanvas");
 const cropCtx = cropCanvas.getContext("2d");
 const zoomSlider = document.getElementById("zoomSlider");
@@ -7,12 +9,10 @@ const resetCropBtn = document.getElementById("resetCropBtn");
 const backToWizardBtn = document.getElementById("backToWizard");
 const chooseNewPhotoBtn = document.getElementById("chooseNewPhotoBtn");
 
-const uploadedPhoto =
-  sessionStorage.getItem("uploadedPhoto") ||
-  localStorage.getItem("uploadedPhoto");
+const bookData = getBookData();
+const uploadedPhoto = bookData.originalPhoto;
 
 const sourceImage = new Image();
-
 let scale = 1;
 let offsetX = 0;
 let offsetY = 0;
@@ -46,7 +46,6 @@ function fitImageInitially() {
   scale = Math.max(scale, 0.9);
   zoomSlider.value = String(scale);
   zoomValue.textContent = `${Math.round(scale * 100)}%`;
-
   offsetX = 0;
   offsetY = 0;
 }
@@ -56,7 +55,6 @@ function drawCanvas() {
 
   const imageWidth = sourceImage.width * scale;
   const imageHeight = sourceImage.height * scale;
-
   const centerX = (cropCanvas.width - imageWidth) / 2 + offsetX;
   const centerY = (cropCanvas.height - imageHeight) / 2 + offsetY;
 
@@ -89,7 +87,6 @@ function pointerMove(x, y) {
 
   offsetX += x - startDragX;
   offsetY += y - startDragY;
-
   startDragX = x;
   startDragY = y;
 
@@ -111,20 +108,28 @@ cropCanvas.addEventListener("mousemove", (e) => {
 cropCanvas.addEventListener("mouseup", pointerUp);
 cropCanvas.addEventListener("mouseleave", pointerUp);
 
-cropCanvas.addEventListener("touchstart", (e) => {
-  const touch = e.touches[0];
-  const rect = cropCanvas.getBoundingClientRect();
-  pointerDown(touch.clientX - rect.left, touch.clientY - rect.top);
-}, { passive: true });
+cropCanvas.addEventListener(
+  "touchstart",
+  (e) => {
+    const touch = e.touches[0];
+    const rect = cropCanvas.getBoundingClientRect();
+    pointerDown(touch.clientX - rect.left, touch.clientY - rect.top);
+  },
+  { passive: true }
+);
 
-cropCanvas.addEventListener("touchmove", (e) => {
-  if (!isDragging) return;
-  e.preventDefault();
+cropCanvas.addEventListener(
+  "touchmove",
+  (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
 
-  const touch = e.touches[0];
-  const rect = cropCanvas.getBoundingClientRect();
-  pointerMove(touch.clientX - rect.left, touch.clientY - rect.top);
-}, { passive: false });
+    const touch = e.touches[0];
+    const rect = cropCanvas.getBoundingClientRect();
+    pointerMove(touch.clientX - rect.left, touch.clientY - rect.top);
+  },
+  { passive: false }
+);
 
 cropCanvas.addEventListener("touchend", pointerUp);
 
@@ -133,14 +138,13 @@ continueAfterCropBtn.addEventListener("click", () => {
     const exportCanvas = document.createElement("canvas");
     exportCanvas.width = 768;
     exportCanvas.height = 768;
+
     const exportCtx = exportCanvas.getContext("2d");
 
     const imageWidth = sourceImage.width * scale;
     const imageHeight = sourceImage.height * scale;
-
     const centerX = (cropCanvas.width - imageWidth) / 2 + offsetX;
     const centerY = (cropCanvas.height - imageHeight) / 2 + offsetY;
-
     const ratio = exportCanvas.width / cropCanvas.width;
 
     exportCtx.save();
@@ -161,10 +165,11 @@ continueAfterCropBtn.addEventListener("click", () => {
 
     const croppedPhoto = exportCanvas.toDataURL("image/jpeg", 0.9);
 
-    sessionStorage.setItem("croppedPhoto", croppedPhoto);
-    localStorage.removeItem("croppedPhoto");
+    updateBookData({
+      croppedPhoto,
+    });
 
-    window.location.href = "generate.html";
+    window.location.href = "setup.html";
   } catch (error) {
     alert("Something went wrong while saving the cropped image. Please try again.");
   }
@@ -175,10 +180,9 @@ backToWizardBtn.addEventListener("click", () => {
 });
 
 chooseNewPhotoBtn.addEventListener("click", () => {
-  sessionStorage.removeItem("uploadedPhoto");
-  sessionStorage.removeItem("croppedPhoto");
-  localStorage.removeItem("uploadedPhoto");
-  localStorage.removeItem("croppedPhoto");
+  updateBookData({
+    originalPhoto: "",
+    croppedPhoto: "",
+  });
   window.location.href = "wizard.html";
 });
-
