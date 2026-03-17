@@ -1,4 +1,4 @@
-import { getBookData, updateBookData } from "./state.js";
+import { getBookData, updateBookData } from "./js/state.js";
 
 const backToCropBtn = document.getElementById("backToCrop");
 const previewCroppedPhoto = document.getElementById("previewCroppedPhoto");
