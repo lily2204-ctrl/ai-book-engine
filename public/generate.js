@@ -1,12 +1,17 @@
+import { getBookData, updateBookData } from "./js/state.js";
+
 const API_BASE = window.location.origin;
 
-const rawSetup =
-  sessionStorage.getItem("bookSetupData") ||
-  localStorage.getItem("bookSetupData");
+const wizardData = getBookData();
 
-const croppedPhoto =
-  sessionStorage.getItem("croppedPhoto") ||
-  localStorage.getItem("croppedPhoto");
+if (
+  !wizardData.croppedPhoto ||
+  !wizardData.childName ||
+  !wizardData.storyIdea ||
+  !wizardData.illustrationStyle
+) {
+  window.location.href = "setup.html";
+}
 
 const generateBookBtn = document.getElementById("generateBookBtn");
 const backToSetupBtn = document.getElementById("backToSetupBtn");
@@ -20,33 +25,33 @@ const stepPreview = document.getElementById("stepPreview");
 const uploadedPhotoPreview = document.getElementById("uploadedPhotoPreview");
 const characterSheetPreview = document.getElementById("characterSheetPreview");
 
-if (!rawSetup || !croppedPhoto) {
-  window.location.href = "setup.html";
+if (uploadedPhotoPreview) {
+  uploadedPhotoPreview.src = wizardData.croppedPhoto;
 }
-
-const setupData = JSON.parse(rawSetup);
-
-uploadedPhotoPreview.src = croppedPhoto;
 
 function setActiveStep(stepElement, text) {
-  [stepCharacter, stepStory, stepPreview].forEach((el) => el.classList.remove("active"));
-  stepElement.classList.add("active");
-  generateStatus.textContent = text;
+  [stepCharacter, stepStory, stepPreview].forEach((el) => {
+    if (el) el.classList.remove("active");
+  });
+
+  if (stepElement) {
+    stepElement.classList.add("active");
+  }
+
+  if (generateStatus) {
+    generateStatus.textContent = text;
+  }
 }
 
-function buildSlimBookData(bookResponse, characterRef) {
+function buildGeneratedBookData(bookResponse, characterRef) {
   return {
-    childName: setupData.childName || "",
-    childAge: setupData.childAge || "",
-    childGender: setupData.childGender || "",
-    storyIdea: setupData.storyIdea || "",
-    illustration_style: setupData.illustrationStyle || "Soft Storybook",
-    title: bookResponse.title,
-    subtitle: bookResponse.subtitle,
+    title: bookResponse.title || "",
+    subtitle: bookResponse.subtitle || "",
     pages: bookResponse.pages || [],
     characterDNA: characterRef.characterDNA || {},
     characterPromptCore: characterRef.characterPromptCore || "",
-    characterSummary: characterRef.characterSummary || ""
+    characterSummary: characterRef.characterSummary || "",
+    characterSheetImage: characterRef.characterSheetImage || ""
   };
 }
 
@@ -55,35 +60,46 @@ async function generateCharacterReference() {
 
   const res = await fetch(`${API_BASE}/generate-character-reference`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify({
-      child_photo: croppedPhoto,
-      child_name: setupData.childName || "",
-      age: setupData.childAge || "",
-      gender: setupData.childGender || "",
-      illustration_style: setupData.illustrationStyle || "Soft Storybook"
+      child_photo: wizardData.croppedPhoto,
+      child_name: wizardData.childName || "",
+      age: wizardData.childAge || "",
+      gender: wizardData.childGender || "",
+      illustration_style: wizardData.illustrationStyle || "Soft Storybook"
     })
   });
 
-  const data = await res.json();
+  const result = await res.json();
 
   if (!res.ok) {
-    throw new Error(data?.message || "Failed to create character reference");
+    throw new Error(result?.message || "Failed to create character reference");
   }
 
-  if (data.characterSheetBase64) {
-    const sheetDataUrl = `data:image/png;base64,${data.characterSheetBase64}`;
-    characterSheetPreview.src = sheetDataUrl;
-    sessionStorage.setItem("characterSheetImage", sheetDataUrl);
+  let characterSheetImage = "";
+
+  if (result.characterSheetBase64) {
+    characterSheetImage = `data:image/png;base64,${result.characterSheetBase64}`;
+
+    if (characterSheetPreview) {
+      characterSheetPreview.src = characterSheetImage;
+    }
   }
 
-  sessionStorage.setItem("characterReference", JSON.stringify({
-    characterDNA: data.characterDNA || {},
-    characterPromptCore: data.characterPromptCore || "",
-    characterSummary: data.characterSummary || ""
-  }));
+  const characterRef = {
+    characterDNA: result.characterDNA || {},
+    characterPromptCore: result.characterPromptCore || "",
+    characterSummary: result.characterSummary || "",
+    characterSheetImage
+  };
 
-  return data;
+  updateBookData({
+    characterReference: characterRef
+  });
+
+  return characterRef;
 }
 
 async function generateBook(characterRef) {
@@ -91,13 +107,15 @@ async function generateBook(characterRef) {
 
   const res = await fetch(`${API_BASE}/create-book`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify({
-      child_name: setupData.childName || "",
-      age: setupData.childAge || "",
-      gender: setupData.childGender || "",
-      story_type: setupData.storyIdea || "A magical adventure",
-      illustration_style: setupData.illustrationStyle || "Soft Storybook",
+      child_name: wizardData.childName || "",
+      age: wizardData.childAge || "",
+      gender: wizardData.childGender || "",
+      story_type: wizardData.storyIdea || "A magical adventure",
+      illustration_style: wizardData.illustrationStyle || "Soft Storybook",
       character_reference: {
         characterDNA: characterRef.characterDNA || {},
         characterPromptCore: characterRef.characterPromptCore || "",
@@ -106,43 +124,50 @@ async function generateBook(characterRef) {
     })
   });
 
-  const data = await res.json();
+  const result = await res.json();
 
   if (!res.ok) {
-    throw new Error(data?.message || "Failed to generate book");
+    throw new Error(result?.message || "Failed to generate book");
   }
 
-  return data;
+  return result;
 }
 
-generateBookBtn.addEventListener("click", async () => {
+generateBookBtn?.addEventListener("click", async () => {
   try {
     generateBookBtn.disabled = true;
-    generateStatus.textContent = "Starting generation...";
+
+    if (generateStatus) {
+      generateStatus.textContent = "Starting generation...";
+    }
 
     const characterRef = await generateCharacterReference();
     const bookResponse = await generateBook(characterRef);
 
     setActiveStep(stepPreview, "Preparing cover and preview...");
 
-    const bookData = buildSlimBookData(bookResponse, characterRef);
+    const generatedBook = buildGeneratedBookData(bookResponse, characterRef);
 
-    sessionStorage.setItem("bookData", JSON.stringify(bookData));
-    localStorage.setItem("bookSetupData", JSON.stringify(setupData));
+    updateBookData({
+      generatedBook
+    });
 
     setTimeout(() => {
       window.location.href = "cover.html";
     }, 700);
   } catch (error) {
-    generateStatus.textContent = error.message || "Something went wrong.";
+    if (generateStatus) {
+      generateStatus.textContent = error.message || "Something went wrong.";
+    }
+
     generateBookBtn.disabled = false;
   }
 });
 
-backToSetupBtn.addEventListener("click", () => {
+backToSetupBtn?.addEventListener("click", () => {
   window.location.href = "setup.html";
 });
 
-backToCropBtn.addEventListener("click", () => {
+backToCropBtn?.addEventListener("click", () => {
   window.location.href = "crop.html";
 });
