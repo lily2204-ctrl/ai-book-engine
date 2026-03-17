@@ -50,8 +50,7 @@ function buildGeneratedBookData(bookResponse, characterRef) {
     pages: bookResponse.pages || [],
     characterDNA: characterRef.characterDNA || {},
     characterPromptCore: characterRef.characterPromptCore || "",
-    characterSummary: characterRef.characterSummary || "",
-    characterSheetImage: characterRef.characterSheetImage || ""
+    characterSummary: characterRef.characterSummary || ""
   };
 }
 
@@ -89,15 +88,10 @@ async function generateCharacterReference() {
   }
 
   const characterRef = {
-    characterDNA: result.characterDNA || {},
-    characterPromptCore: result.characterPromptCore || "",
-    characterSummary: result.characterSummary || "",
-    characterSheetImage
-  };
-
-  updateBookData({
-    characterReference: characterRef
-  });
+  characterDNA: result.characterDNA || {},
+  characterPromptCore: result.characterPromptCore || "",
+  characterSummary: result.characterSummary || ""
+};
 
   return characterRef;
 }
