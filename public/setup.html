@@ -3,93 +3,207 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lifebook - Story Setup</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Lifebook - Review Setup</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: radial-gradient(circle at top, #11214d 0%, #081126 55%, #050914 100%);
+      color: #f8f4ea;
+      min-height: 100vh;
+    }
+
+    .setup-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      box-sizing: border-box;
+    }
+
+    .setup-card {
+      width: 100%;
+      max-width: 1100px;
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 32px;
+      background: rgba(10, 18, 40, 0.88);
+      border: 1px solid rgba(233, 188, 96, 0.22);
+      border-radius: 28px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+      padding: 32px;
+    }
+
+    .setup-photo-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(233, 188, 96, 0.18);
+      border-radius: 24px;
+      padding: 20px;
+    }
+
+    .setup-photo-box h2 {
+      margin: 0 0 16px;
+      font-size: 28px;
+      line-height: 1.1;
+      color: #fff7e6;
+    }
+
+    .setup-photo-box p {
+      margin: 0 0 18px;
+      color: #d9d2c0;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    #previewCroppedPhoto {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 24px;
+      border: 2px solid rgba(233, 188, 96, 0.35);
+      background: #0f1630;
+      display: block;
+    }
+
+    .setup-info-box {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .setup-header h1 {
+      margin: 0 0 12px;
+      font-size: 42px;
+      line-height: 1.05;
+      color: #fff7e6;
+    }
+
+    .setup-header p {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.6;
+      color: #d9d2c0;
+      max-width: 640px;
+    }
+
+    .setup-summary {
+      display: grid;
+      gap: 14px;
+      margin-top: 12px;
+    }
+
+    .summary-row {
+      display: grid;
+      grid-template-columns: 170px 1fr;
+      gap: 16px;
+      align-items: start;
+      padding: 16px 18px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(233, 188, 96, 0.14);
+    }
+
+    .summary-label {
+      color: #e7bf73;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.2px;
+    }
+
+    .summary-value {
+      color: #fffaf1;
+      font-size: 16px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .summary-row-text .summary-value {
+      white-space: pre-wrap;
+    }
+
+    .setup-actions {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .setup-btn {
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      padding: 16px 28px;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .setup-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .setup-btn-primary {
+      background: linear-gradient(180deg, #f0c978 0%, #d79c3b 100%);
+      color: #fffaf1;
+      box-shadow: 0 10px 24px rgba(215, 156, 59, 0.28);
+    }
+
+    .setup-btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: #fffaf1;
+      border: 1px solid rgba(233, 188, 96, 0.2);
+    }
+
+    @media (max-width: 900px) {
+      .setup-card {
+        grid-template-columns: 1fr;
+        padding: 22px;
+      }
+
+      .setup-header h1 {
+        font-size: 34px;
+      }
+
+      .summary-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+    }
+  </style>
 </head>
-<body class="setup-body">
-
-  <div class="setup-shell">
-    <header class="wizard-topbar">
-      <div class="wizard-topbar-left">
-        <button class="back-link-button" id="backToCrop" type="button">← Back</button>
+<body>
+  <main class="setup-page">
+    <section class="setup-card">
+      <div class="setup-photo-box">
+        <h2>Photo preview</h2>
+        <p>This is the cropped photo we will use to build the child character reference.</p>
+        <img id="previewCroppedPhoto" alt="Child cropped preview" />
       </div>
 
-      <div class="wizard-brand">
-        <div class="logo-mark small"></div>
-        <span class="wizard-brand-text">lifebook</span>
-      </div>
+      <div class="setup-info-box">
+        <div class="setup-header">
+          <h1>Review your setup</h1>
+          <p>Everything looks ready. Review the photo and story settings before we generate the book.</p>
+        </div>
 
-      <div class="wizard-topbar-right"></div>
-    </header>
+        <div id="setupSummary" class="setup-summary"></div>
 
-    <main class="setup-main">
-      <div class="wizard-step-label">STEP 2 OF 5</div>
-      <h1 class="wizard-title">Tell us about the story</h1>
-      <p class="wizard-subtitle">
-        Add the child details and guide the story with a few sentences.
-      </p>
+        <div class="setup-actions">
+          <button id="backToCrop" class="setup-btn setup-btn-secondary" type="button">
+            Back to crop
+          </button>
 
-      <div class="setup-card">
-        <div class="setup-grid">
-
-          <div class="setup-left">
-            <div class="preview-photo-card">
-              <div class="preview-photo-title">Main character photo</div>
-              <img id="previewCroppedPhoto" class="preview-cropped-photo" alt="Character preview" />
-            </div>
-          </div>
-
-          <div class="setup-right">
-            <div class="form-group">
-              <label for="childName">Child name</label>
-              <input id="childName" type="text" placeholder="Enter child's name" />
-            </div>
-
-            <div class="form-row-2">
-              <div class="form-group">
-                <label for="childAge">Age</label>
-                <select id="childAge"></select>
-              </div>
-
-              <div class="form-group">
-                <label for="childGender">Gender</label>
-                <select id="childGender">
-                  <option value="">Select gender</option>
-                  <option value="girl">Girl</option>
-                  <option value="boy">Boy</option>
-                  <option value="neutral">Prefer neutral</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>Illustration style</label>
-              <div class="style-selector-grid" id="styleSelectorGrid"></div>
-            </div>
-
-            <div class="form-group">
-              <label for="storyIdea">Story direction</label>
-              <textarea
-                id="storyIdea"
-                rows="6"
-                placeholder="Write a few sentences about the kind of story you want. For example: I want a magical forest adventure where Maya finds a glowing key and learns to be brave."
-              ></textarea>
-              <div class="field-help">
-                Tip: mention mood, setting, lesson, favorite animals, magical objects, or any theme you want.
-              </div>
-            </div>
-
-            <button class="continue-btn" id="continueToStoryBtn" type="button">
-              Continue
-            </button>
-
-            <div id="setupError" class="setup-error"></div>
-          </div>
-
+          <button id="continueToStoryBtn" class="setup-btn setup-btn-primary" type="button">
+            Continue to generate
+          </button>
         </div>
       </div>
-    </main>
-  </div>
+    </section>
+  </main>
 
   <script type="module" src="./setup.js"></script>
 </body>
