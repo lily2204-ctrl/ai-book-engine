@@ -141,7 +141,7 @@ async function handleSelectedFile(file) {
 
   try {
     const rawDataUrl = await fileToDataURL(file);
-    const compressed = await compressImageDataUrl(rawDataUrl, 1600, 0.88);
+    const compressed = await compressImageDataUrl(rawDataUrl, 1200, 0.82);
 
     saveSetupData();
 
