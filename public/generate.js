@@ -1,7 +1,12 @@
 const API_BASE = window.location.origin;
 
-const rawSetup = localStorage.getItem("bookSetupData");
-const croppedPhoto = localStorage.getItem("croppedPhoto");
+const rawSetup =
+  sessionStorage.getItem("bookSetupData") ||
+  localStorage.getItem("bookSetupData");
+
+const croppedPhoto =
+  sessionStorage.getItem("croppedPhoto") ||
+  localStorage.getItem("croppedPhoto");
 
 const generateBookBtn = document.getElementById("generateBookBtn");
 const backToSetupBtn = document.getElementById("backToSetupBtn");
@@ -29,7 +34,7 @@ function setActiveStep(stepElement, text) {
   generateStatus.textContent = text;
 }
 
-function buildBookDataPayload(bookResponse, characterRef) {
+function buildSlimBookData(bookResponse, characterRef) {
   return {
     childName: setupData.childName || "",
     childAge: setupData.childAge || "",
@@ -39,11 +44,9 @@ function buildBookDataPayload(bookResponse, characterRef) {
     title: bookResponse.title,
     subtitle: bookResponse.subtitle,
     pages: bookResponse.pages || [],
-    characterDNA: characterRef.characterDNA,
-    characterPromptCore: characterRef.characterPromptCore,
-    characterSummary: characterRef.characterSummary,
-    characterSheetBase64: characterRef.characterSheetBase64,
-    croppedPhoto
+    characterDNA: characterRef.characterDNA || {},
+    characterPromptCore: characterRef.characterPromptCore || "",
+    characterSummary: characterRef.characterSummary || ""
   };
 }
 
@@ -69,10 +72,17 @@ async function generateCharacterReference() {
   }
 
   if (data.characterSheetBase64) {
-    characterSheetPreview.src = `data:image/png;base64,${data.characterSheetBase64}`;
+    const sheetDataUrl = `data:image/png;base64,${data.characterSheetBase64}`;
+    characterSheetPreview.src = sheetDataUrl;
+    sessionStorage.setItem("characterSheetImage", sheetDataUrl);
   }
 
-  localStorage.setItem("characterReference", JSON.stringify(data));
+  sessionStorage.setItem("characterReference", JSON.stringify({
+    characterDNA: data.characterDNA || {},
+    characterPromptCore: data.characterPromptCore || "",
+    characterSummary: data.characterSummary || ""
+  }));
+
   return data;
 }
 
@@ -88,7 +98,11 @@ async function generateBook(characterRef) {
       gender: setupData.childGender || "",
       story_type: setupData.storyIdea || "A magical adventure",
       illustration_style: setupData.illustrationStyle || "Soft Storybook",
-      character_reference: characterRef
+      character_reference: {
+        characterDNA: characterRef.characterDNA || {},
+        characterPromptCore: characterRef.characterPromptCore || "",
+        characterSummary: characterRef.characterSummary || ""
+      }
     })
   });
 
@@ -104,14 +118,17 @@ async function generateBook(characterRef) {
 generateBookBtn.addEventListener("click", async () => {
   try {
     generateBookBtn.disabled = true;
+    generateStatus.textContent = "Starting generation...";
 
     const characterRef = await generateCharacterReference();
     const bookResponse = await generateBook(characterRef);
 
     setActiveStep(stepPreview, "Preparing cover and preview...");
 
-    const bookData = buildBookDataPayload(bookResponse, characterRef);
-    localStorage.setItem("bookData", JSON.stringify(bookData));
+    const bookData = buildSlimBookData(bookResponse, characterRef);
+
+    sessionStorage.setItem("bookData", JSON.stringify(bookData));
+    localStorage.setItem("bookSetupData", JSON.stringify(setupData));
 
     setTimeout(() => {
       window.location.href = "cover.html";
