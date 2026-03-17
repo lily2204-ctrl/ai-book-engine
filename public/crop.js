@@ -1,4 +1,4 @@
-import { getBookData, updateBookData } from "./state.js";
+import { getBookData, updateBookData } from "./js/state.js";
 
 const cropCanvas = document.getElementById("cropCanvas");
 const cropCtx = cropCanvas.getContext("2d");
