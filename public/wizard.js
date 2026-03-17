@@ -1,3 +1,5 @@
+import { clearBookData, getBookData, updateBookData } from "./state.js";
+
 const openPhotoModal = document.getElementById("openPhotoModal");
 const photoModal = document.getElementById("photoModal");
 const closePhotoModal = document.getElementById("closePhotoModal");
@@ -14,18 +16,13 @@ function saveSetupData() {
   const activeStyle = document.querySelector(".style-card.active");
   const illustrationStyle = activeStyle?.dataset?.style || "Soft Storybook";
 
-  const payload = {
+  return updateBookData({
     childName,
     childAge,
     childGender,
     storyIdea,
-    illustrationStyle
-  };
-
-  localStorage.setItem("bookSetupData", JSON.stringify(payload));
-  sessionStorage.setItem("bookSetupData", JSON.stringify(payload));
-
-  return payload;
+    illustrationStyle,
+  });
 }
 
 function validateSetupData() {
@@ -51,12 +48,40 @@ function validateSetupData() {
   return true;
 }
 
+function restoreSetupData() {
+  const data = getBookData();
+
+  if (data.childName && document.getElementById("childName")) {
+    document.getElementById("childName").value = data.childName;
+  }
+
+  if (data.childAge && document.getElementById("childAge")) {
+    document.getElementById("childAge").value = data.childAge;
+  }
+
+  if (data.childGender && document.getElementById("childGender")) {
+    document.getElementById("childGender").value = data.childGender;
+  }
+
+  if (data.storyIdea && document.getElementById("storyIdea")) {
+    document.getElementById("storyIdea").value = data.storyIdea;
+  }
+
+  if (data.illustrationStyle) {
+    const target = document.querySelector(`.style-card[data-style="${data.illustrationStyle}"]`);
+    if (target) {
+      document.querySelectorAll(".style-card").forEach((card) => card.classList.remove("active"));
+      target.classList.add("active");
+    }
+  }
+}
+
 function openModal() {
-  photoModal.classList.remove("hidden");
+  photoModal?.classList.remove("hidden");
 }
 
 function closeModal() {
-  photoModal.classList.add("hidden");
+  photoModal?.classList.add("hidden");
 }
 
 openPhotoModal?.addEventListener("click", openModal);
@@ -120,11 +145,10 @@ async function handleSelectedFile(file) {
 
     saveSetupData();
 
-    sessionStorage.setItem("uploadedPhoto", compressed);
-    localStorage.removeItem("uploadedPhoto");
-
-    sessionStorage.removeItem("croppedPhoto");
-    localStorage.removeItem("croppedPhoto");
+    updateBookData({
+      originalPhoto: compressed,
+      croppedPhoto: "",
+    });
 
     closeModal();
     window.location.href = "crop.html";
@@ -161,4 +185,9 @@ takePhotoBtn?.addEventListener("click", () => {
 
 chooseGalleryBtn?.addEventListener("click", () => {
   openNativePicker(false);
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  clearBookData();
+  restoreSetupData();
 });
