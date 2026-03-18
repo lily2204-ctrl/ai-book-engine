@@ -77,9 +77,6 @@ app.post("/generate-character-reference", async (req, res) => {
   try {
     const {
       child_photo,
-      child_name,
-      age,
-      gender,
       illustration_style
     } = req.body;
 
@@ -128,13 +125,8 @@ Rules:
 - Do not mention background unless it affects the child
 - Focus only on the child appearance
 - outfit can be inferred as simple child outfit if unclear
-- signature must be a short unique anchor like:
-  "soft rounded cheeks and bright curious eyes"
-  or
-  "gentle smile with a calm warm presence"
-
-Important:
-This DNA will be reused to keep the same child consistent across the whole book.
+- signature must be a short unique anchor
+- This DNA will be reused to keep the same child consistent across the whole book
               `.trim()
             },
             {
@@ -186,9 +178,7 @@ Visual rules:
     const imageResp = await openai.images.generate({
       model: "gpt-image-1",
       prompt: characterSheetPrompt,
-      size: "1024x1024",
-      quality: "medium",
-      output_format: "jpeg"
+      size: "1024x1024"
     });
 
     const imageItem = imageResp?.data?.[0];
@@ -210,9 +200,11 @@ Visual rules:
       characterSheetBase64
     });
   } catch (err) {
+    console.error("generate-character-reference failed:", err);
+
     return res.status(500).json({
       status: "error",
-      message: "Character reference generation failed",
+      message: err?.message || "Character reference generation failed",
       details: err?.message || "unknown_error"
     });
   }
@@ -319,9 +311,11 @@ Rules:
       }))
     });
   } catch (err) {
+    console.error("create-book failed:", err);
+
     return res.status(500).json({
       status: "error",
-      message: "Book generation failed",
+      message: err?.message || "Book generation failed",
       details: err?.message || "unknown_error"
     });
   }
@@ -383,9 +377,7 @@ HARD RULES:
     const imgResp = await openai.images.generate({
       model: "gpt-image-1",
       prompt: finalPrompt,
-      size: "1024x1024",
-      quality: "medium",
-      output_format: "jpeg"
+      size: "1024x1024"
     });
 
     const item = imgResp?.data?.[0];
@@ -407,9 +399,11 @@ HARD RULES:
       code: "no_image_returned"
     });
   } catch (err) {
+    console.error("generate-image failed:", err);
+
     return res.status(500).json({
       status: "error",
-      message: "Image generation failed",
+      message: err?.message || "Image generation failed",
       details: err?.message || "unknown_error"
     });
   }
