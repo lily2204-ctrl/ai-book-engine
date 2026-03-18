@@ -3,18 +3,29 @@ import { clearBookData, getBookData, updateBookData } from "./js/state.js";
 const openPhotoModal = document.getElementById("openPhotoModal");
 const photoModal = document.getElementById("photoModal");
 const closePhotoModal = document.getElementById("closePhotoModal");
-const takePhotoBtn = document.getElementById("takePhotoBtn");
-const chooseGalleryBtn = document.getElementById("chooseGalleryBtn");
 const goToSetupBtn = document.getElementById("goToSetupBtn");
 
-function saveSetupData() {
-  const childName = document.getElementById("childName")?.value.trim() || "";
-  const childAge = document.getElementById("childAge")?.value || "";
-  const childGender = document.getElementById("childGender")?.value || "";
-  const storyIdea = document.getElementById("storyIdea")?.value.trim() || "";
+const cameraInput = document.getElementById("cameraInput");
+const galleryInput = document.getElementById("galleryInput");
 
+const childNameInput = document.getElementById("childName");
+const childAgeInput = document.getElementById("childAge");
+const childGenderInput = document.getElementById("childGender");
+const storyIdeaInput = document.getElementById("storyIdea");
+
+const styleCards = document.querySelectorAll(".style-card");
+
+function getSelectedStyle() {
   const activeStyle = document.querySelector(".style-card.active");
-  const illustrationStyle = activeStyle?.dataset?.style || "Soft Storybook";
+  return activeStyle?.dataset?.style || "Soft Storybook";
+}
+
+function saveSetupData() {
+  const childName = childNameInput?.value.trim() || "";
+  const childAge = childAgeInput?.value || "";
+  const childGender = childGenderInput?.value || "";
+  const storyIdea = storyIdeaInput?.value.trim() || "";
+  const illustrationStyle = getSelectedStyle();
 
   return updateBookData({
     childName,
@@ -26,9 +37,10 @@ function saveSetupData() {
 }
 
 function validateSetupData() {
-  const childName = document.getElementById("childName")?.value.trim() || "";
-  const childAge = document.getElementById("childAge")?.value || "";
-  const storyIdea = document.getElementById("storyIdea")?.value.trim() || "";
+  const childName = childNameInput?.value.trim() || "";
+  const childAge = childAgeInput?.value || "";
+  const childGender = childGenderInput?.value || "";
+  const storyIdea = storyIdeaInput?.value.trim() || "";
 
   if (!childName) {
     alert("Please enter the child name.");
@@ -37,6 +49,11 @@ function validateSetupData() {
 
   if (!childAge) {
     alert("Please select the child age.");
+    return false;
+  }
+
+  if (!childGender) {
+    alert("Please select the child gender.");
     return false;
   }
 
@@ -51,29 +68,38 @@ function validateSetupData() {
 function restoreSetupData() {
   const data = getBookData();
 
-  if (data.childName && document.getElementById("childName")) {
-    document.getElementById("childName").value = data.childName;
+  if (data.childName && childNameInput) {
+    childNameInput.value = data.childName;
   }
 
-  if (data.childAge && document.getElementById("childAge")) {
-    document.getElementById("childAge").value = data.childAge;
+  if (data.childAge && childAgeInput) {
+    childAgeInput.value = data.childAge;
   }
 
-  if (data.childGender && document.getElementById("childGender")) {
-    document.getElementById("childGender").value = data.childGender;
+  if (data.childGender && childGenderInput) {
+    childGenderInput.value = data.childGender;
   }
 
-  if (data.storyIdea && document.getElementById("storyIdea")) {
-    document.getElementById("storyIdea").value = data.storyIdea;
+  if (data.storyIdea && storyIdeaInput) {
+    storyIdeaInput.value = data.storyIdea;
   }
 
-  if (data.illustrationStyle) {
-    const target = document.querySelector(`.style-card[data-style="${data.illustrationStyle}"]`);
-    if (target) {
-      document.querySelectorAll(".style-card").forEach((card) => card.classList.remove("active"));
-      target.classList.add("active");
-    }
-  }
+  const selectedStyle = data.illustrationStyle || "Soft Storybook";
+
+  styleCards.forEach((card) => {
+    const isMatch = card.dataset.style === selectedStyle;
+    card.classList.toggle("active", isMatch);
+  });
+}
+
+function bindStyleSelection() {
+  styleCards.forEach((card) => {
+    card.addEventListener("click", () => {
+      styleCards.forEach((item) => item.classList.remove("active"));
+      card.classList.add("active");
+      saveSetupData();
+    });
+  });
 }
 
 function openModal() {
@@ -84,7 +110,11 @@ function closeModal() {
   photoModal?.classList.add("hidden");
 }
 
-openPhotoModal?.addEventListener("click", openModal);
+openPhotoModal?.addEventListener("click", () => {
+  saveSetupData();
+  openModal();
+});
+
 closePhotoModal?.addEventListener("click", closeModal);
 
 photoModal?.addEventListener("click", (e) => {
@@ -157,39 +187,24 @@ async function handleSelectedFile(file) {
   }
 }
 
-function openNativePicker({ useCamera = false } = {}) {
-  const input = document.createElement("input");
-  input.type = "file";
-  input.accept = "image/*";
+cameraInput?.addEventListener("change", async (e) => {
+  const file = e.target.files?.[0];
+  await handleSelectedFile(file);
 
-  if (useCamera) {
-    input.setAttribute("capture", "environment");
-  }
-
-  input.style.position = "fixed";
-  input.style.left = "-9999px";
-  input.style.top = "-9999px";
-
-  document.body.appendChild(input);
-
-  input.addEventListener("change", async () => {
-    const file = input.files?.[0];
-    document.body.removeChild(input);
-    await handleSelectedFile(file);
-  });
-
-  input.click();
-}
-
-takePhotoBtn?.addEventListener("click", () => {
-  openNativePicker({ useCamera: true });
+  // reset so the same file can be chosen again if needed
+  e.target.value = "";
 });
 
-chooseGalleryBtn?.addEventListener("click", () => {
-  openNativePicker({ useCamera: false });
+galleryInput?.addEventListener("change", async (e) => {
+  const file = e.target.files?.[0];
+  await handleSelectedFile(file);
+
+  // reset so the same file can be chosen again if needed
+  e.target.value = "";
 });
 
 document.addEventListener("DOMContentLoaded", () => {
   clearBookData();
   restoreSetupData();
+  bindStyleSelection();
 });
