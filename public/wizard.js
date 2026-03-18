@@ -21,7 +21,7 @@ function saveSetupData() {
     childAge,
     childGender,
     storyIdea,
-    illustrationStyle,
+    illustrationStyle
   });
 }
 
@@ -117,7 +117,7 @@ function loadImage(src) {
   });
 }
 
-async function compressImageDataUrl(dataUrl, maxDimension = 1600, quality = 0.88) {
+async function compressImageDataUrl(dataUrl, maxDimension = 1200, quality = 0.82) {
   const img = await loadImage(dataUrl);
 
   let { width, height } = img;
@@ -147,7 +147,7 @@ async function handleSelectedFile(file) {
 
     updateBookData({
       originalPhoto: compressed,
-      croppedPhoto: "",
+      croppedPhoto: ""
     });
 
     closeModal();
@@ -157,17 +157,19 @@ async function handleSelectedFile(file) {
   }
 }
 
-function openNativePicker(useCamera = false) {
+function openNativePicker({ useCamera = false } = {}) {
   const input = document.createElement("input");
   input.type = "file";
   input.accept = "image/*";
 
   if (useCamera) {
-    input.capture = "environment";
+    input.setAttribute("capture", "environment");
   }
 
   input.style.position = "fixed";
   input.style.left = "-9999px";
+  input.style.top = "-9999px";
+
   document.body.appendChild(input);
 
   input.addEventListener("change", async () => {
@@ -180,11 +182,11 @@ function openNativePicker(useCamera = false) {
 }
 
 takePhotoBtn?.addEventListener("click", () => {
-  openNativePicker(true);
+  openNativePicker({ useCamera: true });
 });
 
 chooseGalleryBtn?.addEventListener("click", () => {
-  openNativePicker(false);
+  openNativePicker({ useCamera: false });
 });
 
 document.addEventListener("DOMContentLoaded", () => {
