@@ -214,50 +214,17 @@
 
       <div class="modal-actions">
         <label class="upload-btn">
-  📷 Take Photo
-  <input type="file" accept="image/*" capture="environment" id="cameraInput" hidden>
-</label>
+          📷 Take Photo
+          <input type="file" accept="image/*" capture="environment" id="cameraInput" hidden>
+        </label>
 
-<label class="upload-btn">
-  🖼 Choose from Gallery
-  <input type="file" accept="image/*" id="galleryInput" hidden>
-</label>
+        <label class="upload-btn">
+          🖼 Choose from Gallery
+          <input type="file" accept="image/*" id="galleryInput" hidden>
+        </label>
       </div>
-
-      <input id="cameraInput" type="file" accept="image/*" capture="environment" class="hidden" />
-      <input id="galleryInput" type="file" accept="image/*" class="hidden" />
     </div>
   </div>
-
-  <script>
-    let selectedStyle = "Soft Storybook";
-
-    const styleCards = document.querySelectorAll(".style-card");
-    styleCards.forEach((card) => {
-      card.addEventListener("click", () => {
-        styleCards.forEach((item) => item.classList.remove("active"));
-        card.classList.add("active");
-        selectedStyle = card.dataset.style || "Soft Storybook";
-      });
-    });
-
-    document.getElementById("goToSetupBtn").addEventListener("click", () => {
-      const childName = document.getElementById("childName").value.trim();
-      const childAge = document.getElementById("childAge").value;
-      const childGender = document.getElementById("childGender").value;
-      const storyIdea = document.getElementById("storyIdea").value.trim();
-
-      localStorage.setItem("bookSetupData", JSON.stringify({
-        childName,
-        childAge,
-        childGender,
-        storyIdea,
-        illustrationStyle: selectedStyle
-      }));
-
-      document.getElementById("openPhotoModal").click();
-    });
-  </script>
 
   <script type="module" src="./wizard.js"></script>
 </body>
