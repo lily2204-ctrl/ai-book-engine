@@ -1125,3 +1125,13 @@ a{
     flex-direction:column;
   }
 }
+.upload-btn {
+  display: block;
+  padding: 16px;
+  margin-bottom: 10px;
+  background: #f0c46d;
+  border-radius: 14px;
+  text-align: center;
+  font-weight: bold;
+  cursor: pointer;
+}
