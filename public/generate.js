@@ -74,24 +74,22 @@ async function generateCharacterReference() {
   const result = await res.json();
 
   if (!res.ok) {
-    throw new Error(result?.message || "Failed to create character reference");
-  }
-
-  let characterSheetImage = "";
-
-  if (result.characterSheetBase64) {
-    characterSheetImage = `data:image/png;base64,${result.characterSheetBase64}`;
-
-    if (characterSheetPreview) {
-      characterSheetPreview.src = characterSheetImage;
-    }
+    throw new Error(result?.message || result?.details || "Failed to create character reference");
   }
 
   const characterRef = {
-  characterDNA: result.characterDNA || {},
-  characterPromptCore: result.characterPromptCore || "",
-  characterSummary: result.characterSummary || ""
-};
+    characterDNA: result.characterDNA || {},
+    characterPromptCore: result.characterPromptCore || "",
+    characterSummary: result.characterSummary || ""
+  };
+
+  if (result.characterSheetBase64 && characterSheetPreview) {
+    characterSheetPreview.src = `data:image/png;base64,${result.characterSheetBase64}`;
+  }
+
+  updateBookData({
+    characterReference: characterRef
+  });
 
   return characterRef;
 }
@@ -121,7 +119,7 @@ async function generateBook(characterRef) {
   const result = await res.json();
 
   if (!res.ok) {
-    throw new Error(result?.message || "Failed to generate book");
+    throw new Error(result?.message || result?.details || "Failed to generate book");
   }
 
   return result;
@@ -148,8 +146,10 @@ generateBookBtn?.addEventListener("click", async () => {
 
     setTimeout(() => {
       window.location.href = "cover.html";
-    }, 700);
+    }, 500);
   } catch (error) {
+    console.error("generate.js failed:", error);
+
     if (generateStatus) {
       generateStatus.textContent = error.message || "Something went wrong.";
     }
