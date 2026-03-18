@@ -1,660 +1,319 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Lifebook - Print Ready</title>
-  <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lifebook - Print Layout</title>
+  <link rel="stylesheet" href="./styles.css" />
   <style>
-    body.print-body{
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
       background:
-        radial-gradient(circle at top center, rgba(241,200,116,0.10) 0%, transparent 16%),
-        linear-gradient(180deg, #09101d 0%, #0f1627 42%, #151c30 100%);
+        radial-gradient(circle at top, rgba(27, 46, 94, 0.55) 0%, rgba(10, 16, 34, 0.96) 55%, rgba(5, 10, 20, 1) 100%),
+        url("assets/backgrounds/stars-bg.jpg");
+      background-size: cover;
+      background-position: center;
+      color: #fff8ec;
+      min-height: 100vh;
     }
 
-    .print-shell{
-      width:min(1240px, 95vw);
-      margin:0 auto;
-      padding-bottom:60px;
-      position:relative;
-      z-index:2;
+    .print-shell {
+      width: min(1280px, 94vw);
+      margin: 0 auto;
+      padding: 28px 0 80px;
+      position: relative;
+      z-index: 2;
     }
 
-    .print-topbar{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:18px;
-      gap:10px;
-      flex-wrap:wrap;
+    .print-topbar {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      margin-bottom: 28px;
     }
 
-    .print-actions{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
+    .print-back-btn {
+      justify-self: start;
+      appearance: none;
+      border: 1px solid rgba(240, 196, 109, 0.24);
+      background: rgba(255, 255, 255, 0.04);
+      color: #fff7ea;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
     }
 
-    .print-status{
-      margin-bottom:16px;
-      padding:14px 18px;
-      border-radius:18px;
-      background:rgba(240,196,109,0.08);
-      border:1px solid rgba(240,196,109,0.16);
-      color:#efc878;
-      font-weight:700;
-      display:none;
+    .print-brand {
+      justify-self: center;
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
-    .book-presentation{
-      display:grid;
-      gap:22px;
+    .print-brand img {
+      height: 44px;
+      width: auto;
+      display: block;
     }
 
-    .print-cover{
+    .print-brand-text {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 28px;
+      color: #f7ecd7;
+    }
+
+    .print-intro-card,
+    .spread-card,
+    .print-actions-card {
       background:
-        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02) 20%),
-        linear-gradient(160deg, #17233a 0%, #0f1830 48%, #0a1123 100%);
-      border-radius:30px;
-      box-shadow:
-        0 34px 64px rgba(0,0,0,0.28),
-        16px 0 0 rgba(0,0,0,0.10);
-      min-height:720px;
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
-      overflow:hidden;
-      position:relative;
-      border:1px solid rgba(240,196,109,0.18);
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
+        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
+      border: 1px solid rgba(240,196,109,0.14);
+      border-radius: 34px;
+      box-shadow: 0 18px 60px rgba(0,0,0,0.34);
     }
 
-    .print-cover::before{
-      content:"";
-      position:absolute;
-      left:0;
-      top:0;
-      bottom:0;
-      width:36px;
-      background:linear-gradient(180deg, #8b5d21 0%, #3a2411 100%);
-      box-shadow:inset -2px 0 10px rgba(0,0,0,0.22);
+    .print-intro-card {
+      padding: 28px;
+      margin-bottom: 24px;
     }
 
-    .print-cover-inner{
-      padding:34px 32px 34px 60px;
+    .print-step {
+      color: #e9c57c;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
     }
 
-    .print-cover-badge{
-      display:inline-block;
-      padding:10px 16px;
-      border-radius:999px;
-      border:1px solid rgba(241,188,101,0.22);
-      background:rgba(240,196,109,0.08);
-      color:#efc878;
-      font-size:13px;
-      font-weight:700;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      width:fit-content;
+    .print-title {
+      margin: 0 0 10px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(40px, 5vw, 66px);
+      line-height: 0.95;
+      color: #fff7e8;
     }
 
-    .print-cover-title{
-      font-family:Georgia, "Times New Roman", serif;
-      font-size:clamp(42px, 5vw, 64px);
-      line-height:.96;
-      margin:22px 0 14px;
-      color:#f7e7c8;
+    .print-copy {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.7;
+      color: #d7c8b3;
     }
 
-    .print-cover-subtitle{
-      font-size:22px;
-      color:#d8c7ac;
-      line-height:1.5;
-      margin:0 0 30px;
-      max-width:650px;
+    .spread-list {
+      display: grid;
+      gap: 22px;
     }
 
-    .print-cover-image{
-      width:320px;
-      height:320px;
-      border-radius:26px;
-      object-fit:cover;
-      box-shadow:0 18px 35px rgba(0,0,0,0.18);
-      background:rgba(255,255,255,0.10);
-      display:block;
+    .spread-card {
+      padding: 22px;
     }
 
-    .print-cover-image.placeholder{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      padding:20px;
-      color:#f3eadb;
-      font-weight:700;
-      background:
-        radial-gradient(circle at 50% 18%, rgba(255,247,225,0.20) 0%, transparent 24%),
-        linear-gradient(180deg, #e8dfd3 0%, #c7c0b1 30%, #88a2c8 55%, #3d5b8e 100%);
+    .spread-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
     }
 
-    .book-spread{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:0;
-      box-shadow:0 24px 48px rgba(0,0,0,0.12);
-      border-radius:28px;
-      overflow:hidden;
+    .spread-badge {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      border-radius: 999px;
+      padding: 8px 14px;
+      background: rgba(240,196,109,0.08);
+      border: 1px solid rgba(240,196,109,0.16);
+      color: #efc977;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
     }
 
-    .book-page{
-      background:#fffdf9;
-      min-height:620px;
-      padding:26px;
-      position:relative;
+    .spread-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
     }
 
-    .book-page.left{
-      box-shadow:inset -12px 0 22px rgba(0,0,0,0.05);
+    .print-page {
+      border-radius: 26px;
+      overflow: hidden;
+      border: 1px solid rgba(240,196,109,0.12);
+      background: #fffaf2;
+      color: #1b1620;
+      min-height: 580px;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
     }
 
-    .book-page.right{
-      box-shadow:inset 12px 0 22px rgba(0,0,0,0.05);
+    .print-page-image-wrap {
+      background: #f2ecde;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 360px;
     }
 
-    .book-page.left::after,
-    .book-page.right::before{
-      content:"";
-      position:absolute;
-      top:0;
-      bottom:0;
-      width:10px;
-      background:linear-gradient(180deg, rgba(0,0,0,0.08), rgba(0,0,0,0.02));
+    .print-page-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background: #f2ecde;
     }
 
-    .book-page.left::after{
-      right:-5px;
-      border-radius:12px;
+    .print-page-loading,
+    .print-page-error {
+      min-height: 360px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      font-size: 15px;
+      line-height: 1.5;
     }
 
-    .book-page.right::before{
-      left:-5px;
-      border-radius:12px;
+    .print-page-loading {
+      color: #5e5767;
     }
 
-    .book-page-image{
-      width:100%;
-      aspect-ratio:1/1;
-      object-fit:cover;
-      border-radius:20px;
-      background:#f7f0e4;
-      border:1px solid #efe2cc;
-      display:block;
+    .print-page-error {
+      color: #9b5140;
     }
 
-    .book-page-image.placeholder{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:#9a8458;
-      font-weight:700;
-      text-align:center;
-      padding:24px;
+    .print-page-text {
+      padding: 26px 24px 28px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 24px;
+      line-height: 1.45;
+      color: #231b29;
+      white-space: pre-wrap;
     }
 
-    .book-page-number{
-      font-size:14px;
-      text-transform:uppercase;
-      letter-spacing:1px;
-      color:#b48b42;
-      font-weight:800;
-      margin-bottom:10px;
+    .print-actions-card {
+      margin-top: 24px;
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
     }
 
-    .book-page-text{
-      font-size:24px;
-      line-height:1.75;
-      color:#252525;
+    .print-actions-copy h3 {
+      margin: 0 0 8px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 32px;
+      color: #fff6e4;
     }
 
-    @media (max-width:980px){
-      .book-spread{
-        grid-template-columns:1fr;
+    .print-actions-copy p {
+      margin: 0;
+      color: #d5c4ad;
+      line-height: 1.6;
+      font-size: 17px;
+    }
+
+    .print-actions-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .primary-btn,
+    .secondary-btn {
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      padding: 14px 24px;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .primary-btn:hover,
+    .secondary-btn:hover,
+    .print-back-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .primary-btn {
+      background: linear-gradient(180deg, #f0c46d 0%, #d08e2b 100%);
+      color: #fffaf1;
+      box-shadow: 0 10px 24px rgba(208, 142, 43, 0.28);
+    }
+
+    .secondary-btn {
+      background: rgba(255,255,255,0.05);
+      color: #fff8ec;
+      border: 1px solid rgba(240,196,109,0.16);
+    }
+
+    @media (max-width: 980px) {
+      .spread-grid {
+        grid-template-columns: 1fr;
       }
 
-      .book-page.left,
-      .book-page.right{
-        border-radius:24px;
-        box-shadow:none;
+      .print-topbar {
+        grid-template-columns: 1fr;
+        gap: 16px;
       }
 
-      .book-page.left::after,
-      .book-page.right::before{
-        display:none;
-      }
-    }
-
-    @media print{
-      .print-topbar,
-      .print-status{
-        display:none !important;
+      .print-back-btn,
+      .print-brand {
+        justify-self: start;
       }
     }
   </style>
 </head>
-<body class="print-body">
+<body>
+  <div class="print-shell">
+    <header class="print-topbar">
+      <button id="backToPreviewBtn" class="print-back-btn" type="button">← Back</button>
 
-  <main class="print-shell">
-    <div class="print-topbar">
-      <div class="wizard-brand">
-        <div class="logo-mark">
-          <div class="logo-book"><span></span></div>
-        </div>
-        <span class="wizard-brand-text">lifebook</span>
+      <div class="print-brand">
+        <img id="printBrandLogo" src="assets/branding/logo.png" alt="Lifebook logo" />
+        <span class="print-brand-text">lifebook</span>
       </div>
 
-      <div class="print-actions">
-        <button class="secondary-btn" id="backToDeliveryBtn" type="button">← Back</button>
-        <button class="secondary-btn" id="openReaderBtn" type="button">Book Reader</button>
-        <button class="secondary-btn" id="downloadPdfBtn" type="button">Download PDF</button>
-        <button class="continue-btn" id="printBookBtn" type="button">Print This Book</button>
+      <div></div>
+    </header>
+
+    <section class="print-intro-card">
+      <div class="print-step">Print layout</div>
+      <h1 id="printTitle" class="print-title">Print-ready preview</h1>
+      <p class="print-copy">
+        This layout groups the story into spreads so you can review how the book feels as a printed keepsake.
+      </p>
+    </section>
+
+    <section id="spreadList" class="spread-list"></section>
+
+    <section class="print-actions-card">
+      <div class="print-actions-copy">
+        <h3>Ready to continue?</h3>
+        <p>Move on to checkout when you are happy with the print layout preview.</p>
       </div>
-    </div>
 
-    <div class="print-status" id="printStatus"></div>
-    <div class="book-presentation" id="bookPresentation"></div>
-  </main>
-
-  <script>
-    const API_BASE = window.location.origin;
-    const DB_NAME = "lifebookDB";
-    const STORE_NAME = "images";
-    const PREFETCH_CONCURRENCY = window.innerWidth < 768 ? 2 : 3;
-
-    const rawBookData = localStorage.getItem("bookData");
-    const paid = localStorage.getItem("paid") === "true";
-
-    if (!rawBookData || !paid) {
-      window.location.href = "preview.html";
-    }
-
-    const bookData = JSON.parse(rawBookData);
-    const pages = Array.isArray(bookData.pages) ? bookData.pages : [];
-    const printStatus = document.getElementById("printStatus");
-    const bookPresentation = document.getElementById("bookPresentation");
-    const downloadPdfBtn = document.getElementById("downloadPdfBtn");
-    const printBookBtn = document.getElementById("printBookBtn");
-    const inFlightRequests = new Map();
-
-    function setStatus(message = "", visible = false) {
-      printStatus.textContent = message;
-      printStatus.style.display = visible ? "block" : "none";
-    }
-
-    function openDatabase() {
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, 1);
-
-        request.onupgradeneeded = function () {
-          const db = request.result;
-          if (!db.objectStoreNames.contains(STORE_NAME)) {
-            db.createObjectStore(STORE_NAME);
-          }
-        };
-
-        request.onsuccess = function () {
-          resolve(request.result);
-        };
-
-        request.onerror = function () {
-          reject(request.error || new Error("Failed to open IndexedDB"));
-        };
-      });
-    }
-
-    async function getImageFromDB(key) {
-      const db = await openDatabase();
-
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, "readonly");
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.get(key);
-
-        req.onsuccess = function () {
-          resolve(req.result || null);
-        };
-
-        req.onerror = function () {
-          reject(req.error || new Error("Failed to read image from DB"));
-        };
-      });
-    }
-
-    async function saveImageToDB(key, value) {
-      const db = await openDatabase();
-
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, "readwrite");
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.put(value, key);
-
-        req.onsuccess = function () {
-          resolve(true);
-        };
-
-        req.onerror = function () {
-          reject(req.error || new Error("Failed to save image to DB"));
-        };
-      });
-    }
-
-    function pageImageKey(pageIndex) {
-      return `pageImage_${pageIndex}`;
-    }
-
-    function getCoverImageSrc() {
-      if (bookData.characterImageBase64) {
-        return `data:image/png;base64,${bookData.characterImageBase64}`;
-      }
-      if (bookData.croppedPhoto) {
-        return bookData.croppedPhoto;
-      }
-      if (localStorage.getItem("croppedPhoto")) {
-        return localStorage.getItem("croppedPhoto");
-      }
-      return "";
-    }
-
-    async function requestPageImageWithRetry(pageIndex, maxAttempts = 3) {
-      const existing = await getImageFromDB(pageImageKey(pageIndex));
-      if (existing) return existing;
-
-      if (inFlightRequests.has(pageIndex)) {
-        return inFlightRequests.get(pageIndex);
-      }
-
-      const promise = (async () => {
-        const page = pages[pageIndex];
-        if (!page) throw new Error(`Missing page ${pageIndex + 1}`);
-
-        const prompt = page.imagePrompt || "";
-        if (!prompt) throw new Error(`Missing image prompt for page ${pageIndex + 1}`);
-
-        let lastError = null;
-
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-          try {
-            const res = await fetch(`${API_BASE}/generate-image`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                prompt,
-                illustration_style: bookData.illustration_style || "Soft Storybook",
-                characterDescription: bookData.characterDescription,
-                characterDNA: bookData.characterDNA
-              })
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-              throw new Error(data?.details || data?.message || "Image generation failed");
-            }
-
-            if (!data?.imageBase64) {
-              throw new Error(`No image returned for page ${pageIndex + 1}`);
-            }
-
-            await saveImageToDB(pageImageKey(pageIndex), data.imageBase64);
-            return data.imageBase64;
-          } catch (error) {
-            lastError = error;
-            if (attempt < maxAttempts) {
-              await new Promise((resolve) => setTimeout(resolve, 900));
-            }
-          }
-        }
-
-        throw lastError || new Error("Image generation failed");
-      })();
-
-      inFlightRequests.set(pageIndex, promise);
-
-      try {
-        return await promise;
-      } finally {
-        inFlightRequests.delete(pageIndex);
-      }
-    }
-
-    async function ensureAllPageImages() {
-      const queue = pages.map((_, index) => index);
-      let active = 0;
-
-      return new Promise((resolve) => {
-        const runNext = () => {
-          while (active < PREFETCH_CONCURRENCY && queue.length > 0) {
-            const pageIndex = queue.shift();
-            active++;
-
-            requestPageImageWithRetry(pageIndex, 3)
-              .catch((error) => {
-                console.warn(`Page ${pageIndex + 1} failed:`, error);
-              })
-              .finally(() => {
-                active--;
-                if (queue.length === 0 && active === 0) {
-                  setStatus("", false);
-                  resolve();
-                } else {
-                  runNext();
-                }
-              });
-          }
-        };
-
-        if (!pages.length) {
-          resolve();
-          return;
-        }
-
-        setStatus("Preparing illustrations...", true);
-        runNext();
-      });
-    }
-
-    async function createCoverElement() {
-      const cover = document.createElement("div");
-      cover.className = "print-cover";
-
-      const coverImage = getCoverImageSrc();
-
-      cover.innerHTML = `
-        <div class="print-cover-inner">
-          <div class="print-cover-badge">Print Ready Edition</div>
-          <h1 class="print-cover-title">${bookData.title || "Your magical story"}</h1>
-          <div class="print-cover-subtitle">${bookData.subtitle || "A personalized adventure made just for your child."}</div>
-
-          ${
-            coverImage
-              ? `<img class="print-cover-image" src="${coverImage}" alt="Book cover image" />`
-              : `<div class="print-cover-image placeholder">Cover illustration</div>`
-          }
-        </div>
-      `;
-
-      return cover;
-    }
-
-    async function createSpread(page, index) {
-      const imageBase64 = await getImageFromDB(pageImageKey(index));
-      const spread = document.createElement("div");
-      spread.className = "book-spread";
-
-      spread.innerHTML = `
-        <div class="book-page left">
-          ${
-            imageBase64
-              ? `<img class="book-page-image" src="data:image/png;base64,${imageBase64}" alt="Page illustration" />`
-              : `<div class="book-page-image placeholder">Illustration is being prepared</div>`
-          }
-        </div>
-
-        <div class="book-page right">
-          <div class="book-page-number">Page ${index + 1}</div>
-          <div class="book-page-text">${page?.text || ""}</div>
-        </div>
-      `;
-
-      return spread;
-    }
-
-    async function renderBookPresentation() {
-      bookPresentation.innerHTML = "";
-      bookPresentation.appendChild(await createCoverElement());
-
-      for (let i = 0; i < pages.length; i++) {
-        bookPresentation.appendChild(await createSpread(pages[i], i));
-      }
-    }
-
-    function addImageSafe(pdf, imageDataUrl, format, x, y, w, h) {
-      try {
-        pdf.addImage(imageDataUrl, format, x, y, w, h);
-        return true;
-      } catch {
-        return false;
-      }
-    }
-
-    function addAnyImage(pdf, imageDataUrl, x, y, w, h) {
-      if (!imageDataUrl) return false;
-      return (
-        addImageSafe(pdf, imageDataUrl, "JPEG", x, y, w, h) ||
-        addImageSafe(pdf, imageDataUrl, "PNG", x, y, w, h) ||
-        addImageSafe(pdf, imageDataUrl, "WEBP", x, y, w, h)
-      );
-    }
-
-    async function buildPdfDirectly() {
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF("p", "mm", "a4");
-      const margin = 15;
-
-      pdf.setFillColor(23, 35, 58);
-      pdf.rect(0, 0, 210, 297, "F");
-
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(12);
-      pdf.setTextColor(239, 200, 120);
-      pdf.text("Print Ready Edition", margin, 20);
-
-      pdf.setFontSize(24);
-      pdf.setTextColor(247, 231, 200);
-      const coverTitle = pdf.splitTextToSize(bookData.title || "Your magical story", 120);
-      pdf.text(coverTitle, margin, 40);
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(14);
-      pdf.setTextColor(216, 199, 172);
-      const coverSubtitle = pdf.splitTextToSize(
-        bookData.subtitle || "A personalized adventure made just for your child.",
-        120
-      );
-      pdf.text(coverSubtitle, margin, 70);
-
-      const coverImage = getCoverImageSrc();
-      addAnyImage(pdf, coverImage, 55, 140, 100, 100);
-
-      for (let i = 0; i < pages.length; i++) {
-        pdf.addPage();
-
-        pdf.setFillColor(255, 253, 249);
-        pdf.rect(0, 0, 210, 297, "F");
-
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(11);
-        pdf.setTextColor(180, 139, 66);
-        pdf.text(`PAGE ${i + 1}`, margin, 18);
-
-        const imageBase64 = await getImageFromDB(pageImageKey(i));
-        if (imageBase64) {
-          addAnyImage(pdf, `data:image/png;base64,${imageBase64}`, margin, 28, 80, 80);
-        }
-
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(16);
-        pdf.setTextColor(35, 35, 35);
-
-        const textLines = pdf.splitTextToSize(pages[i]?.text || "", 85);
-        pdf.text(textLines, 105, 40);
-      }
-
-      const safeTitle = (bookData.title || "lifebook-story")
-        .replace(/[^a-z0-9]/gi, "_")
-        .toLowerCase();
-
-      pdf.save(`${safeTitle}.pdf`);
-    }
-
-    async function initializePrintView() {
-      try {
-        await renderBookPresentation();
-        ensureAllPageImages().then(async () => {
-          await renderBookPresentation();
-        });
-      } catch (error) {
-        console.error("Failed to prepare print view:", error);
-        setStatus(error?.message || "Failed to prepare print view.", true);
-      }
-    }
-
-    document.getElementById("backToDeliveryBtn").addEventListener("click", () => {
-      window.location.href = "delivery.html";
-    });
-
-    document.getElementById("openReaderBtn").addEventListener("click", () => {
-      window.location.href = "reader.html";
-    });
-
-    printBookBtn.addEventListener("click", async () => {
-      try {
-        printBookBtn.disabled = true;
-        setStatus("Preparing all pages for printing...", true);
-        await ensureAllPageImages();
-        await renderBookPresentation();
-        setStatus("", false);
-        window.print();
-      } catch (error) {
-        console.error(error);
-        setStatus(error?.message || "Failed to prepare the book for printing. Please try again.", true);
-      } finally {
-        printBookBtn.disabled = false;
-      }
-    });
-
-    downloadPdfBtn.addEventListener("click", async () => {
-      try {
-        downloadPdfBtn.disabled = true;
-        downloadPdfBtn.textContent = "Preparing PDF...";
-        setStatus("Preparing all illustrations for PDF...", true);
-
-        await ensureAllPageImages();
-        await renderBookPresentation();
-
-        setStatus("Building downloadable PDF...", true);
-        await buildPdfDirectly();
-
-        setStatus("", false);
-      } catch (error) {
-        console.error("PDF generation failed:", error);
-        setStatus(error?.message || "Failed to generate PDF. Please try again.", true);
-      } finally {
-        downloadPdfBtn.disabled = false;
-        downloadPdfBtn.textContent = "Download PDF";
-      }
-    });
-
-    initializePrintView();
-  </script>
+      <div class="print-actions-buttons">
+        <button id="goToReaderBtn" class="secondary-btn" type="button">Reader view</button>
+        <button id="goToCheckoutBtn" class="primary-btn" type="button">Continue</button>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="./print.js"></script>
 </body>
 </html>
