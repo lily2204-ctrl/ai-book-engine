@@ -1,194 +1,413 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Lifebook - Payment Success</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lifebook - Order Success</title>
+  <link rel="stylesheet" href="./styles.css" />
   <style>
-    .success-shell{
-      width:min(860px, 94vw);
-      margin:0 auto;
-      padding:20px 0 60px;
-      text-align:center;
-      position:relative;
-      z-index:2;
-    }
-
-    .success-card{
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
       background:
-        radial-gradient(circle at top center, rgba(241,188,101,0.12) 0%, transparent 25%),
-        linear-gradient(180deg, rgba(18,23,41,0.98), rgba(14,18,33,0.99));
-      border:1px solid rgba(240,196,109,0.18);
-      border-radius:36px;
-      box-shadow:var(--shadow);
-      padding:42px 28px;
+        radial-gradient(circle at top, rgba(27, 46, 94, 0.55) 0%, rgba(10, 16, 34, 0.96) 55%, rgba(5, 10, 20, 1) 100%),
+        url("assets/backgrounds/stars-bg.jpg");
+      background-size: cover;
+      background-position: center;
+      color: #fff8ec;
+      min-height: 100vh;
     }
 
-    .success-icon{
-      width:110px;
-      height:110px;
-      border-radius:50%;
+    .success-shell {
+      width: min(1180px, 94vw);
+      margin: 0 auto;
+      padding: 34px 0 80px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .success-topbar {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .success-back-btn {
+      justify-self: start;
+      appearance: none;
+      border: 1px solid rgba(240, 196, 109, 0.24);
+      background: rgba(255, 255, 255, 0.04);
+      color: #fff7ea;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .success-brand {
+      justify-self: center;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .success-brand img {
+      height: 44px;
+      width: auto;
+      display: block;
+    }
+
+    .success-brand-text {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 28px;
+      color: #f7ecd7;
+    }
+
+    .success-layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 24px;
+    }
+
+    .success-side-card,
+    .success-main-card {
       background:
-        linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 18%),
-        linear-gradient(180deg, #e2b05b 0%, #b97722 100%);
-      color:#fffaf2;
-      font-size:54px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      margin:0 auto 22px;
-      box-shadow:0 16px 30px rgba(167,103,23,0.28);
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
+        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
+      border: 1px solid rgba(240,196,109,0.14);
+      border-radius: 34px;
+      box-shadow: 0 18px 60px rgba(0,0,0,0.34);
     }
 
-    .success-title{
-      font-family:Georgia, "Times New Roman", serif;
-      font-size:clamp(34px, 5vw, 58px);
-      line-height:.96;
-      margin:0 0 14px;
-      color:#f9f1e4;
+    .success-side-card {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
     }
 
-    .success-text{
-      color:#cfc0ab;
-      font-size:18px;
-      line-height:1.65;
-      max-width:620px;
-      margin:0 auto 18px;
+    .success-cover {
+      width: 100%;
+      aspect-ratio: 0.72 / 1;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid rgba(234, 190, 94, 0.45);
+      background:
+        linear-gradient(180deg, rgba(15, 19, 35, 0.08), rgba(0, 0, 0, 0.18)),
+        url("assets/books/default-cover-bg.jpg");
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 18px 38px rgba(0,0,0,0.34);
+      position: relative;
     }
 
-    .success-order{
-      display:inline-block;
-      padding:10px 16px;
-      border-radius:999px;
-      background:rgba(240,196,109,0.08);
-      color:#efc878;
-      border:1px solid rgba(240,196,109,0.16);
-      font-size:14px;
-      font-weight:700;
-      margin-bottom:24px;
+    .success-cover::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at top center, rgba(255, 222, 148, 0.22), transparent 40%),
+        linear-gradient(180deg, rgba(10, 12, 24, 0.1), rgba(10, 12, 24, 0.28));
+      pointer-events: none;
     }
 
-    .success-meta{
-      margin:0 auto 24px;
-      max-width:560px;
-      text-align:left;
-      background:rgba(255,255,255,0.04);
-      border:1px solid rgba(255,255,255,0.08);
-      border-radius:24px;
-      padding:18px 20px;
+    .success-cover-inner {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      padding: 20px;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 10px;
     }
 
-    .success-line{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      padding:10px 0;
-      border-bottom:1px solid rgba(255,255,255,0.08);
-      color:#d3c4b0;
-      font-size:15px;
+    .success-cover-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #f6e8c8;
     }
 
-    .success-line:last-child{
-      border-bottom:none;
+    .success-cover-brand img {
+      height: 18px;
+      width: auto;
+      display: block;
     }
 
-    .success-actions{
-      display:flex;
-      justify-content:center;
-      gap:12px;
-      flex-wrap:wrap;
-      margin-top:10px;
+    .success-cover-title {
+      margin: 0;
+      text-align: center;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(28px, 3vw, 42px);
+      line-height: 0.98;
+      color: #fff3da;
+      white-space: pre-line;
     }
 
-    @media (max-width:640px){
-      .success-actions{
-        flex-direction:column;
+    .success-cover-subtitle {
+      margin: 0;
+      text-align: center;
+      color: #f4e1ba;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .success-cover-image-wrap {
+      display: flex;
+      align-items: end;
+      justify-content: center;
+    }
+
+    .success-cover-image {
+      width: 100%;
+      max-width: 190px;
+      aspect-ratio: 0.84 / 1;
+      object-fit: cover;
+      border-radius: 16px;
+      border: 1.5px solid rgba(243, 203, 121, 0.42);
+      box-shadow: 0 12px 22px rgba(0,0,0,0.22);
+      background: rgba(255,255,255,0.06);
+    }
+
+    .success-cover-note {
+      text-align: center;
+      font-size: 13px;
+      color: #f5ddb0;
+    }
+
+    .success-main-card {
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .success-badge {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: rgba(240,196,109,0.1);
+      border: 1px solid rgba(240,196,109,0.18);
+      color: #efc977;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
+    .success-title {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(42px, 5vw, 72px);
+      line-height: 0.94;
+      color: #fff7e8;
+    }
+
+    .success-copy {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.7;
+      color: #d7c8b3;
+      max-width: 720px;
+    }
+
+    .success-summary {
+      display: grid;
+      gap: 14px;
+    }
+
+    .summary-row {
+      display: grid;
+      grid-template-columns: 190px 1fr;
+      gap: 14px;
+      align-items: start;
+      padding: 15px 18px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(240,196,109,0.12);
+    }
+
+    .summary-label {
+      font-size: 15px;
+      font-weight: 700;
+      color: #e9c57c;
+    }
+
+    .summary-value {
+      font-size: 16px;
+      line-height: 1.5;
+      color: #fff6e6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .next-steps {
+      display: grid;
+      gap: 12px;
+      margin-top: 2px;
+    }
+
+    .next-step {
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(240,196,109,0.12);
+      color: #d8c9b4;
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    .success-actions {
+      margin-top: auto;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .primary-btn,
+    .secondary-btn {
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      padding: 16px 28px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .primary-btn:hover,
+    .secondary-btn:hover,
+    .success-back-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .primary-btn {
+      background: linear-gradient(180deg, #f0c46d 0%, #d08e2b 100%);
+      color: #fffaf1;
+      box-shadow: 0 10px 24px rgba(208, 142, 43, 0.28);
+    }
+
+    .secondary-btn {
+      background: rgba(255,255,255,0.05);
+      color: #fff8ec;
+      border: 1px solid rgba(240,196,109,0.16);
+    }
+
+    @media (max-width: 980px) {
+      .success-layout {
+        grid-template-columns: 1fr;
       }
 
-      .success-actions .continue-btn,
-      .success-actions .secondary-btn{
-        width:100%;
+      .summary-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .success-topbar {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .success-back-btn,
+      .success-brand {
+        justify-self: start;
       }
     }
   </style>
 </head>
-<body class="setup-body">
+<body>
+  <div class="success-shell">
+    <header class="success-topbar">
+      <button id="backToCheckoutBtn" class="success-back-btn" type="button">← Back</button>
 
-  <header class="wizard-topbar">
-    <div class="wizard-topbar-left"></div>
-
-    <div class="wizard-brand">
-      <div class="logo-mark">
-        <div class="logo-book"><span></span></div>
-      </div>
-      <span class="wizard-brand-text">lifebook</span>
-    </div>
-
-    <div class="wizard-topbar-right"></div>
-  </header>
-
-  <main class="success-shell">
-    <div class="success-card">
-      <div class="success-icon">✓</div>
-      <div class="eyebrow" style="margin-bottom:14px;">Payment completed</div>
-      <h1 class="success-title">Your order is complete</h1>
-      <div class="success-text">
-        Your personalized book has been unlocked and moved into the delivery center.
+      <div class="success-brand">
+        <img id="successBrandLogo" src="assets/branding/logo.png" alt="Lifebook logo" />
+        <span class="success-brand-text">lifebook</span>
       </div>
 
-      <div class="success-order" id="successOrderId">Order ID: -</div>
+      <div></div>
+    </header>
 
-      <div class="success-meta" id="successMeta"></div>
+    <section class="success-layout">
+      <aside class="success-side-card">
+        <div class="success-cover">
+          <div class="success-cover-inner">
+            <div class="success-cover-brand">
+              <img id="successMiniLogo" src="assets/branding/logo.png" alt="Lifebook mark" />
+              <span>lifebook</span>
+            </div>
 
-      <div class="success-actions">
-        <button class="continue-btn" id="goToDeliveryBtn" type="button">Open Delivery Center</button>
-        <button class="secondary-btn" id="goToFullBookBtn" type="button">Open Full Book</button>
-      </div>
-    </div>
-  </main>
+            <h2 id="successBookTitle" class="success-cover-title">Your Magical Adventure</h2>
+            <p id="successBookSubtitle" class="success-cover-subtitle">A story where you are the hero</p>
 
-  <script>
-    const API_BASE = window.location.origin;
-    const params = new URLSearchParams(window.location.search);
-    const urlOrderId = params.get("orderId");
-    const localOrderId = localStorage.getItem("orderId");
-    const orderId = urlOrderId || localOrderId;
+            <div class="success-cover-image-wrap">
+              <img id="successCoverImage" class="success-cover-image" alt="Book hero preview" />
+            </div>
 
-    async function loadOrder() {
-      if (!orderId) return;
+            <div class="success-cover-note">
+              Your personalized book order
+            </div>
+          </div>
+        </div>
+      </aside>
 
-      document.getElementById("successOrderId").textContent = "Order ID: " + orderId;
+      <main class="success-main-card">
+        <div class="success-badge">Order complete</div>
+        <h1 class="success-title">Thank you for your order</h1>
+        <p class="success-copy">
+          Your personalized storybook has been saved successfully. This page can be used as the confirmation screen after Shopify checkout.
+        </p>
 
-      try {
-        const res = await fetch(`${API_BASE}/order/${encodeURIComponent(orderId)}`);
-        const data = await res.json();
+        <div class="success-summary">
+          <div class="summary-row">
+            <div class="summary-label">Child name</div>
+            <div id="successChildName" class="summary-value">-</div>
+          </div>
 
-        if (!res.ok) return;
+          <div class="summary-row">
+            <div class="summary-label">Selected format</div>
+            <div id="successFormat" class="summary-value">-</div>
+          </div>
 
-        const order = data.order;
-        const meta = document.getElementById("successMeta");
+          <div class="summary-row">
+            <div class="summary-label">Price</div>
+            <div id="successPrice" class="summary-value">-</div>
+          </div>
 
-        meta.innerHTML = `
-          <div class="success-line"><span>Status</span><span>${order.status}</span></div>
-          <div class="success-line"><span>Child</span><span>${order.customer?.childName || "-"}</span></div>
-          <div class="success-line"><span>Book</span><span>${order.book?.title || "-"}</span></div>
-          <div class="success-line"><span>Amount</span><span>$${order.amount}</span></div>
-        `;
-      } catch (error) {
-        console.error("Failed to load order");
-      }
-    }
+          <div class="summary-row">
+            <div class="summary-label">Pages</div>
+            <div id="successPages" class="summary-value">-</div>
+          </div>
+        </div>
 
-    loadOrder();
+        <div class="next-steps">
+          <div class="next-step">
+            If this is a digital order, the final PDF can be delivered automatically after checkout.
+          </div>
+          <div class="next-step">
+            If this is a printed order, the order can continue into your production and fulfillment flow.
+          </div>
+          <div class="next-step">
+            Once Shopify is connected, this screen can be shown after successful payment as the official confirmation page.
+          </div>
+        </div>
 
-    document.getElementById("goToDeliveryBtn").addEventListener("click", () => {
-      window.location.href = "delivery.html";
-    });
+        <div class="success-actions">
+          <button id="goHomeBtn" class="primary-btn" type="button">Back to home</button>
+          <button id="createAnotherBtn" class="secondary-btn" type="button">Create another book</button>
+        </div>
+      </main>
+    </section>
+  </div>
 
-    document.getElementById("goToFullBookBtn").addEventListener("click", () => {
-      window.location.href = "preview.html";
-    });
-  </script>
+  <script type="module" src="./success.js"></script>
 </body>
 </html>
