@@ -11,91 +11,42 @@ const generatedBook = data.generatedBook;
 const characterReference = data.characterReference || {};
 const coverImage = sessionStorage.getItem("coverImage") || "";
 
-const previewBookTitle = document.getElementById("previewBookTitle");
-const previewBookSubtitle = document.getElementById("previewBookSubtitle");
-const previewCoverFill = document.getElementById("previewCoverFill");
-
-const statChildName = document.getElementById("statChildName");
-const statStyle = document.getElementById("statStyle");
-const statStory = document.getElementById("statStory");
-const statPages = document.getElementById("statPages");
-
+const coverImageEl = document.getElementById("coverImage");
+const bookTitleEl = document.getElementById("bookTitle");
+const bookSubtitleEl = document.getElementById("bookSubtitle");
 const pagesContainer = document.getElementById("pagesContainer");
 
-const backToCoverBtn = document.getElementById("backToCoverBtn");
-const goToReaderBtn = document.getElementById("goToReaderBtn");
-const goToPrintBtn = document.getElementById("goToPrintBtn");
-const goToCheckoutBtn = document.getElementById("goToCheckoutBtn");
-
-const previewBrandLogo = document.getElementById("previewBrandLogo");
-const miniBookLogo = document.getElementById("miniBookLogo");
-
-function hideBrokenLogo(img) {
-  if (!img) return;
-  img.addEventListener("error", () => {
-    img.style.display = "none";
-  });
+if (bookTitleEl) {
+  bookTitleEl.textContent = generatedBook.title || "Your Magical Adventure";
 }
 
-hideBrokenLogo(previewBrandLogo);
-hideBrokenLogo(miniBookLogo);
-
-if (previewBookTitle) {
-  previewBookTitle.textContent = generatedBook.title || "Your Magical Adventure";
+if (bookSubtitleEl) {
+  bookSubtitleEl.textContent = generatedBook.subtitle || "A story where you are the hero";
 }
 
-if (previewBookSubtitle) {
-  previewBookSubtitle.textContent = generatedBook.subtitle || "A story where you are the hero";
-}
-
-if (previewCoverFill) {
+if (coverImageEl) {
   if (coverImage) {
-    previewCoverFill.src = coverImage;
+    coverImageEl.src = coverImage;
   } else if (data.croppedPhoto) {
-    previewCoverFill.src = data.croppedPhoto;
+    coverImageEl.src = data.croppedPhoto;
   } else if (data.originalPhoto) {
-    previewCoverFill.src = data.originalPhoto;
-  } else {
-    previewCoverFill.style.display = "none";
+    coverImageEl.src = data.originalPhoto;
   }
-}
-
-if (statChildName) {
-  statChildName.textContent = data.childName || "-";
-}
-
-if (statStyle) {
-  statStyle.textContent = data.illustrationStyle || "-";
-}
-
-if (statStory) {
-  statStory.textContent = data.storyIdea || "-";
-}
-
-if (statPages) {
-  statPages.textContent = String(generatedBook.pages?.length || 0);
 }
 
 function createPageCard(page, index) {
   const article = document.createElement("article");
-  article.className = "page-card";
+  article.className = "page";
 
   const pageNumber = index + 1;
   const storyText = page.text || "";
 
   article.innerHTML = `
-    <div class="page-card-inner">
-      <div class="page-image-wrap">
-        <div class="page-image-loading" id="loading-${pageNumber}">
-          Generating illustration for page ${pageNumber}...
-        </div>
-      </div>
-
-      <div class="page-content">
-        <div class="page-badge">Page ${pageNumber}</div>
-        <p class="page-text">${escapeHtml(storyText)}</p>
-      </div>
+    <div class="page-label">Page ${pageNumber}</div>
+    <div class="image-box" id="image-box-${pageNumber}">
+      Generating illustration for page ${pageNumber}...
     </div>
+    <div class="page-text">${escapeHtml(storyText)}</div>
   `;
 
   return article;
@@ -112,7 +63,7 @@ function escapeHtml(text) {
 
 async function generatePageImage(page, index, article) {
   const pageNumber = index + 1;
-  const wrap = article.querySelector(".page-image-wrap");
+  const wrap = article.querySelector(`#image-box-${pageNumber}`);
 
   try {
     const res = await fetch(`${API_BASE}/generate-image`, {
@@ -140,7 +91,6 @@ async function generatePageImage(page, index, article) {
 
     wrap.innerHTML = `
       <img
-        class="page-image"
         src="data:image/png;base64,${result.imageBase64}"
         alt="Illustration for page ${pageNumber}"
       />
@@ -149,9 +99,7 @@ async function generatePageImage(page, index, article) {
     console.error(`Page ${pageNumber} image generation failed:`, error);
 
     wrap.innerHTML = `
-      <div class="page-image-error">
-        Failed to generate illustration for page ${pageNumber}.
-      </div>
+      <div>Failed to generate illustration for page ${pageNumber}.</div>
     `;
   }
 }
@@ -171,21 +119,5 @@ async function renderPages() {
     await generatePageImage(generatedBook.pages[i], i, articles[i]);
   }
 }
-
-backToCoverBtn?.addEventListener("click", () => {
-  window.location.href = "cover.html";
-});
-
-goToReaderBtn?.addEventListener("click", () => {
-  window.location.href = "reader.html";
-});
-
-goToPrintBtn?.addEventListener("click", () => {
-  window.location.href = "print.html";
-});
-
-goToCheckoutBtn?.addEventListener("click", () => {
-  window.location.href = "checkout.html";
-});
 
 renderPages();
