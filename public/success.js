@@ -11,7 +11,7 @@ const coverImage = sessionStorage.getItem("coverImage") || "";
 
 const successBookTitle = document.getElementById("successBookTitle");
 const successBookSubtitle = document.getElementById("successBookSubtitle");
-const successCoverImage = document.getElementById("successCoverImage");
+const successCoverFill = document.getElementById("successCoverFill");
 
 const successChildName = document.getElementById("successChildName");
 const successFormat = document.getElementById("successFormat");
@@ -43,15 +43,15 @@ if (successBookSubtitle) {
   successBookSubtitle.textContent = generatedBook.subtitle || "A story where you are the hero";
 }
 
-if (successCoverImage) {
+if (successCoverFill) {
   if (coverImage) {
-    successCoverImage.src = coverImage;
+    successCoverFill.src = coverImage;
   } else if (data.croppedPhoto) {
-    successCoverImage.src = data.croppedPhoto;
+    successCoverFill.src = data.croppedPhoto;
   } else if (data.originalPhoto) {
-    successCoverImage.src = data.originalPhoto;
+    successCoverFill.src = data.originalPhoto;
   } else {
-    successCoverImage.style.display = "none";
+    successCoverFill.style.display = "none";
   }
 }
 
