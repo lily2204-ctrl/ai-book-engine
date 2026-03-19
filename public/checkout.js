@@ -27,7 +27,6 @@ const saveAndContinueBtn = document.getElementById("saveAndContinueBtn");
 const goToSuccessPreviewBtn = document.getElementById("goToSuccessPreviewBtn");
 
 const checkoutBrandLogo = document.getElementById("checkoutBrandLogo");
-const miniCheckoutLogo = document.getElementById("miniCheckoutLogo");
 
 let selectedFormat = data.selectedFormat || "digital";
 let selectedPrice = selectedFormat === "printed" ? 49 : 39;
@@ -40,7 +39,6 @@ function hideBrokenLogo(img) {
 }
 
 hideBrokenLogo(checkoutBrandLogo);
-hideBrokenLogo(miniCheckoutLogo);
 
 if (checkoutBookTitle) {
   checkoutBookTitle.textContent = generatedBook.title || "Your Magical Adventure";
