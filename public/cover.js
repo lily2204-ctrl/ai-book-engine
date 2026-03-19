@@ -7,7 +7,7 @@ if (!data.generatedBook || !Array.isArray(data.generatedBook.pages) || data.gene
 }
 
 const generatedBook = data.generatedBook;
-const characterSheetImage = sessionStorage.getItem("characterSheetImage");
+const coverImage = data.coverImage || sessionStorage.getItem("coverImage") || "";
 
 const coverTitle = document.getElementById("coverTitle");
 const coverSubtitle = document.getElementById("coverSubtitle");
@@ -45,8 +45,8 @@ if (coverSubtitle) {
 }
 
 if (coverHeroImage) {
-  if (characterSheetImage) {
-    coverHeroImage.src = characterSheetImage;
+  if (coverImage) {
+    coverHeroImage.src = coverImage;
   } else if (data.croppedPhoto) {
     coverHeroImage.src = data.croppedPhoto;
   } else if (data.originalPhoto) {
@@ -86,6 +86,7 @@ continueToPreviewBtn?.addEventListener("click", () => {
 
 restartBookBtn?.addEventListener("click", () => {
   sessionStorage.removeItem("characterSheetImage");
+  sessionStorage.removeItem("coverImage");
   clearBookData();
   window.location.href = "wizard.html";
 });
