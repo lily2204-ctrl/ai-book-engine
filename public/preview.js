@@ -9,7 +9,7 @@ if (!data.generatedBook || !Array.isArray(data.generatedBook.pages) || data.gene
 
 const generatedBook = data.generatedBook;
 const characterReference = data.characterReference || {};
-const characterSheetImage = sessionStorage.getItem("characterSheetImage");
+const coverImage = data.coverImage || sessionStorage.getItem("coverImage") || "";
 
 const previewBookTitle = document.getElementById("previewBookTitle");
 const previewBookSubtitle = document.getElementById("previewBookSubtitle");
@@ -49,8 +49,8 @@ if (previewBookSubtitle) {
 }
 
 if (previewCoverImage) {
-  if (characterSheetImage) {
-    previewCoverImage.src = characterSheetImage;
+  if (coverImage) {
+    previewCoverImage.src = coverImage;
   } else if (data.croppedPhoto) {
     previewCoverImage.src = data.croppedPhoto;
   } else if (data.originalPhoto) {
