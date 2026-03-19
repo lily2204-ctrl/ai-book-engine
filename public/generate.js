@@ -54,6 +54,40 @@ function buildGeneratedBookData(bookResponse, characterRef) {
   };
 }
 
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Failed to load generated image."));
+    img.src = src;
+  });
+}
+
+async function compressDataUrl(dataUrl, maxDimension = 700, quality = 0.72) {
+  const img = await loadImage(dataUrl);
+
+  let { width, height } = img;
+  const scale = Math.min(1, maxDimension / Math.max(width, height));
+
+  width = Math.round(width * scale);
+  height = Math.round(height * scale);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0, width, height);
+
+  return canvas.toDataURL("image/jpeg", quality);
+}
+
+async function safeStoreImage(key, dataUrl, maxDimension = 700, quality = 0.72) {
+  const compressed = await compressDataUrl(dataUrl, maxDimension, quality);
+  sessionStorage.setItem(key, compressed);
+  return compressed;
+}
+
 async function generateCharacterReference() {
   setActiveStep(stepCharacter, "Creating character reference...");
 
@@ -90,7 +124,8 @@ async function generateCharacterReference() {
       characterSheetPreview.src = characterSheetImage;
     }
 
-    sessionStorage.setItem("characterSheetImage", characterSheetImage);
+    // נשמור בגרסה דחוסה כדי לא לפוצץ quota
+    await safeStoreImage("characterSheetImage", characterSheetImage, 650, 0.68);
   } else {
     sessionStorage.removeItem("characterSheetImage");
   }
@@ -158,15 +193,16 @@ async function generateCoverImage(characterRef, bookResponse) {
   }
 
   if (result.coverImageBase64) {
-    const coverImage = `data:image/png;base64,${result.coverImageBase64}`;
-    sessionStorage.setItem("coverImage", coverImage);
-    updateBookData({ coverImage });
-    return coverImage;
+    const rawCoverImage = `data:image/png;base64,${result.coverImageBase64}`;
+
+    // חשוב: לא שומרים את coverImage בתוך bookData
+    // שומרים רק sessionStorage דחוס
+    await safeStoreImage("coverImage", rawCoverImage, 700, 0.7);
+    return true;
   }
 
   sessionStorage.removeItem("coverImage");
-  updateBookData({ coverImage: "" });
-  return "";
+  return false;
 }
 
 generateBookBtn?.addEventListener("click", async () => {
