@@ -7,6 +7,7 @@ if (!data.generatedBook || !Array.isArray(data.generatedBook.pages) || data.gene
 }
 
 const generatedBook = data.generatedBook;
+const characterSheetImage = sessionStorage.getItem("characterSheetImage");
 
 const checkoutBookTitle = document.getElementById("checkoutBookTitle");
 const checkoutBookSubtitle = document.getElementById("checkoutBookSubtitle");
@@ -50,7 +51,9 @@ if (checkoutBookSubtitle) {
 }
 
 if (checkoutCoverImage) {
-  if (data.croppedPhoto) {
+  if (characterSheetImage) {
+    checkoutCoverImage.src = characterSheetImage;
+  } else if (data.croppedPhoto) {
     checkoutCoverImage.src = data.croppedPhoto;
   } else if (data.originalPhoto) {
     checkoutCoverImage.src = data.originalPhoto;
@@ -113,10 +116,6 @@ saveAndContinueBtn?.addEventListener("click", () => {
     selectedPrice
   });
 
-  /*
-    בשלב הבא נחבר פה Shopify checkout אמיתי.
-    כרגע נעביר לדף success כדי לשמור על flow עובד.
-  */
   window.location.href = "success.html";
 });
 
