@@ -107,6 +107,50 @@ body{
   color:#e9c57c;
 }
 
+.format-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-top:22px;
+}
+
+.format-card{
+  background:rgba(255,255,255,0.04);
+  border-radius:20px;
+  padding:18px;
+  border:1px solid rgba(240,196,109,0.10);
+  cursor:pointer;
+  transition:transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.format-card:hover{
+  transform:translateY(-1px);
+}
+
+.format-card.active{
+  border-color:rgba(240,196,109,0.42);
+  background:rgba(240,196,109,0.08);
+}
+
+.format-title{
+  font-family:Georgia, "Times New Roman", serif;
+  font-size:28px;
+  margin:0 0 8px;
+}
+
+.format-price{
+  font-size:26px;
+  font-weight:bold;
+  color:#f0c46d;
+  margin-bottom:10px;
+}
+
+.format-desc{
+  font-size:16px;
+  line-height:1.5;
+  color:#d7c8b3;
+}
+
 .buttons{
   display:flex;
   gap:14px;
@@ -148,6 +192,10 @@ body{
   .title{
     font-size:46px;
   }
+
+  .format-grid{
+    grid-template-columns:1fr;
+  }
 }
 </style>
 </head>
@@ -157,10 +205,10 @@ body{
 <div class="container">
 
   <div class="top">
-    <div class="back" onclick="location.href='preview.html'">← Back</div>
+    <div class="back" id="backToPreviewBtn">← Back</div>
 
     <div class="brand">
-      <img src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook logo">
+      <img id="checkoutBrandLogo" src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook logo">
       <span>lifebook</span>
     </div>
   </div>
@@ -168,21 +216,37 @@ body{
   <div class="layout">
 
     <div class="cover">
-      <img id="coverImage" alt="Book cover"/>
+      <img id="checkoutCoverFill" alt="Book cover"/>
     </div>
 
     <div class="content">
       <div class="title">Review your order</div>
 
-      <div class="block"><strong>Child name:</strong> <span id="name"></span></div>
-      <div class="block"><strong>Age:</strong> <span id="age"></span></div>
-      <div class="block"><strong>Style:</strong> <span id="style"></span></div>
-      <div class="block"><strong>Story direction:</strong> <span id="story"></span></div>
-      <div class="block"><strong>Pages:</strong> <span id="pages"></span></div>
+      <div class="block"><strong>Book title:</strong> <span id="checkoutBookTitle"></span></div>
+      <div class="block"><strong>Book subtitle:</strong> <span id="checkoutBookSubtitle"></span></div>
+      <div class="block"><strong>Child name:</strong> <span id="summaryChildName"></span></div>
+      <div class="block"><strong>Age:</strong> <span id="summaryAge"></span></div>
+      <div class="block"><strong>Style:</strong> <span id="summaryStyle"></span></div>
+      <div class="block"><strong>Story direction:</strong> <span id="summaryStory"></span></div>
+      <div class="block"><strong>Pages:</strong> <span id="summaryPages"></span></div>
+
+      <div class="format-grid">
+        <div class="format-card active" id="formatDigital">
+          <div class="format-title">Digital Book</div>
+          <div class="format-price">$39</div>
+          <div class="format-desc">Instant digital version for online delivery.</div>
+        </div>
+
+        <div class="format-card" id="formatPrinted">
+          <div class="format-title">Printed Book</div>
+          <div class="format-price">$49</div>
+          <div class="format-desc">Printed keepsake version for physical delivery.</div>
+        </div>
+      </div>
 
       <div class="buttons">
-        <button class="btn" id="proceedToPaymentBtn">Proceed to Payment</button>
-        <button class="btn-secondary" onclick="location.href='cover.html'">Back to Cover</button>
+        <button class="btn" id="saveAndContinueBtn">Proceed to Payment</button>
+        <button class="btn-secondary" id="goToSuccessPreviewBtn">Preview success page</button>
       </div>
     </div>
 
