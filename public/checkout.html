@@ -14,24 +14,63 @@ body{
     radial-gradient(circle at top, rgba(27,46,94,0.55), rgba(5,10,20,1)),
     url("assets/backgrounds/FE0410D4-7381-4ACC-8FB9-D8862D553EC0.PNG");
   background-size:cover;
+  background-position:center;
+  min-height:100vh;
 }
 
 .container{
   width:min(1200px,94vw);
   margin:auto;
-  padding:30px 0;
+  padding:30px 0 60px;
+}
+
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+  gap:20px;
+  flex-wrap:wrap;
+}
+
+.back{
+  border:1px solid rgba(240,196,109,0.2);
+  padding:10px 16px;
+  border-radius:999px;
+  cursor:pointer;
+  background:rgba(255,255,255,0.04);
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-family:Georgia, "Times New Roman", serif;
+  font-size:28px;
+  color:#f7ecd7;
+}
+
+.brand img{
+  height:46px;
+  width:auto;
+  display:block;
 }
 
 .layout{
   display:grid;
   grid-template-columns:420px 1fr;
   gap:20px;
+  align-items:start;
 }
 
 .cover{
   border-radius:30px;
   overflow:hidden;
   border:1px solid rgba(240,196,109,0.2);
+  background:rgba(255,255,255,0.04);
+  box-shadow:0 18px 60px rgba(0,0,0,0.34);
+  position:sticky;
+  top:20px;
 }
 
 .cover img{
@@ -39,16 +78,40 @@ body{
   display:block;
 }
 
+.content{
+  padding:26px;
+  border-radius:30px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(240,196,109,0.14);
+  box-shadow:0 18px 60px rgba(0,0,0,0.34);
+}
+
+.title{
+  font-size:60px;
+  line-height:0.95;
+  font-family:Georgia, "Times New Roman", serif;
+  margin:0 0 20px;
+}
+
 .block{
   background:rgba(255,255,255,0.04);
   border-radius:20px;
   padding:18px;
   margin-bottom:14px;
+  border:1px solid rgba(240,196,109,0.10);
+  font-size:18px;
+  line-height:1.5;
 }
 
-.title{
-  font-size:60px;
-  font-family:Georgia;
+.block strong{
+  color:#e9c57c;
+}
+
+.buttons{
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-top:24px;
 }
 
 .btn{
@@ -56,10 +119,36 @@ body{
   border:none;
   border-radius:999px;
   background:linear-gradient(180deg,#f0c46d,#d08e2b);
+  color:#fffaf1;
   cursor:pointer;
   font-weight:bold;
+  font-size:17px;
 }
 
+.btn-secondary{
+  padding:16px 30px;
+  border-radius:999px;
+  border:1px solid rgba(240,196,109,0.16);
+  cursor:pointer;
+  font-weight:bold;
+  background:rgba(255,255,255,0.05);
+  color:#fff8ec;
+  font-size:17px;
+}
+
+@media(max-width:900px){
+  .layout{
+    grid-template-columns:1fr;
+  }
+
+  .cover{
+    position:static;
+  }
+
+  .title{
+    font-size:46px;
+  }
+}
 </style>
 </head>
 
@@ -67,25 +156,34 @@ body{
 
 <div class="container">
 
+  <div class="top">
+    <div class="back" onclick="location.href='preview.html'">← Back</div>
+
+    <div class="brand">
+      <img src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook logo">
+      <span>lifebook</span>
+    </div>
+  </div>
+
   <div class="layout">
 
-    <!-- COVER -->
     <div class="cover">
-      <img id="coverImage"/>
+      <img id="coverImage" alt="Book cover"/>
     </div>
 
-    <!-- DETAILS -->
-    <div>
+    <div class="content">
       <div class="title">Review your order</div>
 
-      <div class="block">Child name: <span id="name"></span></div>
-      <div class="block">Age: <span id="age"></span></div>
-      <div class="block">Style: <span id="style"></span></div>
-      <div class="block">Pages: <span id="pages"></span></div>
+      <div class="block"><strong>Child name:</strong> <span id="name"></span></div>
+      <div class="block"><strong>Age:</strong> <span id="age"></span></div>
+      <div class="block"><strong>Style:</strong> <span id="style"></span></div>
+      <div class="block"><strong>Story direction:</strong> <span id="story"></span></div>
+      <div class="block"><strong>Pages:</strong> <span id="pages"></span></div>
 
-      <br>
-
-      <button class="btn">Proceed to Payment</button>
+      <div class="buttons">
+        <button class="btn" id="proceedToPaymentBtn">Proceed to Payment</button>
+        <button class="btn-secondary" onclick="location.href='cover.html'">Back to Cover</button>
+      </div>
     </div>
 
   </div>
