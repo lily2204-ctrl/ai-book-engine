@@ -111,7 +111,8 @@ backToPreviewBtn?.addEventListener("click", () => {
 saveAndContinueBtn?.addEventListener("click", () => {
   updateBookData({
     selectedFormat,
-    selectedPrice
+    selectedPrice,
+    purchaseUnlocked: true
   });
 
   window.location.href = "success.html";
@@ -120,7 +121,8 @@ saveAndContinueBtn?.addEventListener("click", () => {
 goToSuccessPreviewBtn?.addEventListener("click", () => {
   updateBookData({
     selectedFormat,
-    selectedPrice
+    selectedPrice,
+    purchaseUnlocked: true
   });
 
   window.location.href = "success.html";
