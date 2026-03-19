@@ -90,7 +90,6 @@ async function generateCharacterReference() {
       characterSheetPreview.src = characterSheetImage;
     }
 
-    // נשמור בנפרד רק לתצוגה בעמודים הבאים
     sessionStorage.setItem("characterSheetImage", characterSheetImage);
   } else {
     sessionStorage.removeItem("characterSheetImage");
@@ -134,6 +133,42 @@ async function generateBook(characterRef) {
   return result;
 }
 
+async function generateCoverImage(characterRef, bookResponse) {
+  setActiveStep(stepPreview, "Creating the final cover image...");
+
+  const res = await fetch(`${API_BASE}/generate-cover-image`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      title: bookResponse.title || "",
+      subtitle: bookResponse.subtitle || "",
+      story_type: wizardData.storyIdea || "",
+      illustration_style: wizardData.illustrationStyle || "Soft Storybook",
+      characterPromptCore: characterRef.characterPromptCore || "",
+      characterSummary: characterRef.characterSummary || ""
+    })
+  });
+
+  const result = await res.json();
+
+  if (!res.ok) {
+    throw new Error(result?.message || result?.details || "Failed to create cover image");
+  }
+
+  if (result.coverImageBase64) {
+    const coverImage = `data:image/png;base64,${result.coverImageBase64}`;
+    sessionStorage.setItem("coverImage", coverImage);
+    updateBookData({ coverImage });
+    return coverImage;
+  }
+
+  sessionStorage.removeItem("coverImage");
+  updateBookData({ coverImage: "" });
+  return "";
+}
+
 generateBookBtn?.addEventListener("click", async () => {
   try {
     generateBookBtn.disabled = true;
@@ -144,8 +179,7 @@ generateBookBtn?.addEventListener("click", async () => {
 
     const characterRef = await generateCharacterReference();
     const bookResponse = await generateBook(characterRef);
-
-    setActiveStep(stepPreview, "Preparing cover and preview...");
+    await generateCoverImage(characterRef, bookResponse);
 
     const generatedBook = buildGeneratedBookData(bookResponse, characterRef);
 
