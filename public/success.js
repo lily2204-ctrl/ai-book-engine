@@ -60,11 +60,8 @@ if (successChildName) {
 }
 
 if (successFormat) {
-  const formatLabel =
-    data.selectedFormat === "printed"
-      ? "Printed Book"
-      : "Digital Book";
-  successFormat.textContent = formatLabel;
+  successFormat.textContent =
+    data.selectedFormat === "printed" ? "Printed Book" : "Digital Book";
 }
 
 if (successPrice) {
