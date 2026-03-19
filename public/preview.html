@@ -96,9 +96,19 @@
 
     .subtitle{
       color:#cfc0ab;
-      margin-bottom:30px;
+      margin-bottom:20px;
       font-size:20px;
       line-height:1.6;
+    }
+
+    .unlock-note{
+      background:rgba(240,196,109,0.10);
+      border:1px solid rgba(240,196,109,0.18);
+      color:#f4dfb2;
+      border-radius:18px;
+      padding:14px 16px;
+      font-size:16px;
+      line-height:1.5;
     }
 
     .page{
@@ -208,18 +218,14 @@
         <div class="content-card">
           <div class="title" id="bookTitle"></div>
           <div class="subtitle" id="bookSubtitle"></div>
+          <div class="unlock-note" id="unlockNote"></div>
         </div>
 
         <div id="pagesContainer"></div>
 
         <div class="cta">
-          <button class="btn" onclick="location.href='checkout.html'">
-            Continue to Checkout
-          </button>
-
-          <button class="btn-secondary" onclick="location.href='cover.html'">
-            Back to Cover
-          </button>
+          <button class="btn" id="checkoutBtn">Unlock Full Book</button>
+          <button class="btn-secondary" onclick="location.href='cover.html'">Back to Cover</button>
         </div>
       </div>
     </div>
