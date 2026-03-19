@@ -1,116 +1,514 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Lifebook - Premium Personalized Storybooks</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lifebook - Personalized AI Storybooks</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    :root{
+      --bg:#07101f;
+      --panel:#101a31;
+      --panel-2:#0d1528;
+      --text:#f8f1e4;
+      --muted:#d7c7ad;
+      --gold:#f0c46d;
+      --gold-deep:#d08e2b;
+      --line:rgba(240,196,109,0.16);
+      --shadow:0 18px 60px rgba(0,0,0,0.34);
+      --radius:34px;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top, rgba(27,46,94,0.55) 0%, rgba(10,16,34,0.96) 55%, rgba(5,10,20,1) 100%),
+        url("assets/backgrounds/FE0410D4-7381-4ACC-8FB9-D8862D553EC0.PNG");
+      background-size:cover;
+      background-position:center;
+      min-height:100vh;
+    }
+
+    .page-shell{
+      width:min(1280px,94vw);
+      margin:0 auto;
+      padding:28px 0 72px;
+      position:relative;
+      z-index:2;
+    }
+
+    .topbar{
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      align-items:center;
+      gap:18px;
+      margin-bottom:28px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      text-decoration:none;
+      color:inherit;
+    }
+
+    .brand img{
+      height:62px;
+      width:auto;
+      display:block;
+    }
+
+    .brand-text{
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:34px;
+      color:#f7ecd7;
+      letter-spacing:0.3px;
+    }
+
+    .topbar-spacer{
+      min-height:1px;
+    }
+
+    .topbar-action{
+      justify-self:end;
+      appearance:none;
+      border:none;
+      border-radius:999px;
+      padding:14px 24px;
+      font-size:17px;
+      font-weight:700;
+      cursor:pointer;
+      color:#fffaf1;
+      background:linear-gradient(180deg, var(--gold) 0%, var(--gold-deep) 100%);
+      box-shadow:0 10px 24px rgba(208,142,43,0.28);
+    }
+
+    .hero{
+      display:grid;
+      grid-template-columns:1.05fr 0.95fr;
+      gap:26px;
+      align-items:stretch;
+      margin-bottom:28px;
+    }
+
+    .hero-copy,
+    .hero-visual,
+    .section-card,
+    .tips-card{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
+        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+
+    .hero-copy{
+      padding:34px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:18px;
+      min-height:620px;
+    }
+
+    .eyebrow{
+      color:#e9c57c;
+      font-size:14px;
+      font-weight:700;
+      letter-spacing:0.5px;
+      text-transform:uppercase;
+    }
+
+    .hero-title{
+      margin:0;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:clamp(48px, 6vw, 84px);
+      line-height:0.93;
+      color:#fff7e8;
+      max-width:680px;
+    }
+
+    .hero-text{
+      margin:0;
+      font-size:20px;
+      line-height:1.75;
+      color:var(--muted);
+      max-width:640px;
+    }
+
+    .hero-bullets{
+      display:grid;
+      gap:12px;
+      margin-top:4px;
+    }
+
+    .hero-bullet{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      padding:14px 16px;
+      border-radius:18px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(240,196,109,0.10);
+      color:#f4ead7;
+      font-size:17px;
+      line-height:1.55;
+    }
+
+    .hero-bullet-dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:var(--gold);
+      margin-top:9px;
+      flex:0 0 auto;
+      box-shadow:0 0 0 5px rgba(240,196,109,0.12);
+    }
+
+    .hero-actions{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+
+    .primary-btn,
+    .secondary-btn{
+      appearance:none;
+      border:none;
+      border-radius:999px;
+      padding:16px 28px;
+      font-size:18px;
+      font-weight:700;
+      cursor:pointer;
+      transition:transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .primary-btn:hover,
+    .secondary-btn:hover,
+    .topbar-action:hover{
+      transform:translateY(-1px);
+    }
+
+    .primary-btn{
+      color:#fffaf1;
+      background:linear-gradient(180deg, var(--gold) 0%, var(--gold-deep) 100%);
+      box-shadow:0 10px 24px rgba(208,142,43,0.28);
+    }
+
+    .secondary-btn{
+      background:rgba(255,255,255,0.05);
+      color:#fff8ec;
+      border:1px solid rgba(240,196,109,0.16);
+    }
+
+    .hero-visual{
+      padding:20px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:620px;
+    }
+
+    .hero-visual img{
+      width:100%;
+      max-width:520px;
+      height:auto;
+      display:block;
+      object-fit:contain;
+      filter:drop-shadow(0 18px 34px rgba(0,0,0,0.35));
+      border-radius:24px;
+    }
+
+    .section-card{
+      padding:30px;
+      margin-bottom:24px;
+    }
+
+    .section-header{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin-bottom:20px;
+    }
+
+    .section-title{
+      margin:0;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:clamp(36px, 4.5vw, 58px);
+      line-height:0.95;
+      color:#fff7e8;
+    }
+
+    .section-text{
+      margin:0;
+      font-size:18px;
+      line-height:1.7;
+      color:var(--muted);
+      max-width:820px;
+    }
+
+    .how-it-works-image{
+      width:100%;
+      display:block;
+      border-radius:26px;
+      border:1px solid rgba(240,196,109,0.14);
+      background:rgba(255,255,255,0.03);
+      box-shadow:0 10px 28px rgba(0,0,0,0.18);
+    }
+
+    .tips-layout{
+      display:grid;
+      grid-template-columns:1fr 380px;
+      gap:24px;
+    }
+
+    .tips-card{
+      padding:28px;
+    }
+
+    .tips-image{
+      width:100%;
+      display:block;
+      border-radius:22px;
+      border:1px solid rgba(240,196,109,0.14);
+      background:rgba(255,255,255,0.03);
+    }
+
+    .tips-list{
+      display:grid;
+      gap:14px;
+      margin-top:18px;
+    }
+
+    .tip-item{
+      padding:15px 16px;
+      border-radius:18px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(240,196,109,0.10);
+      color:#f3e6d0;
+      font-size:16px;
+      line-height:1.6;
+    }
+
+    .footer-cta{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:20px;
+      flex-wrap:wrap;
+      padding:28px 30px;
+      border-radius:28px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
+        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+    }
+
+    .footer-cta-copy h3{
+      margin:0 0 8px;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:34px;
+      color:#fff6e4;
+    }
+
+    .footer-cta-copy p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.65;
+      font-size:17px;
+      max-width:760px;
+    }
+
+    @media (max-width: 1024px){
+      .hero{
+        grid-template-columns:1fr;
+      }
+
+      .tips-layout{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width: 720px){
+      .topbar{
+        grid-template-columns:1fr;
+        gap:14px;
+      }
+
+      .topbar-action{
+        justify-self:start;
+      }
+
+      .brand-text{
+        font-size:30px;
+      }
+
+      .hero-copy,
+      .hero-visual,
+      .section-card,
+      .tips-card{
+        border-radius:28px;
+      }
+
+      .hero-copy{
+        padding:28px;
+        min-height:auto;
+      }
+
+      .hero-visual{
+        min-height:auto;
+      }
+
+      .section-card{
+        padding:24px;
+      }
+
+      .footer-cta{
+        padding:24px;
+      }
+    }
+  </style>
 </head>
 <body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <img
+          src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG"
+          alt="Lifebook logo"
+        />
+        <span class="brand-text">lifebook</span>
+      </a>
 
-  <header class="wizard-topbar">
-    <div class="wizard-topbar-left"></div>
+      <div class="topbar-spacer"></div>
 
-    <div class="wizard-brand">
-      <div class="logo-mark">
-        <div class="logo-book"><span></span></div>
+      <button class="topbar-action" type="button" onclick="window.location.href='wizard.html'">
+        Create Your Book
+      </button>
+    </header>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">Premium personalized storybooks</div>
+
+        <h1 class="hero-title">
+          Turn your child into the heart of a beautiful book
+        </h1>
+
+        <p class="hero-text">
+          Upload a photo, choose the story direction, and let Lifebook create a beautifully illustrated keepsake designed to feel magical, emotional, and gift-worthy.
+        </p>
+
+        <div class="hero-bullets">
+          <div class="hero-bullet">
+            <span class="hero-bullet-dot"></span>
+            <span>Personalized title, character identity, storyline, and illustrations</span>
+          </div>
+
+          <div class="hero-bullet">
+            <span class="hero-bullet-dot"></span>
+            <span>Beautiful digital and printed book experience</span>
+          </div>
+
+          <div class="hero-bullet">
+            <span class="hero-bullet-dot"></span>
+            <span>Premium product feel designed for keepsake moments</span>
+          </div>
+        </div>
+
+        <div class="hero-actions">
+          <button class="primary-btn" type="button" onclick="window.location.href='wizard.html'">
+            Create Your Book
+          </button>
+
+          <button class="secondary-btn" type="button" onclick="document.getElementById('howItWorksSection').scrollIntoView({ behavior: 'smooth' })">
+            See How It Works
+          </button>
+        </div>
       </div>
-      <span class="wizard-brand-text">lifebook</span>
-    </div>
 
-    <div class="wizard-topbar-right">
-      <a class="secondary-btn" href="wizard.html">Create Book</a>
-    </div>
-  </header>
+      <div class="hero-visual">
+        <img
+          src="assets/hero/7795308C-8EA2-4FB9-96C4-3F96B8862242.PNG"
+          alt="Lifebook hero visual"
+        />
+      </div>
+    </section>
 
-  <main class="home-shell">
-    <section class="hero-card">
-      <div class="hero-layout">
-        <div class="hero-copy">
-          <div class="eyebrow">Premium Personalized Storybooks</div>
-          <h1 class="hero-title">Turn Your Child Into the Hero of a Magical Story</h1>
-          <p class="hero-text">
-            Upload a photo, shape the story, and let Lifebook create a beautifully illustrated keepsake designed to feel magical, emotional, and truly premium.
+    <section id="howItWorksSection" class="section-card">
+      <div class="section-header">
+        <div class="eyebrow">Simple and magical</div>
+        <h2 class="section-title">How it works</h2>
+        <p class="section-text">
+          We made the process simple for parents and magical for children. Start with a photo, shape the story, and review your personalized book before checkout.
+        </p>
+      </div>
+
+      <img
+        class="how-it-works-image"
+        src="assets/how-it-works/7DA21598-9C66-4330-959A-1890D5D4382A.PNG"
+        alt="How Lifebook works"
+      />
+    </section>
+
+    <section class="tips-layout">
+      <div class="section-card" style="margin-bottom:0;">
+        <div class="section-header">
+          <div class="eyebrow">Better photos, better magic</div>
+          <h2 class="section-title">Photo tips</h2>
+          <p class="section-text">
+            The clearer the child photo, the better the consistency and the more beautiful the storybook character will feel throughout the book.
           </p>
-
-          <div class="hero-actions">
-            <a class="gold-btn" href="wizard.html">Create Your Book</a>
-            <a class="white-btn" href="#how-it-works">See How It Works</a>
-          </div>
-
-          <div class="hero-mini-points">
-            <div class="hero-mini-point">
-              <div class="hero-mini-point-dot"></div>
-              <div>Personalized title, story, and character-based illustrations</div>
-            </div>
-
-            <div class="hero-mini-point">
-              <div class="hero-mini-point-dot"></div>
-              <div>Premium digital preview, book reader, and print-ready version</div>
-            </div>
-
-            <div class="hero-mini-point">
-              <div class="hero-mini-point-dot"></div>
-              <div>A luxury keepsake parents will want to save forever</div>
-            </div>
-          </div>
         </div>
 
-        <div class="hero-visual">
-          <div class="hero-book">
-            <div class="hero-book-inner">
-              <div>
-                <div class="hero-book-top">
-                  <div class="logo-mark small">
-                    <div class="logo-book"><span></span></div>
-                  </div>
-                  <span>lifebook</span>
-                </div>
+        <img
+          class="tips-image"
+          src="assets/photo-tips/17B3BBFA-9828-4F0D-9964-11BB5A554450.PNG"
+          alt="Photo tips for best results"
+        />
+      </div>
 
-                <div class="hero-book-title">My Magical Adventure</div>
-                <div class="hero-book-subtitle">A Story Made Just for You</div>
-              </div>
+      <aside class="tips-card">
+        <div class="eyebrow">Best results</div>
+        <h2 class="section-title" style="font-size:42px;">What works best</h2>
 
-              <div class="hero-book-scene"></div>
-            </div>
+        <div class="tips-list">
+          <div class="tip-item">
+            One child only, facing the camera as clearly as possible.
+          </div>
+          <div class="tip-item">
+            Bright lighting and a visible face help the AI lock the character more accurately.
+          </div>
+          <div class="tip-item">
+            Avoid group photos, hidden faces, dramatic angles, and heavy blur.
+          </div>
+          <div class="tip-item">
+            Once your photo is ready, the wizard will guide you through the full creation flow.
           </div>
         </div>
-      </div>
+      </aside>
     </section>
 
-    <section class="curved-section" id="how-it-works">
-      <div class="curved-panel">
-        <section class="section">
-          <div class="section-card">
-            <div class="eyebrow" style="display:flex; margin:0 auto 16px; width:fit-content;">How it works</div>
-            <h2 class="section-title">Simple for parents, magical for children</h2>
-            <p class="section-text">
-              We designed Lifebook to feel effortless to create and beautiful to receive.
-            </p>
-
-            <div class="how-grid">
-              <div class="info-card">
-                <div class="info-visual photo"></div>
-                <h3>Upload a clear photo</h3>
-                <p>Choose a front-facing image so the character feels more polished, recognizable, and premium.</p>
-              </div>
-
-              <div class="info-card">
-                <div class="info-visual story"></div>
-                <h3>Shape the story</h3>
-                <p>Select the visual style and describe the type of adventure you want in a few simple lines.</p>
-              </div>
-
-              <div class="info-card">
-                <div class="info-visual print"></div>
-                <h3>Preview and unlock</h3>
-                <p>Open the preview, unlock the full book, and access the reader, print-ready view, and final PDF.</p>
-              </div>
-            </div>
-          </div>
-        </section>
+    <section class="footer-cta" style="margin-top:24px;">
+      <div class="footer-cta-copy">
+        <h3>Ready to create something unforgettable?</h3>
+        <p>
+          Start your personalized book now and turn a simple child photo into a premium illustrated keepsake.
+        </p>
       </div>
+
+      <button class="primary-btn" type="button" onclick="window.location.href='wizard.html'">
+        Start Now
+      </button>
     </section>
-  </main>
+  </div>
 </body>
 </html>
