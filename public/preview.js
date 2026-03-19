@@ -13,7 +13,7 @@ const coverImage = sessionStorage.getItem("coverImage") || "";
 
 const previewBookTitle = document.getElementById("previewBookTitle");
 const previewBookSubtitle = document.getElementById("previewBookSubtitle");
-const previewCoverImage = document.getElementById("previewCoverImage");
+const previewCoverFill = document.getElementById("previewCoverFill");
 
 const statChildName = document.getElementById("statChildName");
 const statStyle = document.getElementById("statStyle");
@@ -48,15 +48,15 @@ if (previewBookSubtitle) {
   previewBookSubtitle.textContent = generatedBook.subtitle || "A story where you are the hero";
 }
 
-if (previewCoverImage) {
+if (previewCoverFill) {
   if (coverImage) {
-    previewCoverImage.src = coverImage;
+    previewCoverFill.src = coverImage;
   } else if (data.croppedPhoto) {
-    previewCoverImage.src = data.croppedPhoto;
+    previewCoverFill.src = data.croppedPhoto;
   } else if (data.originalPhoto) {
-    previewCoverImage.src = data.originalPhoto;
+    previewCoverFill.src = data.originalPhoto;
   } else {
-    previewCoverImage.style.display = "none";
+    previewCoverFill.style.display = "none";
   }
 }
 
@@ -81,7 +81,6 @@ function createPageCard(page, index) {
   article.className = "page-card";
 
   const pageNumber = index + 1;
-  const promptText = page.imagePrompt || "";
   const storyText = page.text || "";
 
   article.innerHTML = `
@@ -95,7 +94,6 @@ function createPageCard(page, index) {
       <div class="page-content">
         <div class="page-badge">Page ${pageNumber}</div>
         <p class="page-text">${escapeHtml(storyText)}</p>
-        <p class="page-prompt">${escapeHtml(promptText)}</p>
       </div>
     </div>
   `;
