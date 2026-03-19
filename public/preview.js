@@ -10,11 +10,18 @@ if (!data.generatedBook || !Array.isArray(data.generatedBook.pages) || data.gene
 const generatedBook = data.generatedBook;
 const characterReference = data.characterReference || {};
 const coverImage = sessionStorage.getItem("coverImage") || "";
+const isUnlocked = data.purchaseUnlocked === true;
 
 const coverImageEl = document.getElementById("coverImage");
 const bookTitleEl = document.getElementById("bookTitle");
 const bookSubtitleEl = document.getElementById("bookSubtitle");
 const pagesContainer = document.getElementById("pagesContainer");
+const checkoutBtn = document.getElementById("checkoutBtn");
+const unlockNote = document.getElementById("unlockNote");
+
+const previewPages = isUnlocked
+  ? generatedBook.pages
+  : generatedBook.pages.slice(0, 2);
 
 if (bookTitleEl) {
   bookTitleEl.textContent = generatedBook.title || "Your Magical Adventure";
@@ -34,6 +41,18 @@ if (coverImageEl) {
   }
 }
 
+if (unlockNote) {
+  unlockNote.textContent = isUnlocked
+    ? "Your full book is unlocked."
+    : "You are viewing the first 2 preview pages. Complete payment to unlock the full book.";
+}
+
+if (checkoutBtn) {
+  checkoutBtn.textContent = isUnlocked
+    ? "Continue"
+    : "Unlock Full Book";
+}
+
 function createPageCard(page, index) {
   const article = document.createElement("article");
   article.className = "page";
@@ -50,6 +69,23 @@ function createPageCard(page, index) {
   `;
 
   return article;
+}
+
+function createLockedCard() {
+  const lockCard = document.createElement("article");
+  lockCard.className = "page";
+
+  lockCard.innerHTML = `
+    <div class="page-label">Locked Preview</div>
+    <div class="image-box" style="min-height:260px; font-size:20px; color:#f0c46d; text-align:center; padding:24px;">
+      The rest of the story unlocks after payment
+    </div>
+    <div class="page-text">
+      Continue to checkout to unlock the full preview, access the complete book, and continue to delivery.
+    </div>
+  `;
+
+  return lockCard;
 }
 
 function escapeHtml(text) {
@@ -109,15 +145,23 @@ async function renderPages() {
 
   pagesContainer.innerHTML = "";
 
-  const articles = generatedBook.pages.map((page, index) => {
+  const articles = previewPages.map((page, index) => {
     const article = createPageCard(page, index);
     pagesContainer.appendChild(article);
     return article;
   });
 
-  for (let i = 0; i < generatedBook.pages.length; i += 1) {
-    await generatePageImage(generatedBook.pages[i], i, articles[i]);
+  for (let i = 0; i < previewPages.length; i += 1) {
+    await generatePageImage(previewPages[i], i, articles[i]);
+  }
+
+  if (!isUnlocked && generatedBook.pages.length > 2) {
+    pagesContainer.appendChild(createLockedCard());
   }
 }
+
+checkoutBtn?.addEventListener("click", () => {
+  window.location.href = "checkout.html";
+});
 
 renderPages();
