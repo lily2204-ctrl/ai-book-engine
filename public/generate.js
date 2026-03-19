@@ -83,8 +83,17 @@ async function generateCharacterReference() {
     characterSummary: result.characterSummary || ""
   };
 
-  if (result.characterSheetBase64 && characterSheetPreview) {
-    characterSheetPreview.src = `data:image/png;base64,${result.characterSheetBase64}`;
+  if (result.characterSheetBase64) {
+    const characterSheetImage = `data:image/png;base64,${result.characterSheetBase64}`;
+
+    if (characterSheetPreview) {
+      characterSheetPreview.src = characterSheetImage;
+    }
+
+    // נשמור בנפרד רק לתצוגה בעמודים הבאים
+    sessionStorage.setItem("characterSheetImage", characterSheetImage);
+  } else {
+    sessionStorage.removeItem("characterSheetImage");
   }
 
   updateBookData({
