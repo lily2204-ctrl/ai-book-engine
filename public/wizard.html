@@ -5,42 +5,612 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Lifebook - Create Your Book</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    :root{
+      --bg:#07101f;
+      --panel:#101a31;
+      --panel-2:#0d1528;
+      --text:#f8f1e4;
+      --muted:#d7c7ad;
+      --gold:#f0c46d;
+      --gold-deep:#d08e2b;
+      --line:rgba(240,196,109,0.16);
+      --shadow:0 18px 60px rgba(0,0,0,0.34);
+      --radius:34px;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family:Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top, rgba(27,46,94,0.55) 0%, rgba(10,16,34,0.96) 55%, rgba(5,10,20,1) 100%),
+        url("assets/backgrounds/FE0410D4-7381-4ACC-8FB9-D8862D553EC0.PNG");
+      background-size:cover;
+      background-position:center;
+      min-height:100vh;
+    }
+
+    .wizard-page-shell{
+      width:min(1280px,94vw);
+      margin:0 auto;
+      padding:28px 0 72px;
+      position:relative;
+      z-index:2;
+    }
+
+    .wizard-topbar{
+      display:grid;
+      grid-template-columns:1fr auto 1fr;
+      align-items:center;
+      gap:16px;
+      margin-bottom:26px;
+    }
+
+    .wizard-topbar-left,
+    .wizard-topbar-right{
+      display:flex;
+      align-items:center;
+    }
+
+    .wizard-topbar-right{
+      justify-content:flex-end;
+    }
+
+    .back-link-button{
+      appearance:none;
+      border:1px solid rgba(240,196,109,0.24);
+      background:rgba(255,255,255,0.04);
+      color:#fff7ea;
+      border-radius:999px;
+      padding:12px 18px;
+      font-size:15px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .wizard-brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      justify-self:center;
+    }
+
+    .wizard-brand-logo{
+      height:62px;
+      width:auto;
+      display:block;
+    }
+
+    .wizard-brand-text{
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:34px;
+      color:#f7ecd7;
+      letter-spacing:0.3px;
+    }
+
+    .wizard-main-card,
+    .wizard-block,
+    .photo-reference-card{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
+        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+
+    .wizard-main-card{
+      padding:30px;
+    }
+
+    .wizard-header{
+      display:grid;
+      grid-template-columns:1.15fr 0.85fr;
+      gap:22px;
+      align-items:start;
+      margin-bottom:24px;
+    }
+
+    .wizard-step-label{
+      color:#e9c57c;
+      font-size:14px;
+      font-weight:700;
+      letter-spacing:0.5px;
+      text-transform:uppercase;
+      margin-bottom:10px;
+    }
+
+    .wizard-title{
+      margin:0 0 12px;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:clamp(42px, 5vw, 68px);
+      line-height:0.94;
+      color:#fff7e8;
+      max-width:760px;
+    }
+
+    .wizard-subtitle{
+      margin:0;
+      font-size:18px;
+      line-height:1.75;
+      color:var(--muted);
+      max-width:760px;
+    }
+
+    .wizard-side-note{
+      padding:20px 22px;
+      border-radius:24px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(240,196,109,0.12);
+      color:#f3e7d1;
+      line-height:1.7;
+      font-size:17px;
+    }
+
+    .wizard-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:22px;
+      margin-bottom:18px;
+    }
+
+    .wizard-block{
+      padding:24px;
+    }
+
+    .block-title{
+      margin:0 0 18px;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:34px;
+      color:#fff6e4;
+      line-height:1;
+    }
+
+    .input-grid{
+      display:grid;
+      gap:16px;
+    }
+
+    .input-label{
+      display:grid;
+      gap:8px;
+      color:#f2e3c6;
+      font-size:15px;
+      font-weight:700;
+    }
+
+    .input-label input,
+    .input-label select,
+    .input-label textarea{
+      width:100%;
+      border-radius:18px;
+      border:1px solid rgba(240,196,109,0.14);
+      background:rgba(255,255,255,0.06);
+      color:#fff8ec;
+      padding:16px 18px;
+      font-size:16px;
+      outline:none;
+    }
+
+    .input-label textarea{
+      min-height:140px;
+      resize:vertical;
+      line-height:1.6;
+    }
+
+    .input-label input::placeholder,
+    .input-label textarea::placeholder{
+      color:#c7b79f;
+    }
+
+    .style-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+
+    .style-card{
+      border-radius:24px;
+      padding:18px;
+      border:1px solid rgba(240,196,109,0.12);
+      background:rgba(255,255,255,0.04);
+      cursor:pointer;
+      transition:transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .style-card:hover{
+      transform:translateY(-1px);
+    }
+
+    .style-card.active{
+      border-color:rgba(240,196,109,0.42);
+      background:
+        linear-gradient(180deg, rgba(240,196,109,0.08), rgba(255,255,255,0.03)),
+        rgba(255,255,255,0.04);
+    }
+
+    .style-thumb{
+      width:100%;
+      aspect-ratio:1.15/1;
+      border-radius:18px;
+      background:
+        radial-gradient(circle at top, rgba(240,196,109,0.22), transparent 45%),
+        linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03));
+      border:1px solid rgba(240,196,109,0.10);
+      margin-bottom:14px;
+    }
+
+    .style-name{
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:24px;
+      color:#fff7e7;
+      margin-bottom:8px;
+    }
+
+    .style-text{
+      color:#d7c7ad;
+      font-size:15px;
+      line-height:1.6;
+    }
+
+    .upload-layout{
+      display:grid;
+      grid-template-columns:1fr 400px;
+      gap:22px;
+      align-items:start;
+    }
+
+    .upload-panel{
+      display:grid;
+      gap:18px;
+    }
+
+    .upload-drop{
+      border-radius:28px;
+      border:1px dashed rgba(240,196,109,0.3);
+      background:
+        linear-gradient(180deg, rgba(240,196,109,0.06), rgba(255,255,255,0.03)),
+        rgba(255,255,255,0.03);
+      min-height:220px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:24px;
+      cursor:pointer;
+      transition:transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .upload-drop:hover{
+      transform:translateY(-1px);
+      border-color:rgba(240,196,109,0.45);
+    }
+
+    .upload-plus{
+      width:64px;
+      height:64px;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(240,196,109,0.12);
+      color:var(--gold);
+      font-size:40px;
+      line-height:1;
+      margin-bottom:16px;
+      box-shadow:0 0 0 10px rgba(240,196,109,0.05);
+    }
+
+    .upload-title{
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:34px;
+      color:#fff6e4;
+      margin-bottom:10px;
+    }
+
+    .upload-text{
+      color:#d7c7ad;
+      line-height:1.7;
+      font-size:17px;
+      max-width:520px;
+    }
+
+    .photo-reference-card{
+      padding:20px;
+    }
+
+    .photo-reference-image{
+      width:100%;
+      display:block;
+      border-radius:22px;
+      border:1px solid rgba(240,196,109,0.14);
+      background:rgba(255,255,255,0.03);
+      margin-bottom:16px;
+    }
+
+    .photo-reference-copy{
+      display:grid;
+      gap:12px;
+    }
+
+    .photo-reference-copy .tip-item{
+      padding:14px 15px;
+      border-radius:18px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(240,196,109,0.10);
+      color:#f3e6d0;
+      font-size:15px;
+      line-height:1.6;
+    }
+
+    .wizard-footer-actions{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      margin-top:24px;
+    }
+
+    .primary-btn,
+    .secondary-btn,
+    .continue-btn{
+      appearance:none;
+      border:none;
+      border-radius:999px;
+      padding:16px 28px;
+      font-size:18px;
+      font-weight:700;
+      cursor:pointer;
+      transition:transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .primary-btn:hover,
+    .secondary-btn:hover,
+    .continue-btn:hover,
+    .back-link-button:hover,
+    .upload-btn:hover{
+      transform:translateY(-1px);
+    }
+
+    .continue-btn,
+    .primary-btn{
+      color:#fffaf1;
+      background:linear-gradient(180deg, var(--gold) 0%, var(--gold-deep) 100%);
+      box-shadow:0 10px 24px rgba(208,142,43,0.28);
+    }
+
+    .secondary-btn{
+      background:rgba(255,255,255,0.05);
+      color:#fff8ec;
+      border:1px solid rgba(240,196,109,0.16);
+    }
+
+    .modal-overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(3,6,14,0.74);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      z-index:9999;
+      backdrop-filter:blur(6px);
+    }
+
+    .modal-overlay.hidden{
+      display:none;
+    }
+
+    .modal-card{
+      width:min(1100px, 96vw);
+      max-height:90vh;
+      overflow:auto;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
+        linear-gradient(180deg, rgba(18,23,41,0.98), rgba(14,18,33,1));
+      border:1px solid rgba(240,196,109,0.16);
+      border-radius:34px;
+      box-shadow:0 24px 80px rgba(0,0,0,0.42);
+      padding:28px;
+      position:relative;
+    }
+
+    .modal-close{
+      position:absolute;
+      top:16px;
+      right:16px;
+      width:44px;
+      height:44px;
+      border-radius:50%;
+      border:none;
+      cursor:pointer;
+      font-size:28px;
+      line-height:1;
+      color:#fff8ec;
+      background:rgba(255,255,255,0.08);
+    }
+
+    .modal-title{
+      margin:0 0 10px;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:42px;
+      line-height:0.96;
+      color:#fff7e8;
+      max-width:760px;
+    }
+
+    .modal-text{
+      margin:0 0 20px;
+      font-size:17px;
+      line-height:1.7;
+      color:#d7c7ad;
+      max-width:820px;
+    }
+
+    .modal-body-layout{
+      display:grid;
+      grid-template-columns:1fr 360px;
+      gap:22px;
+      align-items:start;
+    }
+
+    .modal-guide-image{
+      width:100%;
+      display:block;
+      border-radius:22px;
+      border:1px solid rgba(240,196,109,0.14);
+      background:rgba(255,255,255,0.03);
+    }
+
+    .modal-side-card{
+      padding:22px;
+      border-radius:26px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(240,196,109,0.12);
+    }
+
+    .modal-side-card h3{
+      margin:0 0 14px;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:28px;
+      color:#fff6e4;
+    }
+
+    .modal-guide-list{
+      display:grid;
+      gap:12px;
+      margin-bottom:18px;
+    }
+
+    .modal-guide-item{
+      padding:14px 15px;
+      border-radius:16px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(240,196,109,0.10);
+      color:#f3e6d0;
+      font-size:15px;
+      line-height:1.6;
+    }
+
+    .modal-actions{
+      display:grid;
+      gap:12px;
+      margin-top:10px;
+    }
+
+    .upload-btn{
+      display:block;
+      width:100%;
+      padding:16px 18px;
+      border-radius:18px;
+      text-align:center;
+      font-size:17px;
+      font-weight:700;
+      cursor:pointer;
+      color:#fffaf1;
+      background:linear-gradient(180deg, var(--gold) 0%, var(--gold-deep) 100%);
+      box-shadow:0 10px 24px rgba(208,142,43,0.24);
+    }
+
+    @media (max-width: 1100px){
+      .wizard-header,
+      .wizard-grid,
+      .upload-layout,
+      .modal-body-layout{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width: 720px){
+      .wizard-topbar{
+        grid-template-columns:1fr;
+        gap:14px;
+      }
+
+      .wizard-brand{
+        justify-self:start;
+      }
+
+      .wizard-brand-logo{
+        height:54px;
+      }
+
+      .wizard-brand-text{
+        font-size:30px;
+      }
+
+      .wizard-main-card,
+      .wizard-block,
+      .photo-reference-card{
+        border-radius:28px;
+      }
+
+      .wizard-main-card{
+        padding:22px;
+      }
+
+      .wizard-block{
+        padding:20px;
+      }
+
+      .style-grid{
+        grid-template-columns:1fr;
+      }
+
+      .upload-title{
+        font-size:30px;
+      }
+
+      .modal-card{
+        padding:22px;
+        border-radius:28px;
+      }
+
+      .modal-title{
+        font-size:36px;
+      }
+    }
+  </style>
 </head>
 <body class="setup-body">
-
-  <header class="wizard-topbar">
-    <div class="wizard-topbar-left">
-      <button class="back-link-button" type="button" onclick="window.location.href='index.html'">← Back</button>
-    </div>
-
-    <div class="wizard-brand">
-      <div class="logo-mark">
-        <div class="logo-book"><span></span></div>
+  <div class="wizard-page-shell">
+    <header class="wizard-topbar">
+      <div class="wizard-topbar-left">
+        <button class="back-link-button" type="button" onclick="window.location.href='index.html'">← Back</button>
       </div>
-      <span class="wizard-brand-text">lifebook</span>
-    </div>
 
-    <div class="wizard-topbar-right"></div>
-  </header>
+      <div class="wizard-brand">
+        <img
+          class="wizard-brand-logo"
+          src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG"
+          alt="Lifebook logo"
+        />
+        <span class="wizard-brand-text">lifebook</span>
+      </div>
 
-  <main class="wizard-shell">
-    <section class="wizard-main-card">
+      <div class="wizard-topbar-right"></div>
+    </header>
+
+    <main class="wizard-main-card">
       <div class="wizard-header">
         <div>
           <div class="wizard-step-label">Step 1 of 5</div>
           <h1 class="wizard-title">Create your personalized book</h1>
           <p class="wizard-subtitle">
-            Upload a child photo, choose the illustration style, and guide the story with a few simple details.
+            Upload a child photo, choose the illustration style, and guide the story with a few simple details. We’ll turn it into a premium illustrated keepsake with a consistent child character and magical story flow.
           </p>
         </div>
 
         <div class="wizard-side-note">
-          The clearer the photo and the story direction, the more polished and premium the final book will feel.
+          The clearer the photo and the more focused the story direction, the more polished and premium the final book will feel. A strong image helps the character stay beautiful and consistent from cover to final page.
         </div>
       </div>
 
       <div class="wizard-grid">
-        <div class="wizard-block">
+        <section class="wizard-block">
           <h2 class="block-title">Story details</h2>
 
           <div class="input-grid">
@@ -78,12 +648,12 @@
 
             <label class="input-label">
               Story direction
-              <textarea id="storyIdea" placeholder="For example: a magical forest adventure, a brave explorer, a bedtime story about friendship, or a world full of wonder..."></textarea>
+              <textarea id="storyIdea" placeholder="For example: a magical forest adventure, a brave explorer, a bedtime story about friendship, a pajama journey, a world full of wonder..."></textarea>
             </label>
           </div>
-        </div>
+        </section>
 
-        <div class="wizard-block">
+        <section class="wizard-block">
           <h2 class="block-title">Illustration style</h2>
 
           <div class="style-grid" id="styleGrid">
@@ -111,63 +681,45 @@
               <div class="style-text">Clean, calm, and elegant with a more modern feel.</div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
 
-      <div class="wizard-block" style="margin-top:18px;">
+      <section class="wizard-block" style="margin-top:18px;">
         <h2 class="block-title">Upload the child photo</h2>
 
-        <div class="upload-panel">
-          <div class="upload-drop" id="openPhotoModal">
-            <div class="upload-plus">+</div>
-            <div class="upload-title">Add photo</div>
-            <div class="upload-text">
-              Choose a clear image of the child to create a more polished and accurate character.
-            </div>
-          </div>
-
-          <div class="photo-guide-grid">
-            <div class="guide-card good">
-              <div class="guide-image good"></div>
-              <div class="guide-content">
-                <div class="guide-title">Good photo</div>
-                <div class="guide-desc">Clear face, centered child, simple background, bright lighting.</div>
-              </div>
-            </div>
-
-            <div class="guide-card bad">
-              <div class="guide-image bad"></div>
-              <div class="guide-content">
-                <div class="guide-title">Not ideal</div>
-                <div class="guide-desc">Too far away, face is small, or the photo is too busy.</div>
-              </div>
-            </div>
-
-            <div class="guide-card bad">
-              <div class="guide-image bad"></div>
-              <div class="guide-content">
-                <div class="guide-title">Not ideal</div>
-                <div class="guide-desc">Face covered, strong angle, blur, or poor lighting.</div>
-              </div>
-            </div>
-
-            <div class="guide-card bad">
-              <div class="guide-image bad"></div>
-              <div class="guide-content">
-                <div class="guide-title">Not ideal</div>
-                <div class="guide-desc">More than one child or an image that makes the subject unclear.</div>
+        <div class="upload-layout">
+          <div class="upload-panel">
+            <div class="upload-drop" id="openPhotoModal">
+              <div class="upload-plus">+</div>
+              <div class="upload-title">Add photo</div>
+              <div class="upload-text">
+                Choose a clear image of the child to create a more polished and accurate character. One strong photo makes the whole book feel more premium.
               </div>
             </div>
           </div>
+
+          <aside class="photo-reference-card">
+            <img
+              class="photo-reference-image"
+              src="assets/photo-tips/17B3BBFA-9828-4F0D-9964-11BB5A554450.PNG"
+              alt="Photo tips reference"
+            />
+
+            <div class="photo-reference-copy">
+              <div class="tip-item">Best result: one child, visible face, front-facing, bright lighting.</div>
+              <div class="tip-item">Avoid group photos, strong blur, hidden faces, or dramatic angles.</div>
+              <div class="tip-item">A cleaner image helps the AI lock the child character more beautifully.</div>
+            </div>
+          </aside>
         </div>
 
         <div class="wizard-footer-actions">
           <button class="secondary-btn" type="button" onclick="window.location.href='index.html'">Back Home</button>
           <button class="continue-btn" id="goToSetupBtn" type="button">Continue</button>
         </div>
-      </div>
-    </section>
-  </main>
+      </section>
+    </main>
+  </div>
 
   <div class="modal-overlay hidden" id="photoModal">
     <div class="modal-card">
@@ -175,53 +727,40 @@
 
       <h2 class="modal-title">Choose the best photo for the book</h2>
       <p class="modal-text">
-        A strong photo gives the AI a much better base for creating a premium child character throughout the story.
+        A strong photo gives the AI a much better base for creating a premium child character throughout the story. Use one clear child photo for the most beautiful result.
       </p>
 
-      <div class="modal-guide-grid">
-        <div class="modal-guide-card good">
-          <div class="modal-guide-image good"></div>
-          <div class="modal-guide-body">
-            <div class="modal-guide-title">Best option</div>
-            <div class="modal-guide-desc">One child, front-facing, clear face, bright and centered.</div>
-          </div>
+      <div class="modal-body-layout">
+        <div>
+          <img
+            class="modal-guide-image"
+            src="assets/photo-tips/17B3BBFA-9828-4F0D-9964-11BB5A554450.PNG"
+            alt="Photo tips guide"
+          />
         </div>
 
-        <div class="modal-guide-card bad">
-          <div class="modal-guide-image bad"></div>
-          <div class="modal-guide-body">
-            <div class="modal-guide-title">Too many people</div>
-            <div class="modal-guide-desc">Group photos make it harder to isolate the child clearly.</div>
+        <aside class="modal-side-card">
+          <h3>Best results</h3>
+
+          <div class="modal-guide-list">
+            <div class="modal-guide-item">One child only, with the face clearly visible.</div>
+            <div class="modal-guide-item">Bright lighting and enough space around the face help a lot.</div>
+            <div class="modal-guide-item">Avoid dark, distant, group, or heavily covered images.</div>
+            <div class="modal-guide-item">You’ll crop the photo in the next step for better character consistency.</div>
           </div>
-        </div>
 
-        <div class="modal-guide-card bad">
-          <div class="modal-guide-image bad"></div>
-          <div class="modal-guide-body">
-            <div class="modal-guide-title">Face too hidden</div>
-            <div class="modal-guide-desc">Covered face, strong angle, or blur reduce character quality.</div>
+          <div class="modal-actions">
+            <label class="upload-btn">
+              📷 Take Photo
+              <input type="file" accept="image/*" capture="environment" id="cameraInput" hidden>
+            </label>
+
+            <label class="upload-btn">
+              🖼 Choose from Gallery
+              <input type="file" accept="image/*" id="galleryInput" hidden>
+            </label>
           </div>
-        </div>
-
-        <div class="modal-guide-card bad">
-          <div class="modal-guide-image bad"></div>
-          <div class="modal-guide-body">
-            <div class="modal-guide-title">Too dark or distant</div>
-            <div class="modal-guide-desc">The child should appear clearly and take up enough space in the photo.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-actions">
-        <label class="upload-btn">
-          📷 Take Photo
-          <input type="file" accept="image/*" capture="environment" id="cameraInput" hidden>
-        </label>
-
-        <label class="upload-btn">
-          🖼 Choose from Gallery
-          <input type="file" accept="image/*" id="galleryInput" hidden>
-        </label>
+        </aside>
       </div>
     </div>
   </div>
