@@ -258,14 +258,15 @@
 
     .upload-layout{
       display:grid;
-      grid-template-columns:1fr 400px;
-      gap:22px;
+      grid-template-columns:minmax(0, 1fr) 330px;
+      gap:18px;
       align-items:start;
     }
 
     .upload-panel{
       display:grid;
       gap:18px;
+      min-width:0;
     }
 
     .upload-drop{
@@ -320,31 +321,32 @@
     }
 
     .photo-reference-card{
-      padding:20px;
+      padding:16px;
+      align-self:stretch;
     }
 
     .photo-reference-image{
       width:100%;
       display:block;
-      border-radius:22px;
+      border-radius:18px;
       border:1px solid rgba(240,196,109,0.14);
       background:rgba(255,255,255,0.03);
-      margin-bottom:16px;
+      margin-bottom:14px;
     }
 
     .photo-reference-copy{
       display:grid;
-      gap:12px;
+      gap:10px;
     }
 
     .photo-reference-copy .tip-item{
-      padding:14px 15px;
-      border-radius:18px;
+      padding:12px 13px;
+      border-radius:14px;
       background:rgba(255,255,255,0.04);
       border:1px solid rgba(240,196,109,0.10);
       color:#f3e6d0;
-      font-size:15px;
-      line-height:1.6;
+      font-size:14px;
+      line-height:1.5;
     }
 
     .wizard-footer-actions{
@@ -452,8 +454,8 @@
 
     .modal-body-layout{
       display:grid;
-      grid-template-columns:1fr 360px;
-      gap:22px;
+      grid-template-columns:minmax(0, 1fr) 320px;
+      gap:18px;
       align-items:start;
     }
 
@@ -466,8 +468,8 @@
     }
 
     .modal-side-card{
-      padding:22px;
-      border-radius:26px;
+      padding:20px;
+      border-radius:24px;
       background:rgba(255,255,255,0.04);
       border:1px solid rgba(240,196,109,0.12);
     }
@@ -481,18 +483,18 @@
 
     .modal-guide-list{
       display:grid;
-      gap:12px;
+      gap:10px;
       margin-bottom:18px;
     }
 
     .modal-guide-item{
-      padding:14px 15px;
-      border-radius:16px;
+      padding:12px 13px;
+      border-radius:14px;
       background:rgba(255,255,255,0.04);
       border:1px solid rgba(240,196,109,0.10);
       color:#f3e6d0;
-      font-size:15px;
-      line-height:1.6;
+      font-size:14px;
+      line-height:1.5;
     }
 
     .modal-actions{
@@ -521,6 +523,10 @@
       .upload-layout,
       .modal-body-layout{
         grid-template-columns:1fr;
+      }
+
+      .photo-reference-card{
+        max-width:520px;
       }
     }
 
