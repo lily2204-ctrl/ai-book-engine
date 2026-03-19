@@ -1,500 +1,147 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lifebook - Book Preview</title>
-  <link rel="stylesheet" href="./styles.css" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lifebook - Preview</title>
+
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
+    body{
+      margin:0;
+      font-family:Arial;
+      color:#fff8ec;
       background:
-        radial-gradient(circle at top, rgba(27, 46, 94, 0.55) 0%, rgba(10, 16, 34, 0.96) 55%, rgba(5, 10, 20, 1) 100%),
+        radial-gradient(circle at top, rgba(27,46,94,0.55), rgba(5,10,20,1)),
         url("assets/backgrounds/FE0410D4-7381-4ACC-8FB9-D8862D553EC0.PNG");
-      background-size: cover;
-      background-position: center;
-      color: #fff8ec;
-      min-height: 100vh;
+      background-size:cover;
     }
 
-    .preview-shell {
-      width: min(1260px, 94vw);
-      margin: 0 auto;
-      padding: 28px 0 70px;
-      position: relative;
-      z-index: 2;
+    .container{
+      width:min(1200px,94vw);
+      margin:auto;
+      padding:30px 0;
     }
 
-    .preview-topbar {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      margin-bottom: 28px;
+    .top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:20px;
     }
 
-    .preview-back-btn {
-      justify-self: start;
-      appearance: none;
-      border: 1px solid rgba(240, 196, 109, 0.24);
-      background: rgba(255, 255, 255, 0.04);
-      color: #fff7ea;
-      border-radius: 999px;
-      padding: 12px 18px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
+    .back{
+      border:1px solid rgba(240,196,109,0.2);
+      padding:10px 16px;
+      border-radius:999px;
+      cursor:pointer;
     }
 
-    .preview-brand {
-      justify-self: center;
-      display: flex;
-      align-items: center;
-      gap: 14px;
+    .title{
+      font-family:Georgia;
+      font-size:60px;
+      margin-bottom:10px;
     }
 
-    .preview-brand img {
-      height: 64px;
-      width: auto;
-      display: block;
+    .subtitle{
+      color:#cfc0ab;
+      margin-bottom:30px;
     }
 
-    .preview-brand-text {
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: 32px;
-      color: #f7ecd7;
-      letter-spacing: 0.4px;
+    .layout{
+      display:grid;
+      grid-template-columns:400px 1fr;
+      gap:20px;
     }
 
-    .preview-hero {
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 26px;
-      margin-bottom: 26px;
+    .cover{
+      border-radius:30px;
+      overflow:hidden;
+      border:1px solid rgba(240,196,109,0.2);
     }
 
-    .preview-cover-card,
-    .preview-intro-card,
-    .page-card,
-    .preview-actions-card {
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
-        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
-      border: 1px solid rgba(240,196,109,0.14);
-      border-radius: 34px;
-      box-shadow: 0 18px 60px rgba(0,0,0,0.34);
+    .cover img{
+      width:100%;
+      display:block;
     }
 
-    .preview-cover-card {
-      padding: 22px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 540px;
+    .page{
+      margin-bottom:30px;
+      padding:20px;
+      border-radius:24px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(240,196,109,0.1);
     }
 
-    .mini-book {
-      width: 100%;
-      max-width: 280px;
-      aspect-ratio: 0.72 / 1;
-      border-radius: 18px;
-      overflow: hidden;
-      border: 2px solid rgba(234, 190, 94, 0.45);
-      position: relative;
-      background: linear-gradient(180deg, #10182d 0%, #0b1222 100%);
-      box-shadow: 0 18px 38px rgba(0,0,0,0.34);
+    .page-label{
+      font-size:14px;
+      color:#e9c57c;
+      margin-bottom:10px;
     }
 
-    .mini-book-fill {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
+    .page-text{
+      font-size:22px;
+      line-height:1.6;
     }
 
-    .mini-book::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(180deg, rgba(7,10,20,0.18) 0%, rgba(7,10,20,0.06) 18%, rgba(7,10,20,0.16) 56%, rgba(7,10,20,0.4) 100%);
-      pointer-events: none;
+    .image-box{
+      width:100%;
+      height:200px;
+      background:rgba(255,255,255,0.05);
+      border-radius:20px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      margin-bottom:15px;
     }
 
-    .mini-book-inner {
-      position: relative;
-      z-index: 2;
-      height: 100%;
-      padding: 18px;
-      display: grid;
-      grid-template-rows: auto auto 1fr auto;
-      gap: 10px;
+    .cta{
+      margin-top:30px;
     }
 
-    .mini-book-brand {
-      display: flex;
-      justify-content: center;
+    .btn{
+      padding:16px 30px;
+      border-radius:999px;
+      border:none;
+      cursor:pointer;
+      font-weight:bold;
+      background:linear-gradient(180deg,#f0c46d,#d08e2b);
     }
 
-    .mini-book-brand img {
-      height: 30px;
-      width: auto;
-      display: block;
-      filter: drop-shadow(0 2px 10px rgba(0,0,0,0.26));
-    }
-
-    .mini-book-title {
-      margin: 0;
-      text-align: center;
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(28px, 3vw, 42px);
-      line-height: 0.98;
-      color: #fff3da;
-      white-space: pre-line;
-      text-shadow: 0 2px 12px rgba(0,0,0,0.32);
-    }
-
-    .mini-book-subtitle {
-      margin: 0;
-      text-align: center;
-      color: #f4e1ba;
-      font-size: 13px;
-      line-height: 1.35;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.24);
-    }
-
-    .mini-book-note {
-      text-align: center;
-      font-size: 13px;
-      color: #f5ddb0;
-      align-self: end;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.24);
-    }
-
-    .preview-intro-card {
-      padding: 30px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-      min-height: 540px;
-    }
-
-    .preview-step-label {
-      color: #e9c57c;
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-      text-transform: uppercase;
-    }
-
-    .preview-heading {
-      margin: 0;
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(40px, 5vw, 66px);
-      line-height: 0.95;
-      color: #fff7e8;
-    }
-
-    .preview-copy {
-      margin: 0;
-      font-size: 18px;
-      line-height: 1.7;
-      color: #d7c8b3;
-      max-width: 700px;
-    }
-
-    .preview-stats {
-      display: grid;
-      gap: 14px;
-      margin-top: 6px;
-    }
-
-    .stat-row {
-      display: grid;
-      grid-template-columns: 190px 1fr;
-      gap: 14px;
-      align-items: start;
-      padding: 15px 18px;
-      border-radius: 18px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(240,196,109,0.12);
-    }
-
-    .stat-label {
-      font-size: 15px;
-      font-weight: 700;
-      color: #e9c57c;
-    }
-
-    .stat-value {
-      font-size: 16px;
-      line-height: 1.5;
-      color: #fff6e6;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .preview-pages {
-      display: grid;
-      gap: 22px;
-      margin-top: 26px;
-    }
-
-    .page-card {
-      padding: 22px;
-    }
-
-    .page-card-inner {
-      display: grid;
-      grid-template-columns: 320px 1fr;
-      gap: 22px;
-      align-items: center;
-    }
-
-    .page-image-wrap {
-      position: relative;
-      border-radius: 22px;
-      overflow: hidden;
-      border: 1px solid rgba(240,196,109,0.16);
-      background: rgba(255,255,255,0.04);
-      min-height: 320px;
-    }
-
-    .page-image {
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      object-fit: cover;
-      display: block;
-      background: rgba(255,255,255,0.04);
-    }
-
-    .page-image-loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 320px;
-      text-align: center;
-      color: #d4c3ab;
-      font-size: 15px;
-      line-height: 1.5;
-      padding: 20px;
-    }
-
-    .page-image-error {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 320px;
-      text-align: center;
-      color: #f3b5a5;
-      font-size: 15px;
-      line-height: 1.5;
-      padding: 20px;
-    }
-
-    .page-content {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .page-badge {
-      display: inline-flex;
-      align-items: center;
-      width: fit-content;
-      border-radius: 999px;
-      padding: 8px 14px;
-      background: rgba(240,196,109,0.08);
-      border: 1px solid rgba(240,196,109,0.16);
-      color: #efc977;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-      text-transform: uppercase;
-    }
-
-    .page-text {
-      margin: 0;
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(24px, 2.2vw, 34px);
-      line-height: 1.38;
-      color: #fff7eb;
-    }
-
-    .preview-actions-card {
-      margin-top: 26px;
-      padding: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
-
-    .preview-actions-copy {
-      max-width: 620px;
-    }
-
-    .preview-actions-copy h3 {
-      margin: 0 0 8px;
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: 34px;
-      color: #fff6e4;
-    }
-
-    .preview-actions-copy p {
-      margin: 0;
-      color: #d5c4ad;
-      line-height: 1.6;
-      font-size: 17px;
-    }
-
-    .preview-actions-buttons {
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-
-    .primary-btn,
-    .secondary-btn {
-      appearance: none;
-      border: none;
-      border-radius: 999px;
-      padding: 16px 28px;
-      font-size: 18px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.15s ease, opacity 0.15s ease;
-    }
-
-    .primary-btn:hover,
-    .secondary-btn:hover,
-    .preview-back-btn:hover {
-      transform: translateY(-1px);
-    }
-
-    .primary-btn {
-      background: linear-gradient(180deg, #f0c46d 0%, #d08e2b 100%);
-      color: #fffaf1;
-      box-shadow: 0 10px 24px rgba(208, 142, 43, 0.28);
-    }
-
-    .secondary-btn {
-      background: rgba(255,255,255,0.05);
-      color: #fff8ec;
-      border: 1px solid rgba(240,196,109,0.16);
-    }
-
-    @media (max-width: 980px) {
-      .preview-hero {
-        grid-template-columns: 1fr;
-      }
-
-      .page-card-inner {
-        grid-template-columns: 1fr;
-      }
-
-      .stat-row {
-        grid-template-columns: 1fr;
-        gap: 8px;
-      }
-
-      .preview-topbar {
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
-
-      .preview-back-btn,
-      .preview-brand {
-        justify-self: start;
-      }
+    @media(max-width:900px){
+      .layout{grid-template-columns:1fr;}
     }
   </style>
 </head>
+
 <body>
-  <div class="preview-shell">
-    <header class="preview-topbar">
-      <button id="backToCoverBtn" class="preview-back-btn" type="button">← Back</button>
+  <div class="container">
 
-      <div class="preview-brand">
-        <img id="previewBrandLogo" src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook logo" />
-        <span class="preview-brand-text">lifebook</span>
+    <div class="top">
+      <div class="back" onclick="history.back()">← Back</div>
+      <div>lifebook</div>
+    </div>
+
+    <div class="layout">
+      <!-- COVER -->
+      <div class="cover">
+        <img id="coverImage"/>
       </div>
 
-      <div></div>
-    </header>
+      <!-- CONTENT -->
+      <div>
+        <div class="title" id="bookTitle"></div>
+        <div class="subtitle" id="bookSubtitle"></div>
 
-    <section class="preview-hero">
-      <div class="preview-cover-card">
-        <div class="mini-book">
-          <img id="previewCoverFill" class="mini-book-fill" alt="Book cover art" />
+        <div id="pagesContainer"></div>
 
-          <div class="mini-book-inner">
-            <div class="mini-book-brand">
-              <img id="miniBookLogo" src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook mark" />
-            </div>
-
-            <h1 id="previewBookTitle" class="mini-book-title">Your Magical Adventure</h1>
-            <p id="previewBookSubtitle" class="mini-book-subtitle">A story where you are the hero</p>
-
-            <div></div>
-
-            <div class="mini-book-note">
-              10-page premium storybook preview
-            </div>
-          </div>
+        <div class="cta">
+          <button class="btn" onclick="location.href='checkout.html'">
+            Continue to Checkout
+          </button>
         </div>
       </div>
+    </div>
 
-      <div class="preview-intro-card">
-        <div class="preview-step-label">Step 5 of 5</div>
-        <h2 class="preview-heading">Preview your storybook</h2>
-        <p class="preview-copy">
-          Here is the generated cover information and the full story preview. Each page illustration is created from your story settings and locked child character reference.
-        </p>
-
-        <div class="preview-stats">
-          <div class="stat-row">
-            <div class="stat-label">Child name</div>
-            <div id="statChildName" class="stat-value">-</div>
-          </div>
-
-          <div class="stat-row">
-            <div class="stat-label">Illustration style</div>
-            <div id="statStyle" class="stat-value">-</div>
-          </div>
-
-          <div class="stat-row">
-            <div class="stat-label">Story direction</div>
-            <div id="statStory" class="stat-value">-</div>
-          </div>
-
-          <div class="stat-row">
-            <div class="stat-label">Pages</div>
-            <div id="statPages" class="stat-value">-</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="pagesContainer" class="preview-pages"></section>
-
-    <section class="preview-actions-card">
-      <div class="preview-actions-copy">
-        <h3>Ready for the next step?</h3>
-        <p>
-          Continue to the reader view, print layout, or move forward to the purchase flow once you are happy with the book preview.
-        </p>
-      </div>
-
-      <div class="preview-actions-buttons">
-        <button id="goToReaderBtn" class="secondary-btn" type="button">Reader view</button>
-        <button id="goToPrintBtn" class="secondary-btn" type="button">Print layout</button>
-        <button id="goToCheckoutBtn" class="primary-btn" type="button">Continue</button>
-      </div>
-    </section>
   </div>
 
   <script type="module" src="./preview.js"></script>
