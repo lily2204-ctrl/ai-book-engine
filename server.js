@@ -89,129 +89,83 @@ async function normalizeImageToBase64(imageItem) {
  * STEP 1
  * Generate character DNA + character sheet
  */
-app.post("/generate-character-reference", async (req, res) => {
+
+app.post("/generate-cover-image", async (req, res) => {
   try {
     const {
-      child_photo,
-      illustration_style
+      title,
+      subtitle,
+      story_type,
+      illustration_style,
+      characterPromptCore,
+      characterSummary
     } = req.body;
 
-    if (!child_photo) {
+    if (!title) {
       return res.status(400).json({
         status: "error",
-        message: "Missing child_photo"
+        message: "Missing required field: title"
       });
     }
 
     const style = illustration_style || "Soft Storybook";
 
-    const dnaCompletion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `
-Analyze the uploaded child photo and return ONLY JSON.
+    const coverPrompt = `
+Create a premium children's storybook COVER illustration.
 
-Goal:
-Create a highly specific, conservative, reusable character DNA for a personalized children's storybook.
+Illustration style: ${style}
 
-Return this exact JSON structure:
-{
-  "hair": "string",
-  "skin": "string",
-  "eyes": "string",
-  "face": "string",
-  "ageLook": "string",
-  "outfit": "string",
-  "vibe": "string",
-  "signature": "string",
-  "summary": "string"
-}
+LOCKED CHILD CHARACTER:
+${characterPromptCore || "Keep the same main child character consistent."}
 
-Rules:
-- Be specific and visually stable
-- Do not invent dramatic features that are not visible
-- Keep the child description conservative and reusable
-- Do not mention camera quality
-- Do not mention background unless it affects the child
-- Focus only on the child appearance
-- outfit can be inferred as simple child outfit if unclear
-- signature must be a short unique anchor
-- This DNA will be reused to keep the same child consistent across the whole book
-              `.trim()
-            },
-            {
-              type: "image_url",
-              image_url: { url: child_photo }
-            }
-          ]
-        }
-      ],
-      temperature: 0.1
-    });
+SHORT CHARACTER SUMMARY:
+${characterSummary || "A warm curious child hero."}
 
-    const dnaRaw = dnaCompletion.choices?.[0]?.message?.content || "{}";
-    const characterDNA = safeJsonParse(dnaRaw, {
-      hair: "soft brown child hair",
-      skin: "natural warm skin tone",
-      eyes: "bright child eyes",
-      face: "soft rounded child face",
-      ageLook: "young child",
-      outfit: "simple timeless child outfit",
-      vibe: "warm curious child",
-      signature: "soft rounded cheeks and bright curious eyes",
-      summary: "A warm curious child hero for a magical storybook."
-    });
+BOOK TITLE:
+${title}
 
-    const promptCore = buildCharacterPromptCore(characterDNA, style);
+BOOK SUBTITLE:
+${subtitle || ""}
 
-    const characterSheetPrompt = `
-Create a premium children's storybook character reference sheet.
+STORY DIRECTION:
+${story_type || "A magical storybook adventure."}
 
-${promptCore}
-
-Create one elegant reference sheet showing the exact same child in:
-- one close portrait
-- one slight side angle
-- one full body pose
-
-Visual rules:
-- this must clearly feel like the same child in all 3 views
-- premium children's book quality
-- soft polished storybook rendering
-- minimal elegant background
-- no extra characters
+COVER ART DIRECTION:
+- create ONE beautiful single cover illustration
+- show the child as the hero of the book
+- magical, premium, warm, emotional, cinematic
+- cover-worthy composition
+- elegant lighting
+- rich storybook background
+- no character sheet
+- no multiple poses
+- no split layout
+- no fake book mockup inside the artwork
+- leave clear visual breathing room for title placement
+- do not render printed words, letters, typography, logo text, or title text into the image
 - no text
 - no watermark
-- do not redesign the child between poses
+- the child should feel polished, premium, and central
 `.trim();
 
-    const imageResp = await openai.images.generate({
+    const imgResp = await openai.images.generate({
       model: "gpt-image-1",
-      prompt: characterSheetPrompt,
+      prompt: coverPrompt,
       size: "1024x1024"
     });
 
-    const characterSheetBase64 = await normalizeImageToBase64(imageResp?.data?.[0]);
+    const coverImageBase64 = await normalizeImageToBase64(imgResp?.data?.[0]);
 
     return res.json({
       status: "ok",
-      characterDNA,
-      characterPromptCore: promptCore,
-      characterSummary: characterDNA.summary || "",
-      characterSheetBase64
+      coverImageBase64
     });
   } catch (err) {
-    console.error("generate-character-reference failed:", err);
+    console.error("generate-cover-image failed:", err);
 
     return res.status(500).json({
       status: "error",
-      message: err?.message || "Character reference generation failed",
+      message: err?.message || "Cover image generation failed",
       details: err?.message || "unknown_error"
     });
   }
