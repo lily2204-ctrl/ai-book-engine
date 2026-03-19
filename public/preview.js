@@ -9,7 +9,7 @@ if (!data.generatedBook || !Array.isArray(data.generatedBook.pages) || data.gene
 
 const generatedBook = data.generatedBook;
 const characterReference = data.characterReference || {};
-const coverImage = data.coverImage || sessionStorage.getItem("coverImage") || "";
+const coverImage = sessionStorage.getItem("coverImage") || "";
 
 const previewBookTitle = document.getElementById("previewBookTitle");
 const previewBookSubtitle = document.getElementById("previewBookSubtitle");
