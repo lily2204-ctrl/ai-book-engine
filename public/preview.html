@@ -14,12 +14,14 @@
         radial-gradient(circle at top, rgba(27,46,94,0.55), rgba(5,10,20,1)),
         url("assets/backgrounds/FE0410D4-7381-4ACC-8FB9-D8862D553EC0.PNG");
       background-size:cover;
+      background-position:center;
+      min-height:100vh;
     }
 
     .container{
       width:min(1200px,94vw);
       margin:auto;
-      padding:30px 0;
+      padding:30px 0 60px;
     }
 
     .top{
@@ -27,6 +29,8 @@
       justify-content:space-between;
       align-items:center;
       margin-bottom:20px;
+      gap:20px;
+      flex-wrap:wrap;
     }
 
     .back{
@@ -34,34 +38,67 @@
       padding:10px 16px;
       border-radius:999px;
       cursor:pointer;
+      background:rgba(255,255,255,0.04);
     }
 
-    .title{
-      font-family:Georgia;
-      font-size:60px;
-      margin-bottom:10px;
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:28px;
+      color:#f7ecd7;
     }
 
-    .subtitle{
-      color:#cfc0ab;
-      margin-bottom:30px;
+    .brand img{
+      height:46px;
+      width:auto;
+      display:block;
     }
 
     .layout{
       display:grid;
       grid-template-columns:400px 1fr;
       gap:20px;
+      align-items:start;
     }
 
     .cover{
       border-radius:30px;
       overflow:hidden;
       border:1px solid rgba(240,196,109,0.2);
+      background:rgba(255,255,255,0.04);
+      box-shadow:0 18px 60px rgba(0,0,0,0.34);
+      position:sticky;
+      top:20px;
     }
 
     .cover img{
       width:100%;
       display:block;
+    }
+
+    .content-card{
+      padding:26px;
+      border-radius:30px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(240,196,109,0.14);
+      box-shadow:0 18px 60px rgba(0,0,0,0.34);
+      margin-bottom:24px;
+    }
+
+    .title{
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:60px;
+      line-height:0.95;
+      margin:0 0 12px;
+    }
+
+    .subtitle{
+      color:#cfc0ab;
+      margin-bottom:30px;
+      font-size:20px;
+      line-height:1.6;
     }
 
     .page{
@@ -76,26 +113,40 @@
       font-size:14px;
       color:#e9c57c;
       margin-bottom:10px;
+      font-weight:700;
+      text-transform:uppercase;
     }
 
     .page-text{
       font-size:22px;
       line-height:1.6;
+      font-family:Georgia, "Times New Roman", serif;
     }
 
     .image-box{
       width:100%;
-      height:200px;
+      min-height:220px;
       background:rgba(255,255,255,0.05);
       border-radius:20px;
       display:flex;
       align-items:center;
       justify-content:center;
       margin-bottom:15px;
+      overflow:hidden;
+      border:1px solid rgba(240,196,109,0.12);
+    }
+
+    .image-box img{
+      width:100%;
+      display:block;
+      object-fit:cover;
     }
 
     .cta{
       margin-top:30px;
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
     }
 
     .btn{
@@ -105,10 +156,33 @@
       cursor:pointer;
       font-weight:bold;
       background:linear-gradient(180deg,#f0c46d,#d08e2b);
+      color:#fffaf1;
+      font-size:17px;
+    }
+
+    .btn-secondary{
+      padding:16px 30px;
+      border-radius:999px;
+      border:1px solid rgba(240,196,109,0.16);
+      cursor:pointer;
+      font-weight:bold;
+      background:rgba(255,255,255,0.05);
+      color:#fff8ec;
+      font-size:17px;
     }
 
     @media(max-width:900px){
-      .layout{grid-template-columns:1fr;}
+      .layout{
+        grid-template-columns:1fr;
+      }
+
+      .cover{
+        position:static;
+      }
+
+      .title{
+        font-size:46px;
+      }
     }
   </style>
 </head>
@@ -118,25 +192,33 @@
 
     <div class="top">
       <div class="back" onclick="history.back()">← Back</div>
-      <div>lifebook</div>
+
+      <div class="brand">
+        <img src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook logo">
+        <span>lifebook</span>
+      </div>
     </div>
 
     <div class="layout">
-      <!-- COVER -->
       <div class="cover">
-        <img id="coverImage"/>
+        <img id="coverImage" alt="Book cover"/>
       </div>
 
-      <!-- CONTENT -->
       <div>
-        <div class="title" id="bookTitle"></div>
-        <div class="subtitle" id="bookSubtitle"></div>
+        <div class="content-card">
+          <div class="title" id="bookTitle"></div>
+          <div class="subtitle" id="bookSubtitle"></div>
+        </div>
 
         <div id="pagesContainer"></div>
 
         <div class="cta">
           <button class="btn" onclick="location.href='checkout.html'">
             Continue to Checkout
+          </button>
+
+          <button class="btn-secondary" onclick="location.href='cover.html'">
+            Back to Cover
           </button>
         </div>
       </div>
