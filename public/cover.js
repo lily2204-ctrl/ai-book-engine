@@ -7,7 +7,7 @@ if (!data.generatedBook || !Array.isArray(data.generatedBook.pages) || data.gene
 }
 
 const generatedBook = data.generatedBook;
-const coverImage = data.coverImage || sessionStorage.getItem("coverImage") || "";
+const coverImage = sessionStorage.getItem("coverImage") || "";
 
 const coverTitle = document.getElementById("coverTitle");
 const coverSubtitle = document.getElementById("coverSubtitle");
