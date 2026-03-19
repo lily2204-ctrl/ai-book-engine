@@ -69,6 +69,22 @@ Illustration style must be: ${style}.
 `.trim();
 }
 
+async function normalizeImageToBase64(imageItem) {
+  if (!imageItem) return null;
+
+  if (imageItem.b64_json) {
+    return imageItem.b64_json;
+  }
+
+  if (imageItem.url) {
+    const r = await fetch(imageItem.url);
+    const arr = await r.arrayBuffer();
+    return Buffer.from(arr).toString("base64");
+  }
+
+  return null;
+}
+
 /**
  * STEP 1
  * Generate character DNA + character sheet
@@ -181,16 +197,7 @@ Visual rules:
       size: "1024x1024"
     });
 
-    const imageItem = imageResp?.data?.[0];
-    let characterSheetBase64 = null;
-
-    if (imageItem?.b64_json) {
-      characterSheetBase64 = imageItem.b64_json;
-    } else if (imageItem?.url) {
-      const r = await fetch(imageItem.url);
-      const arr = await r.arrayBuffer();
-      characterSheetBase64 = Buffer.from(arr).toString("base64");
-    }
+    const characterSheetBase64 = await normalizeImageToBase64(imageResp?.data?.[0]);
 
     return res.json({
       status: "ok",
@@ -322,6 +329,89 @@ Rules:
 });
 
 /**
+ * STEP 2.5
+ * Generate final cover illustration
+ */
+app.post("/generate-cover-image", async (req, res) => {
+  try {
+    const {
+      title,
+      subtitle,
+      story_type,
+      illustration_style,
+      characterPromptCore,
+      characterSummary
+    } = req.body;
+
+    if (!title) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing required field: title"
+      });
+    }
+
+    const style = illustration_style || "Soft Storybook";
+
+    const coverPrompt = `
+Create a premium children's storybook COVER illustration.
+
+Illustration style: ${style}
+
+LOCKED CHILD CHARACTER:
+${characterPromptCore || "Keep the same main child character consistent."}
+
+SHORT CHARACTER SUMMARY:
+${characterSummary || "A warm curious child hero."}
+
+BOOK TITLE:
+${title}
+
+BOOK SUBTITLE:
+${subtitle || ""}
+
+STORY DIRECTION:
+${story_type || "A magical storybook adventure."}
+
+COVER ART DIRECTION:
+- create ONE beautiful single cover illustration
+- show the child as the hero of the book
+- magical, premium, warm, emotional, cinematic
+- cover-worthy composition
+- elegant lighting
+- rich storybook background
+- no reference sheet
+- no multiple poses
+- no split layout
+- do not create a character sheet
+- no text
+- no watermark
+- the child should feel polished, premium, and central
+`.trim();
+
+    const imgResp = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt: coverPrompt,
+      size: "1024x1024"
+    });
+
+    const coverImageBase64 = await normalizeImageToBase64(imgResp?.data?.[0]);
+
+    return res.json({
+      status: "ok",
+      coverImageBase64
+    });
+  } catch (err) {
+    console.error("generate-cover-image failed:", err);
+
+    return res.status(500).json({
+      status: "error",
+      message: err?.message || "Cover image generation failed",
+      details: err?.message || "unknown_error"
+    });
+  }
+});
+
+/**
  * STEP 3
  * Generate final page image with stronger character consistency
  */
@@ -380,23 +470,11 @@ HARD RULES:
       size: "1024x1024"
     });
 
-    const item = imgResp?.data?.[0];
+    const imageBase64 = await normalizeImageToBase64(imgResp?.data?.[0]);
 
-    if (item?.b64_json) {
-      return res.json({ status: "ok", imageBase64: item.b64_json });
-    }
-
-    if (item?.url) {
-      const r = await fetch(item.url);
-      const arr = await r.arrayBuffer();
-      const base64 = Buffer.from(arr).toString("base64");
-      return res.json({ status: "ok", imageBase64: base64 });
-    }
-
-    return res.status(500).json({
-      status: "error",
-      message: "Image generation failed",
-      code: "no_image_returned"
+    return res.json({
+      status: "ok",
+      imageBase64
     });
   } catch (err) {
     console.error("generate-image failed:", err);
