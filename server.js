@@ -5,7 +5,6 @@ import path from "path";
 import fs from "fs";
 import { promises as fsp } from "fs";
 import { fileURLToPath } from "url";
-import { v4 as uuidv4 } from "uuid";
 
 const app = express();
 app.use(cors());
@@ -134,7 +133,7 @@ app.post("/api/books/create", async (req, res) => {
       originalPhoto
     } = req.body;
 
-    const bookId = uuidv4();
+    const bookId = crypto.randomUUID();
 
     const book = {
       bookId,
