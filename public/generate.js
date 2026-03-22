@@ -258,7 +258,14 @@ async function generateCoverImage(bookId, characterRef, bookResponse) {
     return true;
   }
 
-  sessionStorage.removeItem("coverImage");
+  if (wizardData.croppedPhoto) {
+    sessionStorage.setItem("coverImage", wizardData.croppedPhoto);
+
+    await patchBook(bookId, {
+      coverImage: wizardData.croppedPhoto
+    });
+  }
+
   return false;
 }
 
