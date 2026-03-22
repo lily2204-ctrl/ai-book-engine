@@ -145,3 +145,12 @@ async function generateImage(page, index, book) {
   const book = await loadBook();
   renderBook(book);
 })();
+
+const goToCheckoutBtn = document.getElementById("goToCheckoutBtn");
+
+goToCheckoutBtn?.addEventListener("click", () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const bookId = urlParams.get("bookId");
+
+  window.location.href = `checkout.html?bookId=${bookId}`;
+});
