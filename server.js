@@ -18,6 +18,10 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+console.log("SUPABASE_URL exists:", Boolean(process.env.SUPABASE_URL));
+console.log("SUPABASE_SERVICE_ROLE_KEY exists:", Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY));
+console.log("OPENAI_API_KEY exists:", Boolean(process.env.OPENAI_API_KEY));
+
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -158,6 +162,8 @@ function patchToDbFields(patch = {}) {
 }
 
 async function insertBook(book) {
+  console.log("insertBook called with bookId:", book.bookId);
+
   const { data, error } = await supabase
     .from("books")
     .insert({
@@ -183,22 +189,36 @@ async function insertBook(book) {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error("insertBook error:", error);
+    throw error;
+  }
+
+  console.log("insertBook success:", data?.book_id);
   return dbRowToBook(data);
 }
 
 async function getBook(bookId) {
+  console.log("getBook called:", bookId);
+
   const { data, error } = await supabase
     .from("books")
     .select("*")
     .eq("book_id", bookId)
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error("getBook error:", error);
+    throw error;
+  }
+
+  console.log("getBook found:", Boolean(data));
   return dbRowToBook(data);
 }
 
 async function updateBook(bookId, patch) {
+  console.log("updateBook called:", bookId, Object.keys(patch || {}));
+
   const dbPatch = patchToDbFields(patch);
 
   const { data, error } = await supabase
@@ -208,7 +228,12 @@ async function updateBook(bookId, patch) {
     .select()
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error("updateBook error:", error);
+    throw error;
+  }
+
+  console.log("updateBook success:", Boolean(data));
   return dbRowToBook(data);
 }
 
@@ -216,9 +241,26 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-/**
- * Create initial book record
- */
+app.get("/api/debug/books-count", async (req, res) => {
+  try {
+    const { count, error } = await supabase
+      .from("books")
+      .select("*", { count: "exact", head: true });
+
+    if (error) throw error;
+
+    return res.json({
+      status: "ok",
+      count
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: err?.message || "Failed to count books"
+    });
+  }
+});
+
 app.post("/api/books/create", async (req, res) => {
   try {
     const cleanInput = sanitizeStoryPayload(req.body || {});
@@ -254,6 +296,7 @@ app.post("/api/books/create", async (req, res) => {
       bookId
     });
   } catch (err) {
+    console.error("/api/books/create error:", err);
     return res.status(500).json({
       status: "error",
       message: err?.message || "Failed to create book"
@@ -261,9 +304,6 @@ app.post("/api/books/create", async (req, res) => {
   }
 });
 
-/**
- * Get book by id
- */
 app.get("/api/books/:bookId", async (req, res) => {
   try {
     const book = await getBook(req.params.bookId);
@@ -280,6 +320,7 @@ app.get("/api/books/:bookId", async (req, res) => {
       book
     });
   } catch (err) {
+    console.error("/api/books/:bookId GET error:", err);
     return res.status(500).json({
       status: "error",
       message: err?.message || "Failed to fetch book"
@@ -287,9 +328,6 @@ app.get("/api/books/:bookId", async (req, res) => {
   }
 });
 
-/**
- * Update book by id
- */
 app.patch("/api/books/:bookId", async (req, res) => {
   try {
     const updated = await updateBook(req.params.bookId, req.body || {});
@@ -306,6 +344,7 @@ app.patch("/api/books/:bookId", async (req, res) => {
       book: updated
     });
   } catch (err) {
+    console.error("/api/books/:bookId PATCH error:", err);
     return res.status(500).json({
       status: "error",
       message: err?.message || "Failed to update book"
@@ -313,9 +352,6 @@ app.patch("/api/books/:bookId", async (req, res) => {
   }
 });
 
-/**
- * Unlock book after payment
- */
 app.post("/api/books/:bookId/unlock", async (req, res) => {
   try {
     const updated = await updateBook(req.params.bookId, {
@@ -335,6 +371,7 @@ app.post("/api/books/:bookId/unlock", async (req, res) => {
       book: updated
     });
   } catch (err) {
+    console.error("/api/books/:bookId/unlock error:", err);
     return res.status(500).json({
       status: "error",
       message: err?.message || "Failed to unlock book"
@@ -461,9 +498,6 @@ Background:
   }
 });
 
-/**
- * Create story text
- */
 app.post("/create-book", async (req, res) => {
   try {
     const {
@@ -563,9 +597,6 @@ Rules:
   }
 });
 
-/**
- * Cover image
- */
 app.post("/generate-cover-image", async (req, res) => {
   try {
     const {
@@ -646,9 +677,6 @@ Rules:
   }
 });
 
-/**
- * Generate single page image
- */
 app.post("/generate-image", async (req, res) => {
   try {
     const {
@@ -715,9 +743,6 @@ Rules:
   }
 });
 
-/**
- * Shopify payment success webhook placeholder
- */
 app.post("/webhooks/shopify-paid", async (req, res) => {
   try {
     const { bookId, shopifyOrderId } = req.body;
