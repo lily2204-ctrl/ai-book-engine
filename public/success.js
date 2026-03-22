@@ -10,6 +10,7 @@ function getBookId() {
 const bookId = getBookId();
 
 if (!bookId) {
+  alert("Missing confirmation book ID");
   window.location.href = "wizard.html";
 }
 
@@ -50,9 +51,9 @@ async function loadBook() {
 
     return data.book;
   } catch (err) {
-    console.error("loadBook failed:", err);
+    console.error("loadBook failed on success page:", err);
     alert("Failed to load confirmation page");
-    window.location.href = "checkout.html?bookId=" + encodeURIComponent(bookId);
+    window.location.href = `checkout.html?bookId=${encodeURIComponent(bookId)}`;
     return null;
   }
 }
@@ -116,7 +117,7 @@ function renderBook(book) {
 }
 
 backToCheckoutBtn?.addEventListener("click", () => {
-  window.location.href = "checkout.html?bookId=" + encodeURIComponent(bookId);
+  window.location.href = `checkout.html?bookId=${encodeURIComponent(bookId)}`;
 });
 
 goHomeBtn?.addEventListener("click", () => {
