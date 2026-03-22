@@ -23,9 +23,6 @@ const pagesEl = document.getElementById("pages");
 
 const proceedBtn = document.getElementById("proceedToPaymentBtn");
 
-let selectedFormat = "digital";
-let selectedPrice = 39;
-
 async function loadBook() {
   try {
     const res = await fetch(`${API_BASE}/api/books/${bookId}`);
@@ -51,36 +48,48 @@ function renderBook(book) {
     coverImageEl.src = book.coverImage;
   }
 
-  nameEl.textContent = book.childName || "-";
-  ageEl.textContent = book.childAge || "-";
-  styleEl.textContent = book.illustrationStyle || "-";
-  storyEl.textContent = book.storyIdea || "-";
-  pagesEl.textContent = String(book.generatedBook?.pages?.length || 0);
+  if (nameEl) nameEl.textContent = book.childName || "-";
+  if (ageEl) ageEl.textContent = book.childAge || "-";
+  if (styleEl) styleEl.textContent = book.illustrationStyle || "-";
+  if (storyEl) storyEl.textContent = book.storyIdea || "-";
+  if (pagesEl) pagesEl.textContent = String(book.generatedBook?.pages?.length || 0);
 
   updateBookData({
-    bookId,
-    childName: book.childName,
-    childAge: book.childAge,
-    storyIdea: book.storyIdea,
-    illustrationStyle: book.illustrationStyle,
-    generatedBook: book.generatedBook,
-    purchaseUnlocked: book.purchaseUnlocked === true
+    bookId: book.bookId,
+    childName: book.childName || "",
+    childAge: book.childAge || "",
+    childGender: book.childGender || "",
+    storyIdea: book.storyIdea || "",
+    illustrationStyle: book.illustrationStyle || "",
+    croppedPhoto: book.croppedPhoto || "",
+    originalPhoto: book.originalPhoto || "",
+    generatedBook: book.generatedBook || null,
+    characterReference: book.characterReference || null,
+    purchaseUnlocked: book.purchaseUnlocked === true,
+    selectedFormat: book.selectedFormat || "digital",
+    selectedPrice: book.selectedPrice || 39
   });
 }
 
 proceedBtn?.addEventListener("click", async () => {
   try {
-    await fetch(`${API_BASE}/api/books/${bookId}/unlock`, {
+    const unlockRes = await fetch(`${API_BASE}/api/books/${bookId}/unlock`, {
       method: "POST"
     });
+
+    const unlockData = await unlockRes.json();
+
+    if (!unlockRes.ok) {
+      throw new Error(unlockData.message || "Failed to unlock book");
+    }
 
     updateBookData({
       purchaseUnlocked: true
     });
 
-    window.location.href = "success.html?bookId=" + encodeURIComponent(bookId);
+    window.location.href = `success.html?bookId=${encodeURIComponent(bookId)}`;
   } catch (err) {
-    console.error(err);
+    console.error("unlock failed:", err);
     alert("Payment simulation failed");
   }
 });
