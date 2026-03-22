@@ -2,7 +2,10 @@ import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
 import path from "path";
+import fs from "fs";
+import { promises as fsp } from "fs";
 import { fileURLToPath } from "url";
+import { v4 as uuidv4 } from "uuid";
 
 const app = express();
 app.use(cors());
@@ -15,9 +18,53 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+const DATA_DIR = path.join(__dirname, "data");
+const BOOKS_FILE = path.join(DATA_DIR, "books.json");
+
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+if (!fs.existsSync(BOOKS_FILE)) {
+  fs.writeFileSync(BOOKS_FILE, JSON.stringify({ books: [] }, null, 2), "utf8");
+}
+
+async function readBooksDb() {
+  const raw = await fsp.readFile(BOOKS_FILE, "utf8");
+  return JSON.parse(raw || '{"books":[]}');
+}
+
+async function writeBooksDb(db) {
+  await fsp.writeFile(BOOKS_FILE, JSON.stringify(db, null, 2), "utf8");
+}
+
+async function insertBook(book) {
+  const db = await readBooksDb();
+  db.books.push(book);
+  await writeBooksDb(db);
+  return book;
+}
+
+async function updateBook(bookId, patch) {
+  const db = await readBooksDb();
+  const idx = db.books.findIndex((b) => b.bookId === bookId);
+
+  if (idx === -1) return null;
+
+  db.books[idx] = {
+    ...db.books[idx],
+    ...patch,
+    updatedAt: new Date().toISOString()
+  };
+
+  await writeBooksDb(db);
+  return db.books[idx];
+}
+
+async function getBook(bookId) {
+  const db = await readBooksDb();
+  return db.books.find((b) => b.bookId === bookId) || null;
+}
 
 function safeJsonParse(raw, fallback = {}) {
   try {
@@ -35,36 +82,19 @@ function buildCharacterPromptCore(characterDNA, style) {
   const vibe = characterDNA.vibe || "warm curious child";
   const ageLook = characterDNA.ageLook || "young child";
   const outfit = characterDNA.outfit || "simple timeless child outfit";
-  const signature = characterDNA.signature || "gentle smile and warm childlike presence";
 
   return `
-MAIN CHILD CHARACTER - LOCKED VISUAL IDENTITY
-
-This is the exact same child in every illustration.
-Do not redesign or reinterpret the child.
-
-Locked identity:
-- Age appearance: ${ageLook}
+Main character reference:
+- ${ageLook}
 - Hair: ${hair}
 - Skin tone: ${skin}
 - Eyes: ${eyes}
-- Face structure: ${face}
+- Face: ${face}
 - Outfit style: ${outfit}
 - General vibe: ${vibe}
-- Signature visual trait: ${signature}
 
-Hard consistency rules:
-- same child identity in every image
-- same face shape
-- same hair look and color
-- same skin tone
-- same eye look
-- same child age appearance
-- same overall proportions
-- do not make the child look like a different person
-- do not randomly change hairstyle, facial structure, or ethnicity
-- keep the same premium children's storybook aesthetic
-
+Keep this exact same child character consistent across all illustrations.
+Do not change the child's identity, age appearance, hair color, skin tone, or facial structure.
 Illustration style must be: ${style}.
 `.trim();
 }
@@ -72,11 +102,11 @@ Illustration style must be: ${style}.
 async function normalizeImageToBase64(imageItem) {
   if (!imageItem) return null;
 
-  if (imageItem.b64_json) {
+  if (imageItem?.b64_json) {
     return imageItem.b64_json;
   }
 
-  if (imageItem.url) {
+  if (imageItem?.url) {
     const r = await fetch(imageItem.url);
     const arr = await r.arrayBuffer();
     return Buffer.from(arr).toString("base64");
@@ -85,95 +115,202 @@ async function normalizeImageToBase64(imageItem) {
   return null;
 }
 
-/**
- * STEP 1
- * Generate character DNA + character sheet
- */
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
-app.post("/generate-cover-image", async (req, res) => {
+/**
+ * Create initial book record
+ */
+app.post("/api/books/create", async (req, res) => {
   try {
     const {
-      title,
-      subtitle,
-      story_type,
-      illustration_style,
-      characterPromptCore,
-      characterSummary
+      childName,
+      childAge,
+      childGender,
+      storyIdea,
+      illustrationStyle,
+      croppedPhoto,
+      originalPhoto
     } = req.body;
 
-    if (!title) {
+    const bookId = uuidv4();
+
+    const book = {
+      bookId,
+      childName: childName || "",
+      childAge: childAge || "",
+      childGender: childGender || "",
+      storyIdea: storyIdea || "",
+      illustrationStyle: illustrationStyle || "Soft Storybook",
+      croppedPhoto: croppedPhoto || "",
+      originalPhoto: originalPhoto || "",
+      characterReference: null,
+      generatedBook: null,
+      coverImage: null,
+      previewImages: [],
+      fullImages: [],
+      selectedFormat: "digital",
+      selectedPrice: 39,
+      paymentStatus: "pending",
+      shopifyOrderId: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    await insertBook(book);
+
+    return res.json({
+      status: "ok",
+      bookId
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: err?.message || "Failed to create book"
+    });
+  }
+});
+
+/**
+ * Get book by id
+ */
+app.get("/api/books/:bookId", async (req, res) => {
+  try {
+    const book = await getBook(req.params.bookId);
+
+    if (!book) {
+      return res.status(404).json({
+        status: "error",
+        message: "Book not found"
+      });
+    }
+
+    return res.json({
+      status: "ok",
+      book
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: err?.message || "Failed to fetch book"
+    });
+  }
+});
+
+/**
+ * Character reference
+ */
+app.post("/generate-character-reference", async (req, res) => {
+  try {
+    const {
+      child_photo,
+      illustration_style
+    } = req.body;
+
+    if (!child_photo) {
       return res.status(400).json({
         status: "error",
-        message: "Missing required field: title"
+        message: "Missing child_photo"
       });
     }
 
     const style = illustration_style || "Soft Storybook";
 
-    const coverPrompt = `
-Create a premium children's storybook COVER illustration.
+    const dnaCompletion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `
+Analyze the uploaded child photo and return ONLY JSON.
 
-Illustration style: ${style}
+Return:
+{
+  "hair": "string",
+  "skin": "string",
+  "eyes": "string",
+  "face": "string",
+  "ageLook": "string",
+  "outfit": "string",
+  "vibe": "string",
+  "summary": "string"
+}
+              `.trim()
+            },
+            {
+              type: "image_url",
+              image_url: { url: child_photo }
+            }
+          ]
+        }
+      ],
+      temperature: 0.2
+    });
 
-LOCKED CHILD CHARACTER:
-${characterPromptCore || "Keep the same main child character consistent."}
+    const dnaRaw = dnaCompletion.choices?.[0]?.message?.content || "{}";
+    const characterDNA = safeJsonParse(dnaRaw, {
+      hair: "soft brown child hair",
+      skin: "natural warm skin tone",
+      eyes: "bright child eyes",
+      face: "soft rounded child face",
+      ageLook: "young child",
+      outfit: "simple timeless child outfit",
+      vibe: "warm curious child",
+      summary: "A warm curious child hero for a magical storybook."
+    });
 
-SHORT CHARACTER SUMMARY:
-${characterSummary || "A warm curious child hero."}
+    const promptCore = buildCharacterPromptCore(characterDNA, style);
 
-BOOK TITLE:
-${title}
+    const characterSheetPrompt = `
+Create a premium children's storybook character sheet.
 
-BOOK SUBTITLE:
-${subtitle || ""}
+Style: ${style}
 
-STORY DIRECTION:
-${story_type || "A magical storybook adventure."}
+${promptCore}
 
-COVER ART DIRECTION:
-- create ONE beautiful single cover illustration
-- show the child as the hero of the book
-- magical, premium, warm, emotional, cinematic
-- cover-worthy composition
-- elegant lighting
-- rich storybook background
-- no character sheet
-- no multiple poses
-- no split layout
-- no fake book mockup inside the artwork
-- leave clear visual breathing room for title placement
-- do not render printed words, letters, typography, logo text, or title text into the image
+Create ONE clean composition showing the same child character in:
+- front view
+- slight side view
+- full body storybook pose
+
+Background:
+- clean soft storybook background
+- minimal and elegant
 - no text
 - no watermark
-- the child should feel polished, premium, and central
 `.trim();
 
-    const imgResp = await openai.images.generate({
+    const imageResp = await openai.images.generate({
       model: "gpt-image-1",
-      prompt: coverPrompt,
+      prompt: characterSheetPrompt,
       size: "1024x1024"
     });
 
-    const coverImageBase64 = await normalizeImageToBase64(imgResp?.data?.[0]);
+    const characterSheetBase64 = await normalizeImageToBase64(imageResp?.data?.[0]);
 
     return res.json({
       status: "ok",
-      coverImageBase64
+      characterDNA,
+      characterPromptCore: promptCore,
+      characterSummary: characterDNA.summary || "",
+      characterSheetBase64
     });
   } catch (err) {
-    console.error("generate-cover-image failed:", err);
-
     return res.status(500).json({
       status: "error",
-      message: err?.message || "Cover image generation failed",
+      message: "Character reference generation failed",
       details: err?.message || "unknown_error"
     });
   }
 });
 
 /**
- * STEP 2
- * Generate story structure using the character reference
+ * Create story text
  */
 app.post("/create-book", async (req, res) => {
   try {
@@ -200,8 +337,6 @@ app.post("/create-book", async (req, res) => {
     const prompt = `
 You are a premium personalized children's book writer.
 
-Create a magical storybook for a child.
-
 Child name: ${child_name}
 Child age: ${age}
 Child gender: ${gender || "not specified"}
@@ -214,7 +349,7 @@ ${characterSummary}
 Character consistency instructions:
 ${characterPromptCore}
 
-Return ONLY JSON in this exact structure:
+Return ONLY JSON:
 {
   "title": "string",
   "subtitle": "string",
@@ -230,12 +365,8 @@ Rules:
 - Exactly 10 story pages
 - Each page text must be 35-70 words
 - The child must clearly be the hero
-- Keep story warm, magical, premium, emotional
-- imagePrompt must describe the exact same child consistently
-- imagePrompt must never redesign the child
-- every imagePrompt must assume the child already has a locked visual identity
-- do not describe a new child in each page
-- Do not include page numbers inside text
+- imagePrompt must describe the same child consistently
+- No page numbers inside text
 - No brand names
 `.trim();
 
@@ -253,14 +384,6 @@ Rules:
     const subtitle = book.subtitle || "A story where you are the hero";
     const pages = Array.isArray(book.pages) ? book.pages.slice(0, 10) : [];
 
-    if (pages.length !== 10) {
-      return res.status(500).json({
-        status: "error",
-        message: "AI returned invalid page count",
-        debug: { returned: pages.length }
-      });
-    }
-
     return res.json({
       status: "ok",
       title,
@@ -272,19 +395,16 @@ Rules:
       }))
     });
   } catch (err) {
-    console.error("create-book failed:", err);
-
     return res.status(500).json({
       status: "error",
-      message: err?.message || "Book generation failed",
+      message: "Book generation failed",
       details: err?.message || "unknown_error"
     });
   }
 });
 
 /**
- * STEP 2.5
- * Generate final cover illustration
+ * Cover image
  */
 app.post("/generate-cover-image", async (req, res) => {
   try {
@@ -326,20 +446,14 @@ ${subtitle || ""}
 STORY DIRECTION:
 ${story_type || "A magical storybook adventure."}
 
-COVER ART DIRECTION:
+Rules:
 - create ONE beautiful single cover illustration
-- show the child as the hero of the book
-- magical, premium, warm, emotional, cinematic
-- cover-worthy composition
-- elegant lighting
-- rich storybook background
-- no reference sheet
+- show the child as the hero
+- magical, premium, warm
+- no character sheet
 - no multiple poses
-- no split layout
-- do not create a character sheet
-- no text
+- no text rendered into the image
 - no watermark
-- the child should feel polished, premium, and central
 `.trim();
 
     const imgResp = await openai.images.generate({
@@ -355,27 +469,22 @@ COVER ART DIRECTION:
       coverImageBase64
     });
   } catch (err) {
-    console.error("generate-cover-image failed:", err);
-
     return res.status(500).json({
       status: "error",
-      message: err?.message || "Cover image generation failed",
-      details: err?.message || "unknown_error"
+      message: err?.message || "Cover image generation failed"
     });
   }
 });
 
 /**
- * STEP 3
- * Generate final page image with stronger character consistency
+ * Generate single page image
  */
 app.post("/generate-image", async (req, res) => {
   try {
     const {
       prompt,
       illustration_style,
-      characterPromptCore,
-      characterSummary
+      characterPromptCore
     } = req.body;
 
     if (!prompt) {
@@ -392,30 +501,20 @@ Create a premium children's storybook illustration.
 
 Illustration style: ${style}
 
-LOCKED CHILD CHARACTER:
+Character consistency:
 ${characterPromptCore || "Keep the same main child character consistent."}
 
-SHORT CHARACTER SUMMARY:
-${characterSummary || "A warm curious child hero."}
-
-SCENE TO ILLUSTRATE:
+Scene:
 ${prompt}
 
-HARD RULES:
-- this must be the exact same child as the character reference
-- same face shape
-- same hair appearance
-- same skin tone
-- same eye look
-- same age appearance
-- same child identity across the entire book
-- do not redesign the child
-- do not age up or age down the child
-- do not randomize facial features
-- warm magical premium storybook feeling
-- elegant composition
+Rules:
+- same child identity
+- same face structure
+- same hair and skin tone
+- warm magical storybook aesthetic
 - no text
 - no watermark
+- elegant composition
 `.trim();
 
     const imgResp = await openai.images.generate({
@@ -431,12 +530,49 @@ HARD RULES:
       imageBase64
     });
   } catch (err) {
-    console.error("generate-image failed:", err);
-
     return res.status(500).json({
       status: "error",
-      message: err?.message || "Image generation failed",
+      message: "Image generation failed",
       details: err?.message || "unknown_error"
+    });
+  }
+});
+
+/**
+ * Shopify payment success webhook placeholder
+ */
+app.post("/webhooks/shopify-paid", async (req, res) => {
+  try {
+    const { bookId, shopifyOrderId } = req.body;
+
+    if (!bookId) {
+      return res.status(400).json({
+        status: "error",
+        message: "Missing bookId"
+      });
+    }
+
+    const updated = await updateBook(bookId, {
+      paymentStatus: "paid",
+      purchaseUnlocked: true,
+      shopifyOrderId: shopifyOrderId || null
+    });
+
+    if (!updated) {
+      return res.status(404).json({
+        status: "error",
+        message: "Book not found"
+      });
+    }
+
+    return res.json({
+      status: "ok",
+      book: updated
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: err?.message || "Webhook failed"
     });
   }
 });
