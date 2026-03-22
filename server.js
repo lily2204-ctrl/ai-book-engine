@@ -176,6 +176,28 @@ app.post("/api/books/create", async (req, res) => {
  * Get book by id
  */
 app.get("/api/books/:bookId", async (req, res) => {
+  app.patch("/api/books/:bookId", async (req, res) => {
+  try {
+    const updated = await updateBook(req.params.bookId, req.body || {});
+
+    if (!updated) {
+      return res.status(404).json({
+        status: "error",
+        message: "Book not found"
+      });
+    }
+
+    return res.json({
+      status: "ok",
+      book: updated
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: err?.message || "Failed to update book"
+    });
+  }
+});
   try {
     const book = await getBook(req.params.bookId);
 
