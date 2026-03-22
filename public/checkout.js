@@ -10,11 +10,14 @@ function getBookId() {
 const bookId = getBookId();
 
 if (!bookId) {
+  alert("Missing book ID");
   window.location.href = "wizard.html";
 }
 
 const coverImageEl = document.getElementById("coverImage");
 
+const bookTitleValue = document.getElementById("bookTitleValue");
+const bookSubtitleValue = document.getElementById("bookSubtitleValue");
 const nameEl = document.getElementById("name");
 const ageEl = document.getElementById("age");
 const styleEl = document.getElementById("style");
@@ -22,6 +25,9 @@ const storyEl = document.getElementById("story");
 const pagesEl = document.getElementById("pages");
 
 const proceedBtn = document.getElementById("proceedToPaymentBtn");
+const backToPreviewBtn = document.getElementById("backToPreviewBtn");
+const backToCoverBtn = document.getElementById("backToCoverBtn");
+const checkoutStatus = document.getElementById("checkoutStatus");
 
 async function loadBook() {
   try {
@@ -44,8 +50,24 @@ async function loadBook() {
 function renderBook(book) {
   if (!book) return;
 
-  if (coverImageEl && book.coverImage) {
-    coverImageEl.src = book.coverImage;
+  if (coverImageEl) {
+    if (book.coverImage) {
+      coverImageEl.src = book.coverImage;
+    } else if (book.croppedPhoto) {
+      coverImageEl.src = book.croppedPhoto;
+    } else if (book.originalPhoto) {
+      coverImageEl.src = book.originalPhoto;
+    } else {
+      coverImageEl.style.display = "none";
+    }
+  }
+
+  if (bookTitleValue) {
+    bookTitleValue.textContent = book.generatedBook?.title || "-";
+  }
+
+  if (bookSubtitleValue) {
+    bookSubtitleValue.textContent = book.generatedBook?.subtitle || "-";
   }
 
   if (nameEl) nameEl.textContent = book.childName || "-";
@@ -53,6 +75,10 @@ function renderBook(book) {
   if (styleEl) styleEl.textContent = book.illustrationStyle || "-";
   if (storyEl) storyEl.textContent = book.storyIdea || "-";
   if (pagesEl) pagesEl.textContent = String(book.generatedBook?.pages?.length || 0);
+
+  if (checkoutStatus) {
+    checkoutStatus.textContent = "Ready to continue.";
+  }
 
   updateBookData({
     bookId: book.bookId,
@@ -73,6 +99,11 @@ function renderBook(book) {
 
 proceedBtn?.addEventListener("click", async () => {
   try {
+    proceedBtn.disabled = true;
+    if (checkoutStatus) {
+      checkoutStatus.textContent = "Unlocking your full book...";
+    }
+
     const unlockRes = await fetch(`${API_BASE}/api/books/${bookId}/unlock`, {
       method: "POST"
     });
@@ -83,6 +114,10 @@ proceedBtn?.addEventListener("click", async () => {
       throw new Error(unlockData.message || "Failed to unlock book");
     }
 
+    if (checkoutStatus) {
+      checkoutStatus.textContent = "Success! Redirecting...";
+    }
+
     updateBookData({
       purchaseUnlocked: true
     });
@@ -90,8 +125,20 @@ proceedBtn?.addEventListener("click", async () => {
     window.location.href = `success.html?bookId=${encodeURIComponent(bookId)}`;
   } catch (err) {
     console.error("unlock failed:", err);
+    if (checkoutStatus) {
+      checkoutStatus.textContent = err.message || "Payment simulation failed.";
+    }
     alert("Payment simulation failed");
+    proceedBtn.disabled = false;
   }
+});
+
+backToPreviewBtn?.addEventListener("click", () => {
+  window.location.href = `preview.html?bookId=${encodeURIComponent(bookId)}`;
+});
+
+backToCoverBtn?.addEventListener("click", () => {
+  window.location.href = `cover.html?bookId=${encodeURIComponent(bookId)}`;
 });
 
 (async () => {
