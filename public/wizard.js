@@ -28,6 +28,7 @@ function saveSetupData() {
   const illustrationStyle = getSelectedStyle();
 
   return updateBookData({
+    bookId: "",
     childName,
     childAge,
     childGender,
@@ -176,8 +177,12 @@ async function handleSelectedFile(file) {
     saveSetupData();
 
     updateBookData({
+      bookId: "",
       originalPhoto: compressed,
-      croppedPhoto: ""
+      croppedPhoto: "",
+      characterReference: null,
+      generatedBook: null,
+      purchaseUnlocked: false
     });
 
     closeModal();
@@ -190,16 +195,12 @@ async function handleSelectedFile(file) {
 cameraInput?.addEventListener("change", async (e) => {
   const file = e.target.files?.[0];
   await handleSelectedFile(file);
-
-  // reset so the same file can be chosen again if needed
   e.target.value = "";
 });
 
 galleryInput?.addEventListener("change", async (e) => {
   const file = e.target.files?.[0];
   await handleSelectedFile(file);
-
-  // reset so the same file can be chosen again if needed
   e.target.value = "";
 });
 
