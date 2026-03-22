@@ -1,131 +1,91 @@
-import { getBookData, updateBookData } from "./js/state.js";
+import { updateBookData } from "./js/state.js";
 
-const data = getBookData();
+const API_BASE = window.location.origin;
 
-if (!data.generatedBook || !Array.isArray(data.generatedBook.pages) || data.generatedBook.pages.length === 0) {
-  window.location.href = "preview.html";
+function getBookId() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("bookId");
 }
 
-const generatedBook = data.generatedBook;
-const coverImage = sessionStorage.getItem("coverImage") || "";
+const bookId = getBookId();
 
-const checkoutBookTitle = document.getElementById("checkoutBookTitle");
-const checkoutBookSubtitle = document.getElementById("checkoutBookSubtitle");
-const checkoutCoverFill = document.getElementById("checkoutCoverFill");
-
-const summaryChildName = document.getElementById("summaryChildName");
-const summaryAge = document.getElementById("summaryAge");
-const summaryStyle = document.getElementById("summaryStyle");
-const summaryStory = document.getElementById("summaryStory");
-const summaryPages = document.getElementById("summaryPages");
-
-const formatDigital = document.getElementById("formatDigital");
-const formatPrinted = document.getElementById("formatPrinted");
-
-const backToPreviewBtn = document.getElementById("backToPreviewBtn");
-const saveAndContinueBtn = document.getElementById("saveAndContinueBtn");
-const goToSuccessPreviewBtn = document.getElementById("goToSuccessPreviewBtn");
-
-const checkoutBrandLogo = document.getElementById("checkoutBrandLogo");
-
-let selectedFormat = data.selectedFormat || "digital";
-let selectedPrice = selectedFormat === "printed" ? 49 : 39;
-
-function hideBrokenLogo(img) {
-  if (!img) return;
-  img.addEventListener("error", () => {
-    img.style.display = "none";
-  });
+if (!bookId) {
+  window.location.href = "wizard.html";
 }
 
-hideBrokenLogo(checkoutBrandLogo);
+const coverImageEl = document.getElementById("coverImage");
 
-if (checkoutBookTitle) {
-  checkoutBookTitle.textContent = generatedBook.title || "Your Magical Adventure";
-}
+const nameEl = document.getElementById("name");
+const ageEl = document.getElementById("age");
+const styleEl = document.getElementById("style");
+const storyEl = document.getElementById("story");
+const pagesEl = document.getElementById("pages");
 
-if (checkoutBookSubtitle) {
-  checkoutBookSubtitle.textContent = generatedBook.subtitle || "A story where you are the hero";
-}
+const proceedBtn = document.getElementById("proceedToPaymentBtn");
 
-if (checkoutCoverFill) {
-  if (coverImage) {
-    checkoutCoverFill.src = coverImage;
-  } else if (data.croppedPhoto) {
-    checkoutCoverFill.src = data.croppedPhoto;
-  } else if (data.originalPhoto) {
-    checkoutCoverFill.src = data.originalPhoto;
-  } else {
-    checkoutCoverFill.style.display = "none";
+let selectedFormat = "digital";
+let selectedPrice = 39;
+
+async function loadBook() {
+  try {
+    const res = await fetch(`${API_BASE}/api/books/${bookId}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to load book");
+    }
+
+    return data.book;
+  } catch (err) {
+    console.error("loadBook failed:", err);
+    alert("Failed to load book");
+    window.location.href = "wizard.html";
+    return null;
   }
 }
 
-if (summaryChildName) {
-  summaryChildName.textContent = data.childName || "-";
-}
+function renderBook(book) {
+  if (!book) return;
 
-if (summaryAge) {
-  summaryAge.textContent = data.childAge || "-";
-}
+  if (coverImageEl && book.coverImage) {
+    coverImageEl.src = book.coverImage;
+  }
 
-if (summaryStyle) {
-  summaryStyle.textContent = data.illustrationStyle || "-";
-}
-
-if (summaryStory) {
-  summaryStory.textContent = data.storyIdea || "-";
-}
-
-if (summaryPages) {
-  summaryPages.textContent = String(generatedBook.pages?.length || 0);
-}
-
-function syncFormatUI() {
-  const isDigital = selectedFormat === "digital";
-
-  formatDigital?.classList.toggle("active", isDigital);
-  formatPrinted?.classList.toggle("active", !isDigital);
-
-  selectedPrice = isDigital ? 39 : 49;
+  nameEl.textContent = book.childName || "-";
+  ageEl.textContent = book.childAge || "-";
+  styleEl.textContent = book.illustrationStyle || "-";
+  storyEl.textContent = book.storyIdea || "-";
+  pagesEl.textContent = String(book.generatedBook?.pages?.length || 0);
 
   updateBookData({
-    selectedFormat,
-    selectedPrice
+    bookId,
+    childName: book.childName,
+    childAge: book.childAge,
+    storyIdea: book.storyIdea,
+    illustrationStyle: book.illustrationStyle,
+    generatedBook: book.generatedBook,
+    purchaseUnlocked: book.purchaseUnlocked === true
   });
 }
 
-formatDigital?.addEventListener("click", () => {
-  selectedFormat = "digital";
-  syncFormatUI();
+proceedBtn?.addEventListener("click", async () => {
+  try {
+    await fetch(`${API_BASE}/api/books/${bookId}/unlock`, {
+      method: "POST"
+    });
+
+    updateBookData({
+      purchaseUnlocked: true
+    });
+
+    window.location.href = "success.html?bookId=" + encodeURIComponent(bookId);
+  } catch (err) {
+    console.error(err);
+    alert("Payment simulation failed");
+  }
 });
 
-formatPrinted?.addEventListener("click", () => {
-  selectedFormat = "printed";
-  syncFormatUI();
-});
-
-backToPreviewBtn?.addEventListener("click", () => {
-  window.location.href = "preview.html";
-});
-
-saveAndContinueBtn?.addEventListener("click", () => {
-  updateBookData({
-    selectedFormat,
-    selectedPrice,
-    purchaseUnlocked: true
-  });
-
-  window.location.href = "success.html";
-});
-
-goToSuccessPreviewBtn?.addEventListener("click", () => {
-  updateBookData({
-    selectedFormat,
-    selectedPrice,
-    purchaseUnlocked: true
-  });
-
-  window.location.href = "success.html";
-});
-
-syncFormatUI();
+(async () => {
+  const book = await loadBook();
+  renderBook(book);
+})();
