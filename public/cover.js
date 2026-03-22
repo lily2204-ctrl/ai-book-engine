@@ -81,7 +81,7 @@ backToGenerateBtn?.addEventListener("click", () => {
 });
 
 continueToPreviewBtn?.addEventListener("click", () => {
-  window.location.href = "preview.html";
+  window.location.href = `preview.html?bookId=${bookId}`;
 });
 
 restartBookBtn?.addEventListener("click", () => {
