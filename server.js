@@ -2,9 +2,8 @@ import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
 import path from "path";
-import fs from "fs";
-import { promises as fsp } from "fs";
 import { fileURLToPath } from "url";
+import { createClient } from "@supabase/supabase-js";
 
 const app = express();
 app.use(cors());
@@ -15,55 +14,14 @@ const __dirname = path.dirname(__filename);
 
 app.use(express.static(path.join(__dirname, "public")));
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
-const DATA_DIR = path.join(__dirname, "data");
-const BOOKS_FILE = path.join(DATA_DIR, "books.json");
-
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-if (!fs.existsSync(BOOKS_FILE)) {
-  fs.writeFileSync(BOOKS_FILE, JSON.stringify({ books: [] }, null, 2), "utf8");
-}
-
-async function readBooksDb() {
-  const raw = await fsp.readFile(BOOKS_FILE, "utf8");
-  return JSON.parse(raw || '{"books":[]}');
-}
-
-async function writeBooksDb(db) {
-  await fsp.writeFile(BOOKS_FILE, JSON.stringify(db, null, 2), "utf8");
-}
-
-async function insertBook(book) {
-  const db = await readBooksDb();
-  db.books.push(book);
-  await writeBooksDb(db);
-  return book;
-}
-
-async function updateBook(bookId, patch) {
-  const db = await readBooksDb();
-  const idx = db.books.findIndex((b) => b.bookId === bookId);
-
-  if (idx === -1) return null;
-
-  db.books[idx] = {
-    ...db.books[idx],
-    ...patch,
-    updatedAt: new Date().toISOString()
-  };
-
-  await writeBooksDb(db);
-  return db.books[idx];
-}
-
-async function getBook(bookId) {
-  const db = await readBooksDb();
-  return db.books.find((b) => b.bookId === bookId) || null;
-}
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 function safeJsonParse(raw, fallback = {}) {
   try {
@@ -146,6 +104,114 @@ async function normalizeImageToBase64(imageItem) {
   return null;
 }
 
+function dbRowToBook(row) {
+  if (!row) return null;
+
+  return {
+    bookId: row.book_id,
+    childName: row.child_name || "",
+    childAge: row.child_age || "",
+    childGender: row.child_gender || "",
+    storyIdea: row.story_idea || "",
+    illustrationStyle: row.illustration_style || "",
+    croppedPhoto: row.cropped_photo || "",
+    originalPhoto: row.original_photo || "",
+    characterReference: row.character_reference || null,
+    generatedBook: row.generated_book || null,
+    coverImage: row.cover_image || null,
+    previewImages: row.preview_images || [],
+    fullImages: row.full_images || [],
+    selectedFormat: row.selected_format || "digital",
+    selectedPrice: row.selected_price || 39,
+    paymentStatus: row.payment_status || "pending",
+    purchaseUnlocked: row.purchase_unlocked === true,
+    shopifyOrderId: row.shopify_order_id || null,
+    createdAt: row.created_at || null,
+    updatedAt: row.updated_at || null
+  };
+}
+
+function patchToDbFields(patch = {}) {
+  const dbPatch = {};
+
+  if ("childName" in patch) dbPatch.child_name = patch.childName;
+  if ("childAge" in patch) dbPatch.child_age = patch.childAge;
+  if ("childGender" in patch) dbPatch.child_gender = patch.childGender;
+  if ("storyIdea" in patch) dbPatch.story_idea = patch.storyIdea;
+  if ("illustrationStyle" in patch) dbPatch.illustration_style = patch.illustrationStyle;
+  if ("croppedPhoto" in patch) dbPatch.cropped_photo = patch.croppedPhoto;
+  if ("originalPhoto" in patch) dbPatch.original_photo = patch.originalPhoto;
+  if ("characterReference" in patch) dbPatch.character_reference = patch.characterReference;
+  if ("generatedBook" in patch) dbPatch.generated_book = patch.generatedBook;
+  if ("coverImage" in patch) dbPatch.cover_image = patch.coverImage;
+  if ("previewImages" in patch) dbPatch.preview_images = patch.previewImages;
+  if ("fullImages" in patch) dbPatch.full_images = patch.fullImages;
+  if ("selectedFormat" in patch) dbPatch.selected_format = patch.selectedFormat;
+  if ("selectedPrice" in patch) dbPatch.selected_price = patch.selectedPrice;
+  if ("paymentStatus" in patch) dbPatch.payment_status = patch.paymentStatus;
+  if ("purchaseUnlocked" in patch) dbPatch.purchase_unlocked = patch.purchaseUnlocked;
+  if ("shopifyOrderId" in patch) dbPatch.shopify_order_id = patch.shopifyOrderId;
+
+  dbPatch.updated_at = new Date().toISOString();
+
+  return dbPatch;
+}
+
+async function insertBook(book) {
+  const { data, error } = await supabase
+    .from("books")
+    .insert({
+      book_id: book.bookId,
+      child_name: book.childName,
+      child_age: book.childAge,
+      child_gender: book.childGender,
+      story_idea: book.storyIdea,
+      illustration_style: book.illustrationStyle,
+      cropped_photo: book.croppedPhoto,
+      original_photo: book.originalPhoto,
+      character_reference: book.characterReference,
+      generated_book: book.generatedBook,
+      cover_image: book.coverImage,
+      preview_images: book.previewImages,
+      full_images: book.fullImages,
+      selected_format: book.selectedFormat,
+      selected_price: book.selectedPrice,
+      payment_status: book.paymentStatus,
+      purchase_unlocked: book.purchaseUnlocked,
+      shopify_order_id: book.shopifyOrderId
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return dbRowToBook(data);
+}
+
+async function getBook(bookId) {
+  const { data, error } = await supabase
+    .from("books")
+    .select("*")
+    .eq("book_id", bookId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return dbRowToBook(data);
+}
+
+async function updateBook(bookId, patch) {
+  const dbPatch = patchToDbFields(patch);
+
+  const { data, error } = await supabase
+    .from("books")
+    .update(dbPatch)
+    .eq("book_id", bookId)
+    .select()
+    .maybeSingle();
+
+  if (error) throw error;
+  return dbRowToBook(data);
+}
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
@@ -178,9 +244,7 @@ app.post("/api/books/create", async (req, res) => {
       selectedPrice: 39,
       paymentStatus: "pending",
       purchaseUnlocked: false,
-      shopifyOrderId: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      shopifyOrderId: null
     };
 
     await insertBook(book);
