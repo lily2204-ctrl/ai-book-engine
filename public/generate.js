@@ -88,10 +88,70 @@ async function safeStoreImage(key, dataUrl, maxDimension = 700, quality = 0.72) 
   return compressed;
 }
 
-async function generateCharacterReference() {
+async function apiJson(url, options) {
+  const res = await fetch(url, options);
+  const rawText = await res.text();
+
+  let result;
+  try {
+    result = JSON.parse(rawText);
+  } catch {
+    throw new Error(`Server returned non-JSON response from ${url}`);
+  }
+
+  if (!res.ok) {
+    throw new Error(result?.message || result?.details || `Request failed: ${url}`);
+  }
+
+  return result;
+}
+
+async function createBookRecordIfNeeded() {
+  if (wizardData.bookId) {
+    return wizardData.bookId;
+  }
+
+  const result = await apiJson(`${API_BASE}/api/books/create`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      childName: wizardData.childName || "",
+      childAge: wizardData.childAge || "",
+      childGender: wizardData.childGender || "",
+      storyIdea: wizardData.storyIdea || "",
+      illustrationStyle: wizardData.illustrationStyle || "Soft Storybook",
+      croppedPhoto: wizardData.croppedPhoto || "",
+      originalPhoto: wizardData.originalPhoto || ""
+    })
+  });
+
+  const newBookId = result.bookId || "";
+
+  updateBookData({
+    bookId: newBookId
+  });
+
+  return newBookId;
+}
+
+async function patchBook(bookId, patch) {
+  if (!bookId) return;
+
+  await apiJson(`${API_BASE}/api/books/${bookId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(patch)
+  });
+}
+
+async function generateCharacterReference(bookId) {
   setActiveStep(stepCharacter, "Creating character reference...");
 
-  const res = await fetch(`${API_BASE}/generate-character-reference`, {
+  const result = await apiJson(`${API_BASE}/generate-character-reference`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -104,12 +164,6 @@ async function generateCharacterReference() {
       illustration_style: wizardData.illustrationStyle || "Soft Storybook"
     })
   });
-
-  const result = await res.json();
-
-  if (!res.ok) {
-    throw new Error(result?.message || result?.details || "Failed to create character reference");
-  }
 
   const characterRef = {
     characterDNA: result.characterDNA || {},
@@ -124,7 +178,6 @@ async function generateCharacterReference() {
       characterSheetPreview.src = characterSheetImage;
     }
 
-    // נשמור בגרסה דחוסה כדי לא לפוצץ quota
     await safeStoreImage("characterSheetImage", characterSheetImage, 650, 0.68);
   } else {
     sessionStorage.removeItem("characterSheetImage");
@@ -134,13 +187,17 @@ async function generateCharacterReference() {
     characterReference: characterRef
   });
 
+  await patchBook(bookId, {
+    characterReference: characterRef
+  });
+
   return characterRef;
 }
 
-async function generateBook(characterRef) {
+async function generateBookStory(bookId, characterRef) {
   setActiveStep(stepStory, "Building the story structure...");
 
-  const res = await fetch(`${API_BASE}/create-book`, {
+  const result = await apiJson(`${API_BASE}/create-book`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -159,19 +216,23 @@ async function generateBook(characterRef) {
     })
   });
 
-  const result = await res.json();
+  const generatedBook = buildGeneratedBookData(result, characterRef);
 
-  if (!res.ok) {
-    throw new Error(result?.message || result?.details || "Failed to generate book");
-  }
+  updateBookData({
+    generatedBook
+  });
+
+  await patchBook(bookId, {
+    generatedBook
+  });
 
   return result;
 }
 
-async function generateCoverImage(characterRef, bookResponse) {
+async function generateCoverImage(bookId, characterRef, bookResponse) {
   setActiveStep(stepPreview, "Creating the final cover image...");
 
-  const res = await fetch(`${API_BASE}/generate-cover-image`, {
+  const result = await apiJson(`${API_BASE}/generate-cover-image`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -186,18 +247,14 @@ async function generateCoverImage(characterRef, bookResponse) {
     })
   });
 
-  const result = await res.json();
-
-  if (!res.ok) {
-    throw new Error(result?.message || result?.details || "Failed to create cover image");
-  }
-
   if (result.coverImageBase64) {
     const rawCoverImage = `data:image/png;base64,${result.coverImageBase64}`;
+    const storedCoverImage = await safeStoreImage("coverImage", rawCoverImage, 700, 0.7);
 
-    // חשוב: לא שומרים את coverImage בתוך bookData
-    // שומרים רק sessionStorage דחוס
-    await safeStoreImage("coverImage", rawCoverImage, 700, 0.7);
+    await patchBook(bookId, {
+      coverImage: storedCoverImage
+    });
+
     return true;
   }
 
@@ -213,18 +270,17 @@ generateBookBtn?.addEventListener("click", async () => {
       generateStatus.textContent = "Starting generation...";
     }
 
-    const characterRef = await generateCharacterReference();
-    const bookResponse = await generateBook(characterRef);
-    await generateCoverImage(characterRef, bookResponse);
-
-    const generatedBook = buildGeneratedBookData(bookResponse, characterRef);
+    const bookId = await createBookRecordIfNeeded();
+    const characterRef = await generateCharacterReference(bookId);
+    const bookResponse = await generateBookStory(bookId, characterRef);
+    await generateCoverImage(bookId, characterRef, bookResponse);
 
     updateBookData({
-      generatedBook
+      purchaseUnlocked: false
     });
 
     setTimeout(() => {
-      window.location.href = "cover.html";
+      window.location.href = `cover.html?bookId=${encodeURIComponent(bookId)}`;
     }, 500);
   } catch (error) {
     console.error("generate.js failed:", error);
