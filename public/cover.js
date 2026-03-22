@@ -8,6 +8,7 @@ if (!data.generatedBook || !Array.isArray(data.generatedBook.pages) || data.gene
 
 const generatedBook = data.generatedBook;
 const coverImage = sessionStorage.getItem("coverImage") || "";
+const bookId = data.bookId || "";
 
 const coverTitle = document.getElementById("coverTitle");
 const coverSubtitle = document.getElementById("coverSubtitle");
@@ -81,7 +82,12 @@ backToGenerateBtn?.addEventListener("click", () => {
 });
 
 continueToPreviewBtn?.addEventListener("click", () => {
-  window.location.href = `preview.html?bookId=${bookId}`;
+  if (!bookId) {
+    alert("Missing book ID. Please generate the book again.");
+    return;
+  }
+
+  window.location.href = `preview.html?bookId=${encodeURIComponent(bookId)}`;
 });
 
 restartBookBtn?.addEventListener("click", () => {
