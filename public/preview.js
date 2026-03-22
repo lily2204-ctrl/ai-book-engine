@@ -1,105 +1,119 @@
-import { getBookData } from "./js/state.js";
+import { updateBookData } from "./js/state.js";
 
 const API_BASE = window.location.origin;
-const data = getBookData();
 
-if (!data.generatedBook || !Array.isArray(data.generatedBook.pages) || data.generatedBook.pages.length === 0) {
-  window.location.href = "cover.html";
+// =======================
+// GET bookId מה־URL
+// =======================
+function getBookId() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("bookId");
 }
 
-const generatedBook = data.generatedBook;
-const characterReference = data.characterReference || {};
-const coverImage = sessionStorage.getItem("coverImage") || "";
-const isUnlocked = data.purchaseUnlocked === true;
+const bookId = getBookId();
 
+if (!bookId) {
+  window.location.href = "wizard.html";
+}
+
+// =======================
+// ELEMENTS
+// =======================
 const coverImageEl = document.getElementById("coverImage");
 const bookTitleEl = document.getElementById("bookTitle");
 const bookSubtitleEl = document.getElementById("bookSubtitle");
 const pagesContainer = document.getElementById("pagesContainer");
-const checkoutBtn = document.getElementById("checkoutBtn");
-const unlockNote = document.getElementById("unlockNote");
 
-const previewPages = isUnlocked
-  ? generatedBook.pages
-  : generatedBook.pages.slice(0, 2);
+// =======================
+// FETCH BOOK
+// =======================
+async function loadBook() {
+  try {
+    const res = await fetch(`${API_BASE}/api/books/${bookId}`);
+    const data = await res.json();
 
-if (bookTitleEl) {
-  bookTitleEl.textContent = generatedBook.title || "Your Magical Adventure";
-}
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to load book");
+    }
 
-if (bookSubtitleEl) {
-  bookSubtitleEl.textContent = generatedBook.subtitle || "A story where you are the hero";
-}
-
-if (coverImageEl) {
-  if (coverImage) {
-    coverImageEl.src = coverImage;
-  } else if (data.croppedPhoto) {
-    coverImageEl.src = data.croppedPhoto;
-  } else if (data.originalPhoto) {
-    coverImageEl.src = data.originalPhoto;
+    return data.book;
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load book");
+    window.location.href = "wizard.html";
   }
 }
 
-if (unlockNote) {
-  unlockNote.textContent = isUnlocked
-    ? "Your full book is unlocked."
-    : "You are viewing the first 2 preview pages. Complete payment to unlock the full book.";
+// =======================
+// RENDER
+// =======================
+function renderBook(book) {
+  // COVER
+  if (coverImageEl && book.coverImage) {
+    coverImageEl.src = book.coverImage;
+  }
+
+  // TITLE
+  if (bookTitleEl) {
+    bookTitleEl.textContent = book.generatedBook?.title || "Your Magical Adventure";
+  }
+
+  if (bookSubtitleEl) {
+    bookSubtitleEl.textContent = book.generatedBook?.subtitle || "";
+  }
+
+  // SAVE ל-state (לשלבים הבאים)
+  updateBookData({
+    bookId,
+    generatedBook: book.generatedBook,
+    characterReference: book.characterReference,
+    coverImage: book.coverImage
+  });
+
+  renderPages(book);
 }
 
-if (checkoutBtn) {
-  checkoutBtn.textContent = isUnlocked
-    ? "Continue"
-    : "Unlock Full Book";
+// =======================
+// PAGES (LOCK SYSTEM 🔒)
+// =======================
+function renderPages(book) {
+  pagesContainer.innerHTML = "";
+
+  const pages = book.generatedBook?.pages || [];
+  const isUnlocked = book.purchaseUnlocked === true;
+
+  pages.forEach((page, index) => {
+    const isLocked = index >= 2 && !isUnlocked;
+
+    const div = document.createElement("div");
+    div.className = "page";
+
+    if (isLocked) {
+      div.innerHTML = `
+        <div class="page-label">Page ${index + 1}</div>
+        <div style="opacity:0.4; filter:blur(6px);">
+          🔒 Unlock after purchase
+        </div>
+      `;
+    } else {
+      div.innerHTML = `
+        <div class="page-label">Page ${index + 1}</div>
+        <div class="image-box" id="img-${index}">Loading...</div>
+        <div class="page-text">${page.text}</div>
+      `;
+
+      generateImage(page, index, book);
+    }
+
+    pagesContainer.appendChild(div);
+  });
 }
 
-function createPageCard(page, index) {
-  const article = document.createElement("article");
-  article.className = "page";
-
-  const pageNumber = index + 1;
-  const storyText = page.text || "";
-
-  article.innerHTML = `
-    <div class="page-label">Page ${pageNumber}</div>
-    <div class="image-box" id="image-box-${pageNumber}">
-      Generating illustration for page ${pageNumber}...
-    </div>
-    <div class="page-text">${escapeHtml(storyText)}</div>
-  `;
-
-  return article;
-}
-
-function createLockedCard() {
-  const lockCard = document.createElement("article");
-  lockCard.className = "page";
-
-  lockCard.innerHTML = `
-    <div class="page-label">Locked Preview</div>
-    <div class="image-box" style="min-height:260px; font-size:20px; color:#f0c46d; text-align:center; padding:24px;">
-      The rest of the story unlocks after payment
-    </div>
-    <div class="page-text">
-      Continue to checkout to unlock the full preview, access the complete book, and continue to delivery.
-    </div>
-  `;
-
-  return lockCard;
-}
-
-function escapeHtml(text) {
-  return String(text)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-async function generatePageImage(page, index, article) {
-  const pageNumber = index + 1;
-  const wrap = article.querySelector(`#image-box-${pageNumber}`);
+// =======================
+// IMAGE GENERATION
+// =======================
+async function generateImage(page, index, book) {
+  const container = document.getElementById(`img-${index}`);
 
   try {
     const res = await fetch(`${API_BASE}/generate-image`, {
@@ -108,60 +122,26 @@ async function generatePageImage(page, index, article) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        prompt: page.imagePrompt || "",
-        illustration_style: data.illustrationStyle || "Soft Storybook",
-        characterPromptCore: characterReference.characterPromptCore || generatedBook.characterPromptCore || "",
-        characterSummary: characterReference.characterSummary || generatedBook.characterSummary || ""
+        prompt: page.imagePrompt,
+        illustration_style: book.illustrationStyle,
+        characterPromptCore: book.characterReference?.characterPromptCore
       })
     });
 
-    const result = await res.json();
+    const data = await res.json();
 
-    if (!res.ok) {
-      throw new Error(result?.message || result?.details || `Failed to generate page ${pageNumber}`);
-    }
-
-    if (!result.imageBase64) {
-      throw new Error(`No image returned for page ${pageNumber}`);
-    }
-
-    wrap.innerHTML = `
-      <img
-        src="data:image/png;base64,${result.imageBase64}"
-        alt="Illustration for page ${pageNumber}"
-      />
+    container.innerHTML = `
+      <img src="data:image/png;base64,${data.imageBase64}" style="width:100%; border-radius:20px"/>
     `;
-  } catch (error) {
-    console.error(`Page ${pageNumber} image generation failed:`, error);
-
-    wrap.innerHTML = `
-      <div>Failed to generate illustration for page ${pageNumber}.</div>
-    `;
+  } catch {
+    container.innerHTML = "Failed";
   }
 }
 
-async function renderPages() {
-  if (!pagesContainer) return;
-
-  pagesContainer.innerHTML = "";
-
-  const articles = previewPages.map((page, index) => {
-    const article = createPageCard(page, index);
-    pagesContainer.appendChild(article);
-    return article;
-  });
-
-  for (let i = 0; i < previewPages.length; i += 1) {
-    await generatePageImage(previewPages[i], i, articles[i]);
-  }
-
-  if (!isUnlocked && generatedBook.pages.length > 2) {
-    pagesContainer.appendChild(createLockedCard());
-  }
-}
-
-checkoutBtn?.addEventListener("click", () => {
-  window.location.href = "checkout.html";
-});
-
-renderPages();
+// =======================
+// INIT
+// =======================
+(async () => {
+  const book = await loadBook();
+  renderBook(book);
+})();
