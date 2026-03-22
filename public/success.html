@@ -105,66 +105,17 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      object-position: center;
       display: block;
     }
 
-    .success-cover::after {
-      content: "";
+    .success-cover-frame {
       position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(180deg, rgba(7,10,20,0.18) 0%, rgba(7,10,20,0.06) 18%, rgba(7,10,20,0.16) 56%, rgba(7,10,20,0.4) 100%);
+      inset: 14px;
+      border: 1.5px solid rgba(243, 203, 121, 0.42);
+      border-radius: 14px;
       pointer-events: none;
-    }
-
-    .success-cover-inner {
-      position: relative;
       z-index: 2;
-      height: 100%;
-      padding: 18px;
-      display: grid;
-      grid-template-rows: auto auto 1fr auto;
-      gap: 10px;
-    }
-
-    .success-cover-brand {
-      display: flex;
-      justify-content: center;
-    }
-
-    .success-cover-brand img {
-      height: 30px;
-      width: auto;
-      display: block;
-      filter: drop-shadow(0 2px 10px rgba(0,0,0,0.26));
-    }
-
-    .success-cover-title {
-      margin: 0;
-      text-align: center;
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(28px, 3vw, 42px);
-      line-height: 0.98;
-      color: #fff3da;
-      white-space: pre-line;
-      text-shadow: 0 2px 12px rgba(0,0,0,0.32);
-    }
-
-    .success-cover-subtitle {
-      margin: 0;
-      text-align: center;
-      color: #f4e1ba;
-      font-size: 13px;
-      line-height: 1.35;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.24);
-    }
-
-    .success-cover-note {
-      text-align: center;
-      font-size: 13px;
-      color: #f5ddb0;
-      align-self: end;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.24);
     }
 
     .success-main-card {
@@ -307,6 +258,28 @@
       .success-brand {
         justify-self: start;
       }
+
+      .success-brand img {
+        height: 52px;
+      }
+
+      .success-brand-text {
+        font-size: 28px;
+      }
+
+      .success-main-card,
+      .success-side-card {
+        padding: 22px;
+      }
+
+      .success-actions {
+        flex-direction: column;
+      }
+
+      .primary-btn,
+      .secondary-btn {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -327,21 +300,7 @@
       <aside class="success-side-card">
         <div class="success-cover">
           <img id="successCoverFill" class="success-cover-fill" alt="Book cover art" />
-
-          <div class="success-cover-inner">
-            <div class="success-cover-brand">
-              <img id="successMiniLogo" src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook mark" />
-            </div>
-
-            <h2 id="successBookTitle" class="success-cover-title">Your Magical Adventure</h2>
-            <p id="successBookSubtitle" class="success-cover-subtitle">A story where you are the hero</p>
-
-            <div></div>
-
-            <div class="success-cover-note">
-              Your personalized book order
-            </div>
-          </div>
+          <div class="success-cover-frame"></div>
         </div>
       </aside>
 
@@ -376,13 +335,13 @@
 
         <div class="next-steps">
           <div class="next-step">
-            If this is a digital order, the final PDF can be delivered automatically after checkout.
+            The full book is now unlocked and ready for the next stage of delivery.
           </div>
           <div class="next-step">
-            If this is a printed order, the order can continue into your production and fulfillment flow.
+            In the next step, we will connect final checkout and order management with Shopify.
           </div>
           <div class="next-step">
-            Once Shopify is connected, this screen can be shown after successful payment as the official confirmation page.
+            After that, we will build the digital PDF and the printable book flow.
           </div>
         </div>
 
