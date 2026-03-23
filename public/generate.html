@@ -6,104 +6,36 @@
   <title>Lifebook - Generating</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background:
-        radial-gradient(circle at top, rgba(27, 46, 94, 0.55) 0%, rgba(10, 16, 34, 0.96) 55%, rgba(5, 10, 20, 1) 100%),
-        url("assets/backgrounds/FE0410D4-7381-4ACC-8FB9-D8862D553EC0.PNG");
-      background-size: cover;
-      background-position: center;
-      color: #fff8ec;
-      min-height: 100vh;
-    }
-
     .generate-shell{
       width:min(1240px, 94vw);
       margin:0 auto;
-      padding:28px 0 60px;
+      padding:24px 0 56px;
       position:relative;
       z-index:2;
     }
 
-    .generate-topbar{
-      display:grid;
-      grid-template-columns:1fr auto 1fr;
-      align-items:center;
-      margin-bottom:26px;
-    }
-
-    .generate-topbar-left,
-    .generate-topbar-right{
-      display:flex;
-      align-items:center;
-    }
-
-    .back-link-button{
-      appearance:none;
-      border:1px solid rgba(240,196,109,0.24);
-      background:rgba(255,255,255,0.04);
-      color:#fff7ea;
-      border-radius:999px;
-      padding:12px 18px;
-      font-size:15px;
-      font-weight:700;
-      cursor:pointer;
-    }
-
-    .generate-brand{
-      justify-self:center;
-      display:flex;
-      align-items:center;
-      gap:14px;
-    }
-
-    .generate-brand img{
-      height:64px;
-      width:auto;
-      display:block;
-    }
-
-    .generate-brand-text{
-      font-family:Georgia, "Times New Roman", serif;
-      font-size:32px;
-      color:#f7ecd7;
-    }
-
     .generate-layout{
       display:grid;
-      grid-template-columns:1fr 420px;
+      grid-template-columns:minmax(0, 1fr) 420px;
       gap:20px;
+      align-items:start;
     }
 
-    .generate-card,
-    .preview-panel{
+    .generate-card{
       background:
         linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
         linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
       border:1px solid rgba(240,196,109,0.14);
-      border-radius:36px;
-      box-shadow:0 18px 60px rgba(0,0,0,0.34);
-    }
-
-    .generate-card{
+      border-radius:34px;
+      box-shadow:var(--shadow);
       padding:28px;
-    }
-
-    .generate-step-label{
-      color:#e9c57c;
-      font-size:14px;
-      font-weight:700;
-      letter-spacing:0.5px;
-      text-transform:uppercase;
-      margin-bottom:10px;
     }
 
     .generate-card h1{
       margin:0 0 10px;
       font-family:Georgia, "Times New Roman", serif;
-      font-size:clamp(42px, 5vw, 66px);
-      line-height:.94;
+      font-size:clamp(38px, 6vw, 64px);
+      line-height:.96;
       color:#f9f1e4;
     }
 
@@ -111,8 +43,8 @@
       margin:0 0 18px;
       color:#cfc0ab;
       font-size:18px;
-      line-height:1.7;
-      max-width:760px;
+      line-height:1.65;
+      max-width:820px;
     }
 
     .step-list{
@@ -125,7 +57,7 @@
       display:flex;
       align-items:flex-start;
       gap:12px;
-      padding:18px 18px;
+      padding:16px 18px;
       border-radius:20px;
       background:rgba(255,255,255,0.04);
       border:1px solid rgba(255,255,255,0.08);
@@ -138,8 +70,8 @@
     }
 
     .step-dot{
-      width:34px;
-      height:34px;
+      width:28px;
+      height:28px;
       border-radius:50%;
       flex:0 0 auto;
       display:flex;
@@ -148,7 +80,7 @@
       font-weight:800;
       background:rgba(255,255,255,0.08);
       color:#f7efdf;
-      margin-top:2px;
+      margin-top:1px;
     }
 
     .step-item.active .step-dot{
@@ -156,43 +88,61 @@
       color:white;
     }
 
-    .step-title{
-      font-weight:800;
-      font-size:18px;
-      color:#f6eddc;
-      margin-bottom:3px;
-    }
-
-    .step-text{
+    .step-copy{
       font-size:16px;
       line-height:1.55;
-      color:#d7c7af;
+    }
+
+    .step-copy strong{
+      display:block;
+      font-size:18px;
+      color:#fff5df;
+      margin-bottom:2px;
     }
 
     .generate-side{
       display:grid;
       gap:18px;
+      position:sticky;
+      top:18px;
     }
 
     .preview-panel{
-      padding:20px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
+        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:28px;
+      box-shadow:var(--shadow-soft);
+      padding:18px;
     }
 
     .preview-panel h3{
-      margin:0 0 14px;
+      margin:0 0 12px;
       font-family:Georgia, "Times New Roman", serif;
-      font-size:28px;
+      font-size:24px;
       color:#f7efdf;
+      line-height:1.1;
+    }
+
+    .preview-frame{
+      width:100%;
+      border-radius:20px;
+      overflow:hidden;
+      background:rgba(255,255,255,0.06);
+      min-height:220px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
 
     .preview-image{
       width:100%;
-      border-radius:22px;
-      background:rgba(255,255,255,0.06);
+      display:block;
       object-fit:cover;
       min-height:220px;
-      display:block;
-      border:1px solid rgba(240,196,109,0.12);
+      max-height:420px;
+      background:rgba(255,255,255,0.06);
     }
 
     .generate-actions{
@@ -202,79 +152,140 @@
       margin-top:22px;
     }
 
-    .continue-btn,
-    .secondary-btn{
-      appearance:none;
-      border:none;
-      border-radius:999px;
-      padding:16px 28px;
-      font-size:18px;
-      font-weight:700;
-      cursor:pointer;
-      transition:transform 0.15s ease, opacity 0.15s ease;
-    }
-
-    .continue-btn:hover,
-    .secondary-btn:hover,
-    .back-link-button:hover{
-      transform:translateY(-1px);
-    }
-
-    .continue-btn{
-      color:#fffaf1;
-      background:linear-gradient(180deg, #f0c46d 0%, #d08e2b 100%);
-      box-shadow:0 10px 24px rgba(208,142,43,0.28);
-    }
-
-    .secondary-btn{
-      background:rgba(255,255,255,0.05);
-      color:#fff8ec;
-      border:1px solid rgba(240,196,109,0.16);
-    }
-
     .status-text{
       margin-top:16px;
-      font-size:17px;
+      font-size:15px;
+      line-height:1.55;
       color:#efc878;
       font-weight:700;
       min-height:24px;
-      line-height:1.5;
     }
 
-    @media (max-width:980px){
+    .generate-actions .continue-btn,
+    .generate-actions .secondary-btn{
+      min-width:210px;
+    }
+
+    @media (max-width:1024px){
       .generate-layout{
         grid-template-columns:1fr;
       }
 
-      .generate-topbar{
-        grid-template-columns:1fr;
-        gap:16px;
+      .generate-side{
+        position:static;
+        grid-template-columns:1fr 1fr;
+      }
+    }
+
+    @media (max-width:720px){
+      .generate-shell{
+        width:min(100%, 100vw);
+        padding:16px 12px 42px;
+        box-sizing:border-box;
       }
 
-      .generate-brand{
-        justify-self:start;
+      .generate-card{
+        padding:20px;
+        border-radius:24px;
+      }
+
+      .generate-card h1{
+        font-size:clamp(34px, 12vw, 50px);
+        line-height:.95;
+      }
+
+      .generate-card p{
+        font-size:16px;
+        line-height:1.58;
+        margin-bottom:16px;
+      }
+
+      .step-list{
+        gap:12px;
+        margin-top:18px;
+      }
+
+      .step-item{
+        padding:14px;
+        border-radius:18px;
+      }
+
+      .step-dot{
+        width:30px;
+        height:30px;
+        font-size:15px;
+      }
+
+      .step-copy{
+        font-size:15px;
+      }
+
+      .step-copy strong{
+        font-size:17px;
+      }
+
+      .status-text{
+        margin-top:14px;
+        font-size:14px;
+      }
+
+      .generate-actions{
+        flex-direction:column;
+        gap:12px;
+        margin-top:18px;
+      }
+
+      .generate-actions .continue-btn,
+      .generate-actions .secondary-btn{
+        width:100%;
+        min-width:0;
+      }
+
+      .generate-side{
+        grid-template-columns:1fr;
+        gap:14px;
+      }
+
+      .preview-panel{
+        padding:14px;
+        border-radius:22px;
+      }
+
+      .preview-panel h3{
+        font-size:22px;
+        margin-bottom:10px;
+      }
+
+      .preview-frame{
+        min-height:180px;
+        border-radius:16px;
+      }
+
+      .preview-image{
+        min-height:180px;
+        max-height:320px;
+        border-radius:16px;
       }
     }
   </style>
 </head>
-<body>
-  <div class="generate-shell">
-    <header class="generate-topbar">
-      <div class="generate-topbar-left">
-        <button class="back-link-button" id="backToCropBtn" type="button">← Back</button>
-      </div>
+<body class="setup-body">
+  <header class="wizard-topbar">
+    <div class="wizard-topbar-left">
+      <button class="back-link-button" id="backToCropBtn" type="button">← Back</button>
+    </div>
 
-      <div class="generate-brand">
-        <img src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook logo" />
-        <span class="generate-brand-text">lifebook</span>
-      </div>
+    <div class="wizard-brand">
+      <img class="brand-image" src="assets/logo.png" alt="Lifebook logo" />
+    </div>
 
-      <div class="generate-topbar-right"></div>
-    </header>
+    <div class="wizard-topbar-right"></div>
+  </header>
 
+  <main class="generate-shell">
     <div class="generate-layout">
       <section class="generate-card">
-        <div class="generate-step-label">Step 3 of 5</div>
+        <div class="wizard-step-label">Step 3 of 5</div>
         <h1>Generating your book</h1>
         <p>
           First we create the child character reference. Then we build the story structure and prepare the book preview.
@@ -283,31 +294,25 @@
         <div class="step-list">
           <div class="step-item" id="stepCharacter">
             <div class="step-dot">1</div>
-            <div>
-              <div class="step-title">Create Character Reference</div>
-              <div class="step-text">
-                Analyze the uploaded child photo and build a consistent character DNA.
-              </div>
+            <div class="step-copy">
+              <strong>Create Character Reference</strong>
+              Analyze the uploaded child photo and build a consistent character DNA.
             </div>
           </div>
 
           <div class="step-item" id="stepStory">
             <div class="step-dot">2</div>
-            <div>
-              <div class="step-title">Build Story Structure</div>
-              <div class="step-text">
-                Generate the title, subtitle, and all story pages.
-              </div>
+            <div class="step-copy">
+              <strong>Build Story Structure</strong>
+              Generate the title, subtitle, and all story pages.
             </div>
           </div>
 
           <div class="step-item" id="stepPreview">
             <div class="step-dot">3</div>
-            <div>
-              <div class="step-title">Prepare Preview</div>
-              <div class="step-text">
-                Save everything for the cover and preview pages.
-              </div>
+            <div class="step-copy">
+              <strong>Prepare Preview</strong>
+              Save everything for the cover and preview pages.
             </div>
           </div>
         </div>
@@ -323,16 +328,20 @@
       <aside class="generate-side">
         <div class="preview-panel">
           <h3>Uploaded photo</h3>
-          <img class="preview-image" id="uploadedPhotoPreview" alt="Uploaded child photo" />
+          <div class="preview-frame">
+            <img class="preview-image" id="uploadedPhotoPreview" alt="Uploaded child photo" />
+          </div>
         </div>
 
         <div class="preview-panel">
           <h3>Character reference</h3>
-          <img class="preview-image" id="characterSheetPreview" alt="Character reference sheet" />
+          <div class="preview-frame">
+            <img class="preview-image" id="characterSheetPreview" alt="Character reference sheet" />
+          </div>
         </div>
       </aside>
     </div>
-  </div>
+  </main>
 
   <script type="module" src="./generate.js"></script>
 </body>
