@@ -21,7 +21,7 @@
     .success-shell {
       width: min(1180px, 94vw);
       margin: 0 auto;
-      padding: 34px 0 80px;
+      padding: 24px 0 60px;
       position: relative;
       z-index: 2;
     }
@@ -30,7 +30,8 @@
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      margin-bottom: 30px;
+      margin-bottom: 24px;
+      gap: 16px;
     }
 
     .success-back-btn {
@@ -69,6 +70,7 @@
       display: grid;
       grid-template-columns: 380px 1fr;
       gap: 24px;
+      align-items: start;
     }
 
     .success-side-card,
@@ -77,21 +79,20 @@
         linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
         linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
       border: 1px solid rgba(240,196,109,0.14);
-      border-radius: 34px;
+      border-radius: 30px;
       box-shadow: 0 18px 60px rgba(0,0,0,0.34);
     }
 
     .success-side-card {
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
+      padding: 18px;
+      position: sticky;
+      top: 18px;
     }
 
     .success-cover {
       width: 100%;
       aspect-ratio: 0.72 / 1;
-      border-radius: 20px;
+      border-radius: 22px;
       overflow: hidden;
       border: 2px solid rgba(234, 190, 94, 0.45);
       position: relative;
@@ -119,10 +120,10 @@
     }
 
     .success-main-card {
-      padding: 32px;
+      padding: 28px;
       display: flex;
       flex-direction: column;
-      gap: 22px;
+      gap: 20px;
     }
 
     .success-badge {
@@ -143,8 +144,8 @@
     .success-title {
       margin: 0;
       font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(42px, 5vw, 72px);
-      line-height: 0.94;
+      font-size: clamp(38px, 6vw, 72px);
+      line-height: 0.95;
       color: #fff7e8;
     }
 
@@ -166,7 +167,7 @@
       grid-template-columns: 190px 1fr;
       gap: 14px;
       align-items: start;
-      padding: 15px 18px;
+      padding: 16px 18px;
       border-radius: 18px;
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(240,196,109,0.12);
@@ -180,7 +181,7 @@
 
     .summary-value {
       font-size: 16px;
-      line-height: 1.5;
+      line-height: 1.55;
       color: #fff6e6;
       white-space: pre-wrap;
       word-break: break-word;
@@ -244,6 +245,10 @@
         grid-template-columns: 1fr;
       }
 
+      .success-side-card {
+        position: static;
+      }
+
       .summary-row {
         grid-template-columns: 1fr;
         gap: 8px;
@@ -251,7 +256,6 @@
 
       .success-topbar {
         grid-template-columns: 1fr;
-        gap: 16px;
       }
 
       .success-back-btn,
@@ -260,25 +264,76 @@
       }
 
       .success-brand img {
-        height: 52px;
+        height: 54px;
       }
 
       .success-brand-text {
         font-size: 28px;
       }
+    }
 
-      .success-main-card,
+    @media (max-width: 640px) {
+      .success-shell {
+        width: min(100%, 100vw);
+        padding: 16px 12px 42px;
+        box-sizing: border-box;
+      }
+
       .success-side-card {
-        padding: 22px;
+        padding: 14px;
+        border-radius: 24px;
+      }
+
+      .success-cover {
+        border-radius: 18px;
+      }
+
+      .success-main-card {
+        padding: 18px;
+        border-radius: 24px;
+        gap: 16px;
+      }
+
+      .success-title {
+        font-size: clamp(34px, 12vw, 52px);
+        line-height: 0.95;
+      }
+
+      .success-copy {
+        font-size: 16px;
+        line-height: 1.6;
+      }
+
+      .summary-row {
+        padding: 14px 16px;
+        border-radius: 16px;
+      }
+
+      .summary-label {
+        font-size: 14px;
+      }
+
+      .summary-value {
+        font-size: 15px;
+      }
+
+      .next-step {
+        padding: 14px 16px;
+        border-radius: 16px;
+        font-size: 15px;
+        line-height: 1.55;
       }
 
       .success-actions {
         flex-direction: column;
+        gap: 12px;
       }
 
       .primary-btn,
       .secondary-btn {
         width: 100%;
+        font-size: 16px;
+        padding: 16px 18px;
       }
     }
   </style>
