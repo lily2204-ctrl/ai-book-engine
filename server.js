@@ -2,11 +2,15 @@ import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
 import path from "path";
+import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 
 const app = express();
 app.use(cors());
+
+// Shopify webhook needs raw body for HMAC verification
+app.use("/webhooks/shopify", express.raw({ type: "*/*", limit: "25mb" }));
 app.use(express.json({ limit: "25mb" }));
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,10 +21,6 @@ app.use(express.static(path.join(__dirname, "public")));
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
-
-console.log("SUPABASE_URL exists:", Boolean(process.env.SUPABASE_URL));
-console.log("SUPABASE_SERVICE_ROLE_KEY exists:", Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY));
-console.log("OPENAI_API_KEY exists:", Boolean(process.env.OPENAI_API_KEY));
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -162,8 +162,6 @@ function patchToDbFields(patch = {}) {
 }
 
 async function insertBook(book) {
-  console.log("insertBook called with bookId:", book.bookId);
-
   const { data, error } = await supabase
     .from("books")
     .insert({
@@ -189,36 +187,22 @@ async function insertBook(book) {
     .select()
     .single();
 
-  if (error) {
-    console.error("insertBook error:", error);
-    throw error;
-  }
-
-  console.log("insertBook success:", data?.book_id);
+  if (error) throw error;
   return dbRowToBook(data);
 }
 
 async function getBook(bookId) {
-  console.log("getBook called:", bookId);
-
   const { data, error } = await supabase
     .from("books")
     .select("*")
     .eq("book_id", bookId)
     .maybeSingle();
 
-  if (error) {
-    console.error("getBook error:", error);
-    throw error;
-  }
-
-  console.log("getBook found:", Boolean(data));
+  if (error) throw error;
   return dbRowToBook(data);
 }
 
 async function updateBook(bookId, patch) {
-  console.log("updateBook called:", bookId, Object.keys(patch || {}));
-
   const dbPatch = patchToDbFields(patch);
 
   const { data, error } = await supabase
@@ -228,35 +212,67 @@ async function updateBook(bookId, patch) {
     .select()
     .maybeSingle();
 
-  if (error) {
-    console.error("updateBook error:", error);
-    throw error;
+  if (error) throw error;
+  return dbRowToBook(data);
+}
+
+function verifyShopifyWebhook(rawBody, hmacHeader) {
+  const secret = process.env.SHOPIFY_API_SECRET || "";
+  if (!secret || !hmacHeader) return false;
+
+  const digest = crypto
+    .createHmac("sha256", secret)
+    .update(rawBody, "utf8")
+    .digest("base64");
+
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(digest),
+      Buffer.from(hmacHeader)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function extractBookIdFromOrder(orderPayload) {
+  const lineItems = orderPayload?.line_items || [];
+
+  for (const item of lineItems) {
+    const properties = item?.properties || [];
+    for (const prop of properties) {
+      if (prop?.name === "_bookId" && prop?.value) {
+        return String(prop.value);
+      }
+    }
   }
 
-  console.log("updateBook success:", Boolean(data));
-  return dbRowToBook(data);
+  return null;
 }
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-app.get("/api/debug/books-count", async (req, res) => {
+app.get("/api/books/:bookId", async (req, res) => {
   try {
-    const { count, error } = await supabase
-      .from("books")
-      .select("*", { count: "exact", head: true });
+    const book = await getBook(req.params.bookId);
 
-    if (error) throw error;
+    if (!book) {
+      return res.status(404).json({
+        status: "error",
+        message: "Book not found"
+      });
+    }
 
     return res.json({
       status: "ok",
-      count
+      book
     });
   } catch (err) {
     return res.status(500).json({
       status: "error",
-      message: err?.message || "Failed to count books"
+      message: err?.message || "Failed to fetch book"
     });
   }
 });
@@ -265,7 +281,6 @@ app.post("/api/books/create", async (req, res) => {
   try {
     const cleanInput = sanitizeStoryPayload(req.body || {});
     const rawInput = req.body || {};
-
     const bookId = crypto.randomUUID();
 
     const book = {
@@ -296,34 +311,9 @@ app.post("/api/books/create", async (req, res) => {
       bookId
     });
   } catch (err) {
-    console.error("/api/books/create error:", err);
     return res.status(500).json({
       status: "error",
       message: err?.message || "Failed to create book"
-    });
-  }
-});
-
-app.get("/api/books/:bookId", async (req, res) => {
-  try {
-    const book = await getBook(req.params.bookId);
-
-    if (!book) {
-      return res.status(404).json({
-        status: "error",
-        message: "Book not found"
-      });
-    }
-
-    return res.json({
-      status: "ok",
-      book
-    });
-  } catch (err) {
-    console.error("/api/books/:bookId GET error:", err);
-    return res.status(500).json({
-      status: "error",
-      message: err?.message || "Failed to fetch book"
     });
   }
 });
@@ -344,7 +334,6 @@ app.patch("/api/books/:bookId", async (req, res) => {
       book: updated
     });
   } catch (err) {
-    console.error("/api/books/:bookId PATCH error:", err);
     return res.status(500).json({
       status: "error",
       message: err?.message || "Failed to update book"
@@ -371,11 +360,45 @@ app.post("/api/books/:bookId/unlock", async (req, res) => {
       book: updated
     });
   } catch (err) {
-    console.error("/api/books/:bookId/unlock error:", err);
     return res.status(500).json({
       status: "error",
       message: err?.message || "Failed to unlock book"
     });
+  }
+});
+
+/**
+ * Shopify webhook
+ * Register this endpoint in Shopify as:
+ * https://your-domain.com/webhooks/shopify/orders-paid
+ */
+app.post("/webhooks/shopify/orders-paid", async (req, res) => {
+  try {
+    const rawBody = req.body instanceof Buffer ? req.body.toString("utf8") : "";
+    const hmacHeader = req.get("X-Shopify-Hmac-Sha256");
+
+    const valid = verifyShopifyWebhook(rawBody, hmacHeader);
+    if (!valid) {
+      return res.status(401).send("Invalid webhook signature");
+    }
+
+    const payload = safeJsonParse(rawBody, {});
+    const bookId = extractBookIdFromOrder(payload);
+    const shopifyOrderId = payload?.id ? String(payload.id) : null;
+
+    if (!bookId) {
+      return res.status(200).send("No _bookId found");
+    }
+
+    await updateBook(bookId, {
+      paymentStatus: "paid",
+      purchaseUnlocked: true,
+      shopifyOrderId
+    });
+
+    return res.status(200).send("ok");
+  } catch (err) {
+    return res.status(500).send(err?.message || "Webhook failed");
   }
 });
 
@@ -739,42 +762,6 @@ Rules:
       status: "error",
       message: "Image generation failed",
       details: err?.message || "unknown_error"
-    });
-  }
-});
-
-app.post("/webhooks/shopify-paid", async (req, res) => {
-  try {
-    const { bookId, shopifyOrderId } = req.body;
-
-    if (!bookId) {
-      return res.status(400).json({
-        status: "error",
-        message: "Missing bookId"
-      });
-    }
-
-    const updated = await updateBook(bookId, {
-      paymentStatus: "paid",
-      purchaseUnlocked: true,
-      shopifyOrderId: shopifyOrderId || null
-    });
-
-    if (!updated) {
-      return res.status(404).json({
-        status: "error",
-        message: "Book not found"
-      });
-    }
-
-    return res.json({
-      status: "ok",
-      book: updated
-    });
-  } catch (err) {
-    return res.status(500).json({
-      status: "error",
-      message: err?.message || "Webhook failed"
     });
   }
 });
