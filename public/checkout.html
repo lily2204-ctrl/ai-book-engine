@@ -173,6 +173,10 @@
       min-height:24px;
     }
 
+    .status-note.error{
+      color:#ffb5b5;
+    }
+
     @media(max-width:980px){
       .layout{
         grid-template-columns:1fr;
@@ -269,7 +273,7 @@
 <div class="container">
 
   <div class="top">
-    <button class="back" id="backToPreviewBtn">← Back</button>
+    <button class="back" id="backToPreviewBtn" type="button">← Back</button>
 
     <div class="brand">
       <img src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook logo">
@@ -323,16 +327,16 @@
       </div>
 
       <div class="buttons">
-        <button class="btn" id="proceedToPaymentBtn">Proceed to Payment</button>
-        <button class="btn-secondary" id="backToCoverBtn">Back to Cover</button>
+        <button class="btn" id="proceedToPaymentBtn" type="button">Proceed to Payment</button>
+        <button class="btn-secondary" id="backToCoverBtn" type="button">Back to Cover</button>
       </div>
 
-      <div class="status-note" id="checkoutStatus"></div>
+      <div class="status-note" id="checkoutStatus">Loading your book details...</div>
     </div>
   </div>
 
 </div>
 
-<script type="module" src="./checkout.js"></script>
+<script type="module" src="./checkout.js?v=3"></script>
 </body>
 </html>
