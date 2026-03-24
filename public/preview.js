@@ -1,5 +1,3 @@
-import { updateBookData } from "./js/state.js";
-
 const API_BASE = window.location.origin;
 
 function getBookId() {
@@ -13,119 +11,42 @@ if (!bookId) {
   window.location.href = "wizard.html";
 }
 
-const coverImageEl = document.getElementById("coverImage");
-const bookTitleEl = document.getElementById("bookTitle");
-const bookSubtitleEl = document.getElementById("bookSubtitle");
+const coverImage = document.getElementById("coverImage");
+const bookTitle = document.getElementById("bookTitle");
+const bookSubtitle = document.getElementById("bookSubtitle");
 const pagesContainer = document.getElementById("pagesContainer");
-const unlockNote = document.getElementById("unlockNote");
 const goToCheckoutBtn = document.getElementById("goToCheckoutBtn");
+const unlockNote = document.getElementById("unlockNote");
 
 async function loadBook() {
-  try {
-    const res = await fetch(`${API_BASE}/api/books/${bookId}`);
-    const data = await res.json();
+  const res = await fetch(`${API_BASE}/api/books/${bookId}`);
+  const data = await res.json();
 
-    if (!res.ok) {
-      throw new Error(data.message || "Failed to load book");
-    }
-
-    return data.book;
-  } catch (err) {
-    console.error("loadBook failed:", err);
-    alert("Failed to load book");
-    window.location.href = "wizard.html";
-    return null;
+  if (!res.ok) {
+    throw new Error(data.message || "Failed to load book");
   }
+
+  return data.book;
 }
 
-function renderBook(book) {
-  if (!book) return;
+function createPageCard(page, index) {
+  const article = document.createElement("article");
+  article.className = "page";
 
-  if (coverImageEl && book.coverImage) {
-    coverImageEl.src = book.coverImage;
-  }
+  const pageNumber = index + 1;
 
-  if (bookTitleEl) {
-    bookTitleEl.textContent = book.generatedBook?.title || "Your Magical Adventure";
-  }
+  article.innerHTML = `
+    <div class="page-label">Page ${pageNumber}</div>
+    <div class="image-box" id="image-box-${pageNumber}">Loading...</div>
+    <div class="page-text">${page.text || ""}</div>
+  `;
 
-  if (bookSubtitleEl) {
-    bookSubtitleEl.textContent = book.generatedBook?.subtitle || "";
-  }
-
-  if (unlockNote) {
-    unlockNote.textContent =
-      book.purchaseUnlocked === true
-        ? "Your full story is unlocked."
-        : "You are currently viewing only the first 2 preview pages. Complete payment to unlock the full book.";
-  }
-
-  updateBookData({
-    bookId,
-    childName: book.childName || "",
-    childAge: book.childAge || "",
-    childGender: book.childGender || "",
-    storyIdea: book.storyIdea || "",
-    illustrationStyle: book.illustrationStyle || "",
-    croppedPhoto: book.croppedPhoto || "",
-    originalPhoto: book.originalPhoto || "",
-    generatedBook: book.generatedBook || null,
-    characterReference: book.characterReference || null,
-    purchaseUnlocked: book.purchaseUnlocked === true
-  });
-
-  renderPages(book);
+  return article;
 }
 
-function renderPages(book) {
-  if (!pagesContainer) return;
-
-  pagesContainer.innerHTML = "";
-
-  const pages = book.generatedBook?.pages || [];
-  const isUnlocked = book.purchaseUnlocked === true;
-
-  pages.forEach((page, index) => {
-    const isLocked = index >= 2 && !isUnlocked;
-
-    const div = document.createElement("div");
-    div.className = "page";
-
-    if (isLocked) {
-      div.innerHTML = `
-        <div class="page-label">Page ${index + 1}</div>
-        <div style="opacity:0.45; filter:blur(6px); min-height:180px; display:flex; align-items:center; justify-content:center;">
-          🔒 Unlock after purchase
-        </div>
-      `;
-    } else {
-      div.innerHTML = `
-        <div class="page-label">Page ${index + 1}</div>
-        <div class="image-box" id="img-${index}">Loading...</div>
-        <div class="page-text">${escapeHtml(page.text || "")}</div>
-      `;
-    }
-
-    pagesContainer.appendChild(div);
-
-    if (!isLocked) {
-      generateImage(page, index, book);
-    }
-  });
-}
-
-function escapeHtml(text) {
-  return String(text)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-async function generateImage(page, index, book) {
-  const container = document.getElementById(`img-${index}`);
-  if (!container) return;
+async function generatePageImage(book, page, index, article) {
+  const pageNumber = index + 1;
+  const imageBox = article.querySelector(`#image-box-${pageNumber}`);
 
   try {
     const res = await fetch(`${API_BASE}/generate-image`, {
@@ -134,32 +55,72 @@ async function generateImage(page, index, book) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        prompt: page.imagePrompt,
-        illustration_style: book.illustrationStyle,
-        characterPromptCore: book.characterReference?.characterPromptCore
+        prompt: page.imagePrompt || "",
+        illustration_style: book.illustrationStyle || "Soft Storybook",
+        characterPromptCore: book.characterReference?.characterPromptCore || ""
       })
     });
 
     const data = await res.json();
 
-    if (!res.ok || !data.imageBase64) {
-      throw new Error(data?.message || "Failed to generate image");
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to generate page image");
     }
 
-    container.innerHTML = `
-      <img src="data:image/png;base64,${data.imageBase64}" style="width:100%; border-radius:20px"/>
-    `;
+    imageBox.innerHTML = `<img src="data:image/png;base64,${data.imageBase64}" alt="Page ${pageNumber}" style="width:100%;display:block;border-radius:20px;">`;
   } catch (error) {
-    console.error(`generateImage failed for page ${index + 1}:`, error);
-    container.innerHTML = "Failed";
+    console.error(`Failed image for page ${pageNumber}:`, error);
+    imageBox.textContent = "Failed to generate page image.";
   }
 }
 
-goToCheckoutBtn?.addEventListener("click", () => {
-  window.location.href = `checkout.html?bookId=${encodeURIComponent(bookId)}`;
-});
+async function renderBook() {
+  try {
+    const book = await loadBook();
 
-(async () => {
-  const book = await loadBook();
-  renderBook(book);
-})();
+    if (coverImage) {
+      if (book.coverImage) {
+        coverImage.src = book.coverImage;
+      } else if (book.croppedPhoto) {
+        coverImage.src = book.croppedPhoto;
+      }
+    }
+
+    if (bookTitle) {
+      bookTitle.textContent = book.generatedBook?.title || "Your Magical Adventure";
+    }
+
+    if (bookSubtitle) {
+      bookSubtitle.textContent = book.generatedBook?.subtitle || "A story where you are the hero";
+    }
+
+    const allPages = book.generatedBook?.pages || [];
+    const isUnlocked = book.purchaseUnlocked === true || book.paymentStatus === "paid";
+    const visiblePages = isUnlocked ? allPages : allPages.slice(0, 2);
+
+    if (unlockNote) {
+      unlockNote.style.display = isUnlocked ? "none" : "block";
+    }
+
+    if (goToCheckoutBtn) {
+      goToCheckoutBtn.style.display = isUnlocked ? "none" : "inline-block";
+      goToCheckoutBtn.onclick = () => {
+        window.location.href = `checkout.html?bookId=${encodeURIComponent(bookId)}`;
+      };
+    }
+
+    pagesContainer.innerHTML = "";
+
+    for (let i = 0; i < visiblePages.length; i += 1) {
+      const page = visiblePages[i];
+      const article = createPageCard(page, i);
+      pagesContainer.appendChild(article);
+      await generatePageImage(book, page, i, article);
+    }
+  } catch (error) {
+    console.error("Preview load failed:", error);
+    alert(error.message || "Failed to load preview");
+  }
+}
+
+renderBook();
