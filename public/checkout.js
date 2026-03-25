@@ -4,8 +4,8 @@ const SHOPIFY_DOMAIN = "lifebook-464.myshopify.com";
 const STOREFRONT_TOKEN = "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";
 
 const VARIANTS = {
-  digital: "43110468845634",
-  printed: "43110480674882"
+  digital: "gid://shopify/ProductVariant/43110468845634",
+  printed: "gid://shopify/ProductVariant/43110480674882"
 };
 
 function getBookId() {
@@ -89,10 +89,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function createShopifyCheckout(currentBook) {
-    const selectedFormat = currentBook.selectedFormat || "digital";
-    const variantId = selectedFormat === "printed"
-      ? VARIANTS.printed
-      : VARIANTS.digital;
+    const selectedFormat = currentBook.selectedFormat === "printed" ? "printed" : "digital";
+    const merchandiseId = VARIANTS[selectedFormat];
 
     const mutation = `
       mutation cartCreate($input: CartInput!) {
@@ -105,6 +103,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             field
             message
           }
+          warnings {
+            code
+            message
+            target
+          }
         }
       }
     `;
@@ -114,7 +117,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         lines: [
           {
             quantity: 1,
-            merchandiseId: `gid://shopify/ProductVariant/${variantId}`,
+            merchandiseId,
             attributes: [
               { key: "_bookId", value: bookId },
               { key: "_childName", value: currentBook.childName || "" },
@@ -127,7 +130,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     };
 
-    const res = await fetch(`https://${SHOPIFY_DOMAIN}/api/2025-01/graphql.json`, {
+    const res = await fetch(`https://${SHOPIFY_DOMAIN}/api/2026-01/graphql.json`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -140,6 +143,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     const data = await res.json();
+    console.log("Shopify cartCreate response:", data);
 
     const errors = data?.data?.cartCreate?.userErrors || [];
     if (errors.length > 0) {
@@ -148,8 +152,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const checkoutUrl = data?.data?.cartCreate?.cart?.checkoutUrl;
     if (!checkoutUrl) {
-      console.error("Shopify response:", data);
-      throw new Error("Failed to create Shopify checkout.");
+      throw new Error("Shopify did not return checkoutUrl.");
     }
 
     return checkoutUrl;
@@ -182,11 +185,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.error("Shopify checkout failed:", error);
 
       if (checkoutStatus) {
-        checkoutStatus.textContent = error.message || "Failed to open Shopify checkout.";
+        checkoutStatus.textContent = error.message || "Failed to create Shopify checkout.";
         checkoutStatus.classList.add("error");
       }
 
-      alert(error.message || "Failed to open Shopify checkout.");
+      alert(error.message || "Failed to create Shopify checkout.");
       proceedBtn.disabled = false;
     }
   });
