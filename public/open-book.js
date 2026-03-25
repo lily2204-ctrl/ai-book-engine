@@ -1,11 +1,12 @@
 const API_BASE = window.location.origin;
 
-function getBookId() {
+function getQueryParam(name) {
   const params = new URLSearchParams(window.location.search);
-  return params.get("bookId");
+  return params.get(name);
 }
 
-const bookId = getBookId();
+const bookId = getQueryParam("bookId");
+const orderId = getQueryParam("order_id");
 
 const statusEl = document.getElementById("openBookStatus");
 const retryBtn = document.getElementById("retryBtn");
@@ -17,8 +18,8 @@ function setStatus(message, isError = false) {
   statusEl.classList.toggle("error", isError);
 }
 
-async function loadBook() {
-  const res = await fetch(`${API_BASE}/api/books/${bookId}`);
+async function loadBookById(id) {
+  const res = await fetch(`${API_BASE}/api/books/${id}`);
   const data = await res.json();
 
   if (!res.ok) {
@@ -28,20 +29,37 @@ async function loadBook() {
   return data.book;
 }
 
+async function loadBookIdFromOrder(orderIdValue) {
+  const res = await fetch(`${API_BASE}/api/order/${encodeURIComponent(orderIdValue)}`);
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message || "Failed to find book from order");
+  }
+
+  return data.bookId;
+}
+
 async function tryOpenBook() {
   try {
-    if (!bookId) {
+    setStatus("Checking payment status...");
+
+    let finalBookId = bookId;
+
+    if (!finalBookId && orderId) {
+      finalBookId = await loadBookIdFromOrder(orderId);
+    }
+
+    if (!finalBookId) {
       setStatus("Missing book ID.", true);
       return;
     }
 
-    setStatus("Checking payment status...");
-
-    const book = await loadBook();
+    const book = await loadBookById(finalBookId);
 
     if (book.purchaseUnlocked === true || book.paymentStatus === "paid") {
       setStatus("Your book is ready. Redirecting...");
-      window.location.href = `preview.html?bookId=${encodeURIComponent(bookId)}`;
+      window.location.href = `preview.html?bookId=${encodeURIComponent(finalBookId)}`;
       return;
     }
 
