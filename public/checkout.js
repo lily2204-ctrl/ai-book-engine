@@ -1,16 +1,30 @@
 const API_BASE = window.location.origin;
 
 const SHOPIFY_DOMAIN = "lifebook-464.myshopify.com";
-const STOREFRONT_TOKEN = "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";
 
 const VARIANTS = {
-  digital: "gid://shopify/ProductVariant/43110468845634",
-  printed: "gid://shopify/ProductVariant/43110480674882"
+  digital: "43110468845634",
+  printed: "43110480674882"
 };
 
 function getBookId() {
   const params = new URLSearchParams(window.location.search);
   return params.get("bookId");
+}
+
+function toBase64UrlUtf8(obj) {
+  const json = JSON.stringify(obj);
+  const utf8Bytes = new TextEncoder().encode(json);
+
+  let binary = "";
+  utf8Bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -88,74 +102,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  async function createShopifyCheckout(currentBook) {
+  function buildShopifyPermalink(currentBook) {
     const selectedFormat = currentBook.selectedFormat === "printed" ? "printed" : "digital";
-    const merchandiseId = VARIANTS[selectedFormat];
+    const variantId = selectedFormat === "printed" ? VARIANTS.printed : VARIANTS.digital;
 
-    const mutation = `
-      mutation cartCreate($input: CartInput!) {
-        cartCreate(input: $input) {
-          cart {
-            id
-            checkoutUrl
-          }
-          userErrors {
-            field
-            message
-          }
-          warnings {
-            code
-            message
-            target
-          }
-        }
-      }
-    `;
-
-    const variables = {
-      input: {
-        lines: [
-          {
-            quantity: 1,
-            merchandiseId,
-            attributes: [
-              { key: "_bookId", value: bookId },
-              { key: "_childName", value: currentBook.childName || "" },
-              { key: "_style", value: currentBook.illustrationStyle || "" },
-              { key: "_story", value: currentBook.storyIdea || "" },
-              { key: "_format", value: selectedFormat }
-            ]
-          }
-        ]
-      }
+    const properties = {
+      _bookId: bookId,
+      _childName: currentBook.childName || "",
+      _style: currentBook.illustrationStyle || "",
+      _story: currentBook.storyIdea || "",
+      _format: selectedFormat
     };
 
-    const res = await fetch(`https://${SHOPIFY_DOMAIN}/api/2026-01/graphql.json`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Storefront-Access-Token": STOREFRONT_TOKEN
-      },
-      body: JSON.stringify({
-        query: mutation,
-        variables
-      })
-    });
+    const encodedProps = toBase64UrlUtf8(properties);
 
-    const data = await res.json();
-    console.log("Shopify cartCreate response:", data);
-
-    const errors = data?.data?.cartCreate?.userErrors || [];
-    if (errors.length > 0) {
-      throw new Error(errors.map((e) => e.message).join(", "));
-    }
-
-    const checkoutUrl = data?.data?.cartCreate?.cart?.checkoutUrl;
-    if (!checkoutUrl) {
-      throw new Error("Shopify did not return checkoutUrl.");
-    }
-
-    return checkoutUrl;
+    return `https://${SHOPIFY_DOMAIN}/cart/${variantId}:1?properties=${encodedProps}`;
   }
 
   backToPreviewBtn?.addEventListener("click", () => {
@@ -166,7 +127,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.location.href = `cover.html?bookId=${encodeURIComponent(bookId)}`;
   });
 
-  proceedBtn?.addEventListener("click", async () => {
+  proceedBtn?.addEventListener("click", () => {
     try {
       if (!book) {
         throw new Error("Book details are still loading.");
@@ -175,21 +136,23 @@ document.addEventListener("DOMContentLoaded", async () => {
       proceedBtn.disabled = true;
 
       if (checkoutStatus) {
-        checkoutStatus.textContent = "Creating secure Shopify checkout...";
+        checkoutStatus.textContent = "Redirecting to Shopify checkout...";
         checkoutStatus.classList.remove("error");
       }
 
-      const checkoutUrl = await createShopifyCheckout(book);
+      const checkoutUrl = buildShopifyPermalink(book);
+      console.log("Shopify permalink:", checkoutUrl);
+
       window.location.href = checkoutUrl;
     } catch (error) {
-      console.error("Shopify checkout failed:", error);
+      console.error("Shopify permalink failed:", error);
 
       if (checkoutStatus) {
-        checkoutStatus.textContent = error.message || "Failed to create Shopify checkout.";
+        checkoutStatus.textContent = error.message || "Failed to open Shopify checkout.";
         checkoutStatus.classList.add("error");
       }
 
-      alert(error.message || "Failed to create Shopify checkout.");
+      alert(error.message || "Failed to open Shopify checkout.");
       proceedBtn.disabled = false;
     }
   });
