@@ -264,7 +264,19 @@ app.get("/api/books/:bookId", async (req, res) => {
         message: "Book not found"
       });
     }
-    
+
+    return res.json({
+      status: "ok",
+      book
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: err?.message || "Failed to fetch book"
+    });
+  }
+});
+
 app.get("/api/order/:orderId", async (req, res) => {
   try {
     const orderId = String(req.params.orderId);
@@ -275,7 +287,9 @@ app.get("/api/order/:orderId", async (req, res) => {
       .eq("shopify_order_id", orderId)
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     if (!data) {
       return res.status(404).json({
@@ -294,17 +308,6 @@ app.get("/api/order/:orderId", async (req, res) => {
     return res.status(500).json({
       status: "error",
       message: err?.message || "Failed to load order mapping"
-    });
-  }
-});
-    return res.json({
-      status: "ok",
-      book
-    });
-  } catch (err) {
-    return res.status(500).json({
-      status: "error",
-      message: err?.message || "Failed to fetch book"
     });
   }
 });
