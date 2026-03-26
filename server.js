@@ -264,7 +264,40 @@ app.get("/api/books/:bookId", async (req, res) => {
         message: "Book not found"
       });
     }
+app.get("/api/order/:orderId", async (req, res) => {
+  try {
+    const orderId = String(req.params.orderId);
 
+    const { data, error } = await supabase
+      .from("books")
+      .select("book_id, payment_status, purchase_unlocked, shopify_order_id")
+      .eq("shopify_order_id", orderId)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
+      return res.status(404).json({
+        status: "error",
+        message: "Book not found for this order"
+      });
+    }
+
+    return res.json({
+      status: "ok",
+      bookId: data.book_id,
+      paymentStatus: data.payment_status,
+      purchaseUnlocked: data.purchase_unlocked
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: err?.message || "Failed to load order mapping"
+    });
+  }
+});
     return res.json({
       status: "ok",
       book
