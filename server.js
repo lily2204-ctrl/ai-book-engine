@@ -264,6 +264,7 @@ app.get("/api/books/:bookId", async (req, res) => {
         message: "Book not found"
       });
     }
+    
 app.get("/api/order/:orderId", async (req, res) => {
   try {
     const orderId = String(req.params.orderId);
@@ -274,9 +275,7 @@ app.get("/api/order/:orderId", async (req, res) => {
       .eq("shopify_order_id", orderId)
       .maybeSingle();
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     if (!data) {
       return res.status(404).json({
