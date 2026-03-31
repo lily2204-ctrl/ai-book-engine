@@ -378,6 +378,144 @@ app.post("/api/books/:bookId/unlock", async (req, res) => {
   }
 });
 
+// ─── Batch generate all page images (parallel, 3 at a time) ─────────────────
+app.post("/api/books/:bookId/generate-images", async (req, res) => {
+  try {
+    const bookId = req.params.bookId;
+    const book   = await getBook(bookId);
+
+    if (!book) {
+      return res.status(404).json({ status: "error", message: "Book not found" });
+    }
+
+    const pages = book.generatedBook?.pages || [];
+    if (pages.length === 0) {
+      return res.status(400).json({ status: "error", message: "No pages to generate" });
+    }
+
+    const characterReference = book.characterReference || {};
+    const style = book.illustrationStyle || "Soft Storybook";
+
+    // Skip pages that already have images
+    const existingImages = book.fullImages || [];
+    const fullImages = [...existingImages];
+
+    // Pad array to match pages length
+    while (fullImages.length < pages.length) {
+      fullImages.push(null);
+    }
+
+    // Find which pages still need generation
+    const toGenerate = [];
+    for (let i = 0; i < pages.length; i++) {
+      if (!fullImages[i]) {
+        toGenerate.push(i);
+      }
+    }
+
+    if (toGenerate.length === 0) {
+      return res.json({
+        status: "ok",
+        generated: 0,
+        total: pages.length,
+        message: "All images already exist"
+      });
+    }
+
+    // Generate in batches of 3 for speed without hammering the API
+    const BATCH_SIZE = 3;
+
+    for (let batchStart = 0; batchStart < toGenerate.length; batchStart += BATCH_SIZE) {
+      const batch = toGenerate.slice(batchStart, batchStart + BATCH_SIZE);
+
+      const results = await Promise.allSettled(
+        batch.map(async (pageIndex) => {
+          const page = pages[pageIndex];
+
+          const finalPrompt = `
+Create a premium children's storybook illustration.
+
+Illustration style: ${sanitizeBrandTerms(style)}
+
+Character consistency:
+${sanitizeBrandTerms(characterReference.characterPromptCore || "Keep the same main child character consistent.")}
+
+Scene:
+${sanitizeImagePrompt(page.imagePrompt || "")}
+
+Rules:
+- same child identity
+- same face structure
+- same hair and skin tone
+- warm magical storybook aesthetic
+- no text
+- no watermark
+- elegant composition
+- no logos
+- no brand names
+- no copyrighted costume emblems
+`.trim();
+
+          const imgResp = await openai.images.generate({
+            model:  "gpt-image-1",
+            prompt: finalPrompt,
+            size:   "1024x1024"
+          });
+
+          const base64 = await normalizeImageToBase64(imgResp?.data?.[0]);
+          return { pageIndex, base64 };
+        })
+      );
+
+      // Store successful results
+      for (const result of results) {
+        if (result.status === "fulfilled" && result.value.base64) {
+          fullImages[result.value.pageIndex] = `data:image/png;base64,${result.value.base64}`;
+        }
+      }
+
+      // Save progress after each batch (so partial results are saved)
+      await updateBook(bookId, { fullImages });
+    }
+
+    const successCount = fullImages.filter(Boolean).length;
+
+    return res.json({
+      status:    "ok",
+      generated: toGenerate.length,
+      succeeded: successCount,
+      total:     pages.length
+    });
+  } catch (err) {
+    console.error("Batch image generation failed:", err);
+    return res.status(500).json({
+      status:  "error",
+      message: err?.message || "Image generation failed"
+    });
+  }
+});
+
+// ─── Image generation progress check ─────────────────────────────────────────
+app.get("/api/books/:bookId/image-status", async (req, res) => {
+  try {
+    const book = await getBook(req.params.bookId);
+    if (!book) return res.status(404).json({ status: "error", message: "Book not found" });
+
+    const totalPages    = book.generatedBook?.pages?.length || 0;
+    const fullImages    = book.fullImages || [];
+    const readyCount    = fullImages.filter(Boolean).length;
+
+    return res.json({
+      status: "ok",
+      total:  totalPages,
+      ready:  readyCount,
+      done:   readyCount >= totalPages
+    });
+  } catch (err) {
+    return res.status(500).json({ status: "error", message: err?.message || "Failed" });
+  }
+});
+
 // ─── Character reference ──────────────────────────────────────────────────────
 app.post("/generate-character-reference", async (req, res) => {
   try {
