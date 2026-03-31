@@ -6,237 +6,366 @@
   <title>Lifebook - Delivery Center</title>
   <link rel="stylesheet" href="styles.css" />
   <style>
-    .delivery-shell{
-      width:min(1240px, 94vw);
-      margin:0 auto;
-      padding-bottom:60px;
-      position:relative;
-      z-index:2;
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: #fff8ec;
+      background:
+        radial-gradient(circle at top, rgba(27,46,94,0.55), rgba(5,10,20,1)),
+        url("assets/backgrounds/FE0410D4-7381-4ACC-8FB9-D8862D553EC0.PNG");
+      background-size: cover;
+      background-position: center;
+      min-height: 100vh;
     }
 
-    .delivery-hero{
+    .shell {
+      width: min(1240px, 94vw);
+      margin: 0 auto;
+      padding: 24px 0 60px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      margin-bottom: 24px;
+      gap: 16px;
+    }
+
+    .back-btn {
+      justify-self: start;
+      appearance: none;
+      border: 1px solid rgba(240,196,109,0.24);
+      background: rgba(255,255,255,0.04);
+      color: #fff7ea;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .back-btn:hover { transform: translateY(-1px); }
+
+    .brand {
+      justify-self: center;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand img {
+      height: 60px;
+      width: auto;
+      display: block;
+    }
+
+    .brand-text {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 30px;
+      color: #f7ecd7;
+    }
+
+    .hero-card {
       background:
         radial-gradient(circle at top center, rgba(241,188,101,0.12) 0%, transparent 25%),
         linear-gradient(180deg, rgba(18,23,41,0.98), rgba(14,18,33,0.99));
-      border:1px solid rgba(240,196,109,0.18);
-      border-radius:36px;
-      box-shadow:var(--shadow);
-      padding:30px;
-      margin-bottom:18px;
+      border: 1px solid rgba(240,196,109,0.18);
+      border-radius: 32px;
+      box-shadow: 0 18px 60px rgba(0,0,0,0.34);
+      padding: 30px;
+      margin-bottom: 20px;
     }
 
-    .delivery-hero h1{
-      margin:0 0 10px;
-      font-family:Georgia, "Times New Roman", serif;
-      font-size:clamp(38px, 5vw, 60px);
-      line-height:.96;
-      color:#f9f1e4;
+    .eyebrow {
+      color: #e9c57c;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
     }
 
-    .delivery-hero p{
-      margin:0;
-      color:#cfc0ab;
-      font-size:18px;
-      line-height:1.7;
-      max-width:760px;
+    .hero-card h1 {
+      margin: 0 0 10px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(36px, 5vw, 58px);
+      line-height: 0.96;
+      color: #f9f1e4;
     }
 
-    .delivery-grid{
-      display:grid;
-      grid-template-columns:1.15fr 0.85fr;
-      gap:18px;
+    .hero-card p {
+      margin: 0;
+      color: #cfc0ab;
+      font-size: 18px;
+      line-height: 1.7;
+      max-width: 760px;
     }
 
-    .delivery-card{
+    .grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .card {
       background:
         linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
         linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
-      border:1px solid rgba(255,255,255,0.08);
-      border-radius:30px;
-      box-shadow:var(--shadow-soft);
-      padding:24px;
+      border: 1px solid rgba(240,196,109,0.14);
+      border-radius: 30px;
+      box-shadow: 0 18px 60px rgba(0,0,0,0.34);
+      padding: 26px;
     }
 
-    .delivery-card h2{
-      margin:0 0 14px;
-      font-family:Georgia, "Times New Roman", serif;
-      font-size:30px;
-      color:#f7efdf;
+    .card h2 {
+      margin: 0 0 14px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 28px;
+      color: #f7efdf;
     }
 
-    .delivery-card p{
-      margin:0 0 18px;
-      color:#cfc0ab;
-      line-height:1.65;
-      font-size:16px;
+    .card p {
+      margin: 0 0 16px;
+      color: #cfc0ab;
+      line-height: 1.65;
+      font-size: 16px;
     }
 
-    .delivery-action{
-      display:block;
-      width:100%;
-      margin-top:12px;
+    .action-btn {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 16px 24px;
+      border: none;
+      border-radius: 999px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+      box-sizing: border-box;
     }
 
-    .delivery-summary-line{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      padding:10px 0;
-      border-bottom:1px solid rgba(255,255,255,0.08);
-      color:#d3c4b0;
-      font-size:15px;
+    .action-btn:hover { transform: translateY(-1px); }
+
+    .action-btn.primary {
+      background: linear-gradient(180deg, #f0c46d, #d08e2b);
+      color: #fffaf1;
+      box-shadow: 0 10px 24px rgba(208,142,43,0.28);
     }
 
-    .delivery-summary-line:last-child{
-      border-bottom:none;
+    .action-btn.secondary {
+      background: rgba(255,255,255,0.05);
+      color: #fff8ec;
+      border: 1px solid rgba(240,196,109,0.16);
     }
 
-    .delivery-cover{
-      width:100%;
-      max-width:280px;
-      aspect-ratio:1 / 1.2;
-      object-fit:cover;
-      border-radius:24px;
-      display:block;
-      margin-top:14px;
-      box-shadow:0 14px 28px rgba(0,0,0,0.18);
-      background:rgba(255,255,255,0.08);
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      color: #d3c4b0;
+      font-size: 15px;
     }
 
-    .delivery-note{
-      margin-top:16px;
-      font-size:14px;
-      line-height:1.5;
-      color:#a89985;
+    .summary-line:last-of-type { border-bottom: none; }
+
+    .summary-line strong { color: #f0c46d; }
+
+    .cover-img {
+      width: 100%;
+      max-width: 260px;
+      aspect-ratio: 1 / 1.2;
+      object-fit: cover;
+      border-radius: 22px;
+      display: block;
+      margin-top: 16px;
+      box-shadow: 0 14px 28px rgba(0,0,0,0.22);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(240,196,109,0.18);
     }
 
-    @media (max-width:900px){
-      .delivery-grid{
-        grid-template-columns:1fr;
-      }
+    .status-note {
+      margin-top: 14px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #a89985;
+    }
+
+    .loading-state {
+      color: #c0b090;
+      font-style: italic;
+      font-size: 15px;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .topbar { grid-template-columns: 1fr; }
+      .brand { justify-self: start; }
+    }
+
+    @media (max-width: 640px) {
+      .shell { width: 100%; padding: 16px 14px 48px; box-sizing: border-box; }
+      .card { padding: 18px; border-radius: 24px; }
+      .hero-card { padding: 22px; border-radius: 26px; }
     }
   </style>
 </head>
-<body class="setup-body">
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <button class="back-btn" id="backBtn" type="button">← Back</button>
 
-  <header class="wizard-topbar">
-    <div class="wizard-topbar-left">
-      <button class="back-link-button" id="backToSuccess" type="button">← Back</button>
-    </div>
-
-    <div class="wizard-brand">
-      <div class="logo-mark">
-        <div class="logo-book"><span></span></div>
+      <div class="brand">
+        <img src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook logo" id="brandLogo" />
+        <span class="brand-text">lifebook</span>
       </div>
-      <span class="wizard-brand-text">lifebook</span>
-    </div>
 
-    <div class="wizard-topbar-right"></div>
-  </header>
+      <div></div>
+    </header>
 
-  <main class="delivery-shell">
-    <div class="delivery-hero">
+    <div class="hero-card">
       <div class="eyebrow">Delivery Center</div>
       <h1>Your book is ready</h1>
-      <p>
-        Access your full story, open the premium book reader, use the print-ready version, or continue toward the downloadable PDF.
-      </p>
+      <p>Access your full story, open the premium book reader, or use the print-ready version.</p>
     </div>
 
-    <div class="delivery-grid">
-      <div class="delivery-card">
+    <div class="grid">
+      <!-- Left: actions -->
+      <div class="card">
         <h2>Digital delivery</h2>
-        <p>
-          Choose how you want to experience your personalized book.
-        </p>
+        <p>Choose how you want to experience your personalized storybook.</p>
 
-        <button class="continue-btn delivery-action" id="openReaderBtn" type="button">Open Book Reader</button>
-        <button class="secondary-btn delivery-action" id="openFullPreviewBtn" type="button">Open Full Preview</button>
-        <button class="secondary-btn delivery-action" id="openPrintReadyBtn" type="button">Open Print Ready View</button>
-        <button class="secondary-btn delivery-action" id="downloadPdfBtn" type="button">Go to PDF Download</button>
+        <button class="action-btn primary" id="openReaderBtn" type="button">📖 Open Book Reader</button>
+        <button class="action-btn secondary" id="openFullPreviewBtn" type="button">Full Preview</button>
+        <button class="action-btn secondary" id="openPrintReadyBtn" type="button">Print-Ready View</button>
       </div>
 
-      <div class="delivery-card">
+      <!-- Right: order summary -->
+      <div class="card">
         <h2>Order summary</h2>
 
-        <div class="delivery-summary-line">
-          <span>Order ID</span>
-          <span id="deliveryOrderId">-</span>
-        </div>
-
-        <div class="delivery-summary-line">
+        <div class="summary-line">
           <span>Child</span>
-          <span id="deliveryChildName">-</span>
+          <strong id="deliveryChildName">—</strong>
         </div>
-
-        <div class="delivery-summary-line">
+        <div class="summary-line">
           <span>Book</span>
-          <span id="deliveryBookTitle">-</span>
+          <strong id="deliveryBookTitle">—</strong>
         </div>
-
-        <div class="delivery-summary-line">
+        <div class="summary-line">
+          <span>Format</span>
+          <strong id="deliveryFormat">—</strong>
+        </div>
+        <div class="summary-line">
           <span>Status</span>
-          <span id="deliveryStatus">-</span>
+          <strong id="deliveryStatus">—</strong>
         </div>
 
-        <img id="deliveryCoverImage" class="delivery-cover" alt="Book cover preview" />
+        <img id="deliveryCoverImage" class="cover-img" alt="Book cover" />
 
-        <button class="continue-btn delivery-action" id="orderPrintedBookBtn" type="button">Order Printed Book</button>
-
-        <div class="delivery-note">
-          Later this button can connect to Shopify for a printed product workflow.
-        </div>
+        <div class="status-note" id="deliveryNote"></div>
       </div>
     </div>
-  </main>
+  </div>
 
-  <script>
-    const orderId = localStorage.getItem("orderId");
-    const rawBookData = localStorage.getItem("bookData");
+  <script type="module">
+    const API_BASE = window.location.origin;
 
-    if (!rawBookData) {
-      window.location.href = "preview.html";
+    function getUrlParam(name) {
+      return new URLSearchParams(window.location.search).get(name);
     }
 
-    const bookData = JSON.parse(rawBookData);
+    const bookId  = getUrlParam("bookId");
+    const orderId = getUrlParam("orderId") || getUrlParam("order_id");
 
-    document.getElementById("deliveryOrderId").textContent = orderId || "-";
-    document.getElementById("deliveryChildName").textContent = bookData.childName || "-";
-    document.getElementById("deliveryBookTitle").textContent = bookData.title || "-";
-    document.getElementById("deliveryStatus").textContent = "paid";
+    // Hide broken logo
+    const logo = document.getElementById("brandLogo");
+    if (logo) logo.addEventListener("error", () => { logo.style.display = "none"; });
 
-    const deliveryCoverImage = document.getElementById("deliveryCoverImage");
-    if (bookData.characterImageBase64) {
-      deliveryCoverImage.src = `data:image/png;base64,${bookData.characterImageBase64}`;
-    } else if (bookData.croppedPhoto) {
-      deliveryCoverImage.src = bookData.croppedPhoto;
-    } else if (localStorage.getItem("croppedPhoto")) {
-      deliveryCoverImage.src = localStorage.getItem("croppedPhoto");
-    }
-
-    document.getElementById("backToSuccess").addEventListener("click", () => {
-      window.location.href = "success.html";
+    // Back button
+    document.getElementById("backBtn").addEventListener("click", () => {
+      if (bookId) {
+        window.location.href = `success.html?bookId=${encodeURIComponent(bookId)}`;
+      } else {
+        window.history.back();
+      }
     });
 
+    // Navigation buttons
     document.getElementById("openReaderBtn").addEventListener("click", () => {
-      window.location.href = "reader.html";
+      if (bookId) window.location.href = `reader.html?bookId=${encodeURIComponent(bookId)}`;
     });
 
     document.getElementById("openFullPreviewBtn").addEventListener("click", () => {
-      window.location.href = "preview.html";
+      if (bookId) window.location.href = `preview.html?bookId=${encodeURIComponent(bookId)}`;
     });
 
     document.getElementById("openPrintReadyBtn").addEventListener("click", () => {
-      window.location.href = "print.html";
+      if (bookId) window.location.href = `print.html?bookId=${encodeURIComponent(bookId)}`;
     });
 
-    document.getElementById("downloadPdfBtn").addEventListener("click", () => {
-      window.location.href = "print.html";
-    });
+    // ── Load book from API ──────────────────────────────────────────────────
+    async function resolveBookId() {
+      if (bookId) return bookId;
+      if (orderId) {
+        const res = await fetch(`${API_BASE}/api/order/${encodeURIComponent(orderId)}`);
+        const data = await res.json();
+        if (res.ok && data.bookId) return data.bookId;
+      }
+      return null;
+    }
 
-    document.getElementById("orderPrintedBookBtn").addEventListener("click", () => {
-      window.location.href = "print.html";
-    });
+    async function init() {
+      const note = document.getElementById("deliveryNote");
+
+      try {
+        const resolvedId = await resolveBookId();
+
+        if (!resolvedId) {
+          if (note) note.textContent = "Could not find your book. Please go back and try again.";
+          return;
+        }
+
+        const res  = await fetch(`${API_BASE}/api/books/${encodeURIComponent(resolvedId)}`);
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.message || "Failed to load book");
+        const book = data.book;
+
+        // Populate summary
+        document.getElementById("deliveryChildName").textContent = book.childName  || "—";
+        document.getElementById("deliveryBookTitle").textContent = book.generatedBook?.title || "—";
+        document.getElementById("deliveryFormat").textContent    = book.selectedFormat === "printed" ? "Printed Book" : "Digital Book";
+        document.getElementById("deliveryStatus").textContent    = book.purchaseUnlocked ? "✓ Paid" : "Pending";
+
+        // Cover image
+        const coverEl = document.getElementById("deliveryCoverImage");
+        const src = book.coverImage || book.croppedPhoto || book.originalPhoto;
+        if (src) { coverEl.src = src; }
+        else { coverEl.style.display = "none"; }
+
+        // Update reader button to include bookId
+        document.getElementById("openReaderBtn").onclick = () => {
+          window.location.href = `reader.html?bookId=${encodeURIComponent(book.bookId)}`;
+        };
+
+        if (!book.purchaseUnlocked) {
+          if (note) note.textContent = "⚠ Payment is still being confirmed. The book reader will be available shortly.";
+        }
+
+      } catch (err) {
+        console.error("delivery init error:", err);
+        if (note) note.textContent = "Failed to load order details. Please refresh or contact support.";
+      }
+    }
+
+    init();
   </script>
 </body>
 </html>
