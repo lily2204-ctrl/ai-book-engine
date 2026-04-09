@@ -4,132 +4,104 @@ function getBookId() {
   return new URLSearchParams(window.location.search).get("bookId");
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
-  const bookId = getBookId();
+document.addEventListener("DOMContentLoaded", async function() {
+  var bookId = getBookId();
 
-  const coverImageEl    = document.getElementById("coverImage");
-  const bookTitleValue  = document.getElementById("bookTitleValue");
-  const bookSubtitleValue = document.getElementById("bookSubtitleValue");
-  const nameEl          = document.getElementById("name");
-  const ageEl           = document.getElementById("age");
-  const styleEl         = document.getElementById("style");
-  const storyEl         = document.getElementById("story");
-  const pagesEl         = document.getElementById("pages");
-  const proceedBtn      = document.getElementById("proceedToPaymentBtn");
-  const backToPreviewBtn= document.getElementById("backToPreviewBtn");
-  const backToCoverBtn  = document.getElementById("backToCoverBtn");
-  const checkoutStatus  = document.getElementById("checkoutStatus");
+  var coverImageEl     = document.getElementById("coverImage");
+  var bookTitleValue   = document.getElementById("bookTitleValue");
+  var bookSubtitleValue= document.getElementById("bookSubtitleValue");
+  var nameEl           = document.getElementById("name");
+  var ageEl            = document.getElementById("age");
+  var styleEl          = document.getElementById("style");
+  var pagesEl          = document.getElementById("pages");
+  var proceedBtn       = document.getElementById("proceedToPaymentBtn");
+  var backToPreviewBtn = document.getElementById("backToPreviewBtn");
+  var backToCoverBtn   = document.getElementById("backToCoverBtn");
+  var checkoutStatus   = document.getElementById("checkoutStatus");
 
   if (!bookId) {
-    if (checkoutStatus) {
-      checkoutStatus.textContent = "Missing book ID.";
-      checkoutStatus.classList.add("error");
-    }
-    alert("Missing book ID");
     window.location.href = "wizard.html";
     return;
   }
 
-  let book = null;
+  var book = null;
 
-  // ── Load book from API ────────────────────────────────────────────────────
   async function loadBook() {
-    const res  = await fetch(`${API_BASE}/api/books/${bookId}`);
-    const data = await res.json();
+    var res  = await fetch(API_BASE + "/api/books/" + bookId);
+    var data = await res.json();
     if (!res.ok) throw new Error(data.message || "Failed to load book");
     return data.book;
   }
 
-  // ── Render book details into the page ─────────────────────────────────────
-  function renderBook(currentBook) {
-    if (!currentBook) return;
-
+  function renderBook(b) {
+    if (!b) return;
     if (coverImageEl) {
-      const src = currentBook.coverImage || currentBook.croppedPhoto || currentBook.originalPhoto;
-      if (src) { coverImageEl.src = src; }
-      else      { coverImageEl.style.display = "none"; }
+      var src = b.coverImage || b.croppedPhoto || b.originalPhoto;
+      if (src) coverImageEl.src = src;
+      else coverImageEl.style.display = "none";
     }
-
-    if (bookTitleValue)    bookTitleValue.textContent    = currentBook.generatedBook?.title    || "-";
-    if (bookSubtitleValue) bookSubtitleValue.textContent = currentBook.generatedBook?.subtitle || "-";
-    if (nameEl)  nameEl.textContent  = currentBook.childName        || "-";
-    if (ageEl)   ageEl.textContent   = currentBook.childAge         || "-";
-    if (styleEl) styleEl.textContent = currentBook.illustrationStyle|| "-";
-    if (storyEl) storyEl.textContent = currentBook.storyIdea        || "-";
-    if (pagesEl) pagesEl.textContent = String(currentBook.generatedBook?.pages?.length || 0);
-
-    if (checkoutStatus) {
-      checkoutStatus.textContent = "Ready to continue to secure checkout.";
-      checkoutStatus.classList.remove("error");
-    }
+    if (bookTitleValue)    bookTitleValue.textContent    = b.generatedBook && b.generatedBook.title    ? b.generatedBook.title    : "-";
+    if (bookSubtitleValue) bookSubtitleValue.textContent = b.generatedBook && b.generatedBook.subtitle ? b.generatedBook.subtitle : "";
+    if (nameEl)  nameEl.textContent  = b.childName         || "-";
+    if (ageEl)   ageEl.textContent   = b.childAge          || "-";
+    if (styleEl) styleEl.textContent = b.illustrationStyle || "-";
+    if (pagesEl) pagesEl.textContent = String((b.generatedBook && b.generatedBook.pages ? b.generatedBook.pages.length : 0)) + " pages";
   }
 
-  // ── Send to Stripe ────────────────────────────────────────────────────────
   async function redirectToStripe() {
     if (!book) throw new Error("Book details are still loading.");
 
     proceedBtn.disabled    = true;
-    proceedBtn.textContent = "Opening secure checkout…";
+    proceedBtn.textContent = "Opening secure checkout...";
 
     if (checkoutStatus) {
-      checkoutStatus.textContent = "Preparing secure payment page…";
-      checkoutStatus.classList.remove("error");
+      checkoutStatus.textContent = "Redirecting to secure payment...";
+      checkoutStatus.className = "status-note";
     }
 
-    const res = await fetch(`${API_BASE}/api/create-checkout-session`, {
+    var res  = await fetch(API_BASE + "/api/create-checkout-session", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({
-        bookId,
-        format: book.selectedFormat || "digital"
-      })
+      body:    JSON.stringify({ bookId: bookId })
     });
 
-    const data = await res.json();
+    var data = await res.json();
 
-    if (!res.ok || !data.url) {
-      throw new Error(data.message || "Failed to open payment page.");
-    }
+    if (!res.ok || !data.url) throw new Error(data.message || "Failed to open payment page.");
 
-    // Redirect to Stripe Checkout (stays on your domain visually, returns cleanly)
     window.location.href = data.url;
   }
 
-  // ── Button listeners ──────────────────────────────────────────────────────
-  backToPreviewBtn?.addEventListener("click", () => {
-    window.location.href = `preview.html?bookId=${encodeURIComponent(bookId)}`;
+  backToPreviewBtn && backToPreviewBtn.addEventListener("click", function() {
+    window.location.href = "preview.html?bookId=" + encodeURIComponent(bookId);
   });
 
-  backToCoverBtn?.addEventListener("click", () => {
-    window.location.href = `cover.html?bookId=${encodeURIComponent(bookId)}`;
+  backToCoverBtn && backToCoverBtn.addEventListener("click", function() {
+    window.location.href = "cover.html?bookId=" + encodeURIComponent(bookId);
   });
 
-  proceedBtn?.addEventListener("click", async () => {
+  proceedBtn && proceedBtn.addEventListener("click", async function() {
     try {
       await redirectToStripe();
-    } catch (error) {
+    } catch(error) {
       console.error("Stripe redirect failed:", error);
-
       if (checkoutStatus) {
         checkoutStatus.textContent = error.message || "Failed to open payment page.";
-        checkoutStatus.classList.add("error");
+        checkoutStatus.className = "status-note error";
       }
-
       proceedBtn.disabled    = false;
-      proceedBtn.textContent = "Proceed to Payment";
+      proceedBtn.textContent = "Pay Securely - $39";
     }
   });
 
-  // ── Init ──────────────────────────────────────────────────────────────────
   try {
     book = await loadBook();
     renderBook(book);
-  } catch (error) {
+  } catch(error) {
     console.error("loadBook failed:", error);
-
     if (checkoutStatus) {
       checkoutStatus.textContent = error.message || "Failed to load book.";
-      checkoutStatus.classList.add("error");
+      checkoutStatus.className = "status-note error";
     }
   }
 });
