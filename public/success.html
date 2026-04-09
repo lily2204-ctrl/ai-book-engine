@@ -1,424 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lifebook - Order Success</title>
-  <link rel="stylesheet" href="./styles.css" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lifebook - Your Book is Ready!</title>
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background:
-        radial-gradient(circle at top, rgba(27, 46, 94, 0.55) 0%, rgba(10, 16, 34, 0.96) 55%, rgba(5, 10, 20, 1) 100%),
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:Arial,sans-serif;
+      background:radial-gradient(circle at top,rgba(27,46,94,0.55) 0%,rgba(10,16,34,0.96) 55%,rgba(5,10,20,1) 100%),
         url("assets/backgrounds/FE0410D4-7381-4ACC-8FB9-D8862D553EC0.PNG");
-      background-size: cover;
-      background-position: center;
-      color: #fff8ec;
-      min-height: 100vh;
+      background-size:cover;background-position:center;color:#fff8ec;min-height:100vh;
     }
-
-    .success-shell {
-      width: min(1180px, 94vw);
-      margin: 0 auto;
-      padding: 24px 0 60px;
-      position: relative;
-      z-index: 2;
+    .shell{width:min(960px,94vw);margin:0 auto;padding:24px 0 60px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+    .brand{display:flex;align-items:center;gap:12px;font-family:Georgia,serif;font-size:26px;color:#f7ecd7}
+    .brand img{height:42px;width:auto}
+    .layout{display:grid;grid-template-columns:320px 1fr;gap:22px;align-items:start}
+    .side-card,.main-card{
+      background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.03)),
+        linear-gradient(180deg,rgba(18,23,41,0.96),rgba(14,18,33,0.98));
+      border:1px solid rgba(240,196,109,0.14);border-radius:28px;box-shadow:0 18px 60px rgba(0,0,0,0.34)
     }
-
-    .success-topbar {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      margin-bottom: 24px;
-      gap: 16px;
+    .side-card{padding:16px;position:sticky;top:16px}
+    .cover{width:100%;aspect-ratio:0.75/1;border-radius:18px;overflow:hidden;border:2px solid rgba(234,190,94,0.45);background:linear-gradient(180deg,#10182d,#0b1222);position:relative}
+    .cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    .cover-frame{position:absolute;inset:12px;border:1.5px solid rgba(243,203,121,0.42);border-radius:12px;pointer-events:none;z-index:2}
+    .main-card{padding:28px}
+    .badge{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:8px 16px;background:rgba(240,196,109,0.1);border:1px solid rgba(240,196,109,0.18);color:#efc977;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:16px}
+    .main-title{margin:0 0 12px;font-family:Georgia,serif;font-size:clamp(32px,5vw,52px);line-height:1;color:#fff7e8}
+    .main-copy{margin:0 0 22px;font-size:16px;line-height:1.7;color:#d7c8b3}
+    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
+    .info-item{padding:12px 14px;border-radius:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(240,196,109,0.10)}
+    .info-label{font-size:12px;font-weight:700;color:#e9c57c;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px}
+    .info-value{font-size:15px;color:#fff6e6}
+    .btn-primary{display:block;width:100%;padding:16px;border:none;border-radius:999px;background:linear-gradient(180deg,#f0c46d,#d08e2b);color:#fffaf1;cursor:pointer;font-weight:700;font-size:18px;box-shadow:0 10px 24px rgba(208,142,43,0.28);margin-bottom:10px;text-align:center;text-decoration:none}
+    .btn-secondary{display:block;width:100%;padding:14px;border-radius:999px;border:1px solid rgba(240,196,109,0.16);cursor:pointer;font-weight:700;background:rgba(255,255,255,0.05);color:#fff8ec;font-size:15px;text-align:center;margin-bottom:10px}
+    .status-msg{margin-top:12px;font-size:14px;color:#d7c8b3;line-height:1.5;min-height:20px}
+    @media(max-width:820px){
+      .layout{grid-template-columns:1fr}
+      .side-card{position:static}
     }
-
-    .success-back-btn {
-      justify-self: start;
-      appearance: none;
-      border: 1px solid rgba(240, 196, 109, 0.24);
-      background: rgba(255, 255, 255, 0.04);
-      color: #fff7ea;
-      border-radius: 999px;
-      padding: 12px 18px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .success-brand {
-      justify-self: center;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .success-brand img {
-      height: 64px;
-      width: auto;
-      display: block;
-    }
-
-    .success-brand-text {
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: 32px;
-      color: #f7ecd7;
-    }
-
-    .success-layout {
-      display: grid;
-      grid-template-columns: 380px 1fr;
-      gap: 24px;
-      align-items: start;
-    }
-
-    .success-side-card,
-    .success-main-card {
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
-        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
-      border: 1px solid rgba(240,196,109,0.14);
-      border-radius: 30px;
-      box-shadow: 0 18px 60px rgba(0,0,0,0.34);
-    }
-
-    .success-side-card {
-      padding: 18px;
-      position: sticky;
-      top: 18px;
-    }
-
-    .success-cover {
-      width: 100%;
-      aspect-ratio: 0.72 / 1;
-      border-radius: 22px;
-      overflow: hidden;
-      border: 2px solid rgba(234, 190, 94, 0.45);
-      position: relative;
-      background: linear-gradient(180deg, #10182d 0%, #0b1222 100%);
-      box-shadow: 0 18px 38px rgba(0,0,0,0.34);
-    }
-
-    .success-cover-fill {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center;
-      display: block;
-    }
-
-    .success-cover-frame {
-      position: absolute;
-      inset: 14px;
-      border: 1.5px solid rgba(243, 203, 121, 0.42);
-      border-radius: 14px;
-      pointer-events: none;
-      z-index: 2;
-    }
-
-    .success-main-card {
-      padding: 28px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .success-badge {
-      display: inline-flex;
-      width: fit-content;
-      align-items: center;
-      border-radius: 999px;
-      padding: 10px 16px;
-      background: rgba(240,196,109,0.1);
-      border: 1px solid rgba(240,196,109,0.18);
-      color: #efc977;
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-      text-transform: uppercase;
-    }
-
-    .success-title {
-      margin: 0;
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(38px, 6vw, 72px);
-      line-height: 0.95;
-      color: #fff7e8;
-    }
-
-    .success-copy {
-      margin: 0;
-      font-size: 18px;
-      line-height: 1.7;
-      color: #d7c8b3;
-      max-width: 720px;
-    }
-
-    .success-summary {
-      display: grid;
-      gap: 14px;
-    }
-
-    .summary-row {
-      display: grid;
-      grid-template-columns: 190px 1fr;
-      gap: 14px;
-      align-items: start;
-      padding: 16px 18px;
-      border-radius: 18px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(240,196,109,0.12);
-    }
-
-    .summary-label {
-      font-size: 15px;
-      font-weight: 700;
-      color: #e9c57c;
-    }
-
-    .summary-value {
-      font-size: 16px;
-      line-height: 1.55;
-      color: #fff6e6;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .next-steps {
-      display: grid;
-      gap: 12px;
-      margin-top: 2px;
-    }
-
-    .next-step {
-      padding: 16px 18px;
-      border-radius: 18px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(240,196,109,0.12);
-      color: #d8c9b4;
-      line-height: 1.6;
-      font-size: 16px;
-    }
-
-    .success-actions {
-      margin-top: auto;
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-
-    .primary-btn,
-    .secondary-btn {
-      appearance: none;
-      border: none;
-      border-radius: 999px;
-      padding: 16px 28px;
-      font-size: 18px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.15s ease, opacity 0.15s ease;
-    }
-
-    .primary-btn:hover,
-    .secondary-btn:hover,
-    .success-back-btn:hover {
-      transform: translateY(-1px);
-    }
-
-    .primary-btn {
-      background: linear-gradient(180deg, #f0c46d 0%, #d08e2b 100%);
-      color: #fffaf1;
-      box-shadow: 0 10px 24px rgba(208, 142, 43, 0.28);
-    }
-
-    .secondary-btn {
-      background: rgba(255,255,255,0.05);
-      color: #fff8ec;
-      border: 1px solid rgba(240,196,109,0.16);
-    }
-
-    @media (max-width: 980px) {
-      .success-layout {
-        grid-template-columns: 1fr;
-      }
-
-      .success-side-card {
-        position: static;
-      }
-
-      .summary-row {
-        grid-template-columns: 1fr;
-        gap: 8px;
-      }
-
-      .success-topbar {
-        grid-template-columns: 1fr;
-      }
-
-      .success-back-btn,
-      .success-brand {
-        justify-self: start;
-      }
-
-      .success-brand img {
-        height: 54px;
-      }
-
-      .success-brand-text {
-        font-size: 28px;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .success-shell {
-        width: min(100%, 100vw);
-        padding: 16px 12px 42px;
-        box-sizing: border-box;
-      }
-
-      .success-side-card {
-        padding: 14px;
-        border-radius: 24px;
-      }
-
-      .success-cover {
-        border-radius: 18px;
-      }
-
-      .success-main-card {
-        padding: 18px;
-        border-radius: 24px;
-        gap: 16px;
-      }
-
-      .success-title {
-        font-size: clamp(34px, 12vw, 52px);
-        line-height: 0.95;
-      }
-
-      .success-copy {
-        font-size: 16px;
-        line-height: 1.6;
-      }
-
-      .summary-row {
-        padding: 14px 16px;
-        border-radius: 16px;
-      }
-
-      .summary-label {
-        font-size: 14px;
-      }
-
-      .summary-value {
-        font-size: 15px;
-      }
-
-      .next-step {
-        padding: 14px 16px;
-        border-radius: 16px;
-        font-size: 15px;
-        line-height: 1.55;
-      }
-
-      .success-actions {
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      .primary-btn,
-      .secondary-btn {
-        width: 100%;
-        font-size: 16px;
-        padding: 16px 18px;
-      }
+    @media(max-width:480px){
+      .shell{width:100%;padding:14px 12px 40px;box-sizing:border-box}
+      .info-grid{grid-template-columns:1fr}
+      .main-card{padding:18px}
     }
   </style>
 </head>
 <body>
-  <div class="success-shell">
-    <header class="success-topbar">
-      <button id="backToCheckoutBtn" class="success-back-btn" type="button">← Back</button>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <img src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook" onerror="this.style.display='none'">
+      <span>lifebook</span>
+    </div>
+  </header>
 
-      <div class="success-brand">
-        <img id="successBrandLogo" src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook logo" />
-        <span class="success-brand-text">lifebook</span>
+  <section class="layout">
+    <aside class="side-card">
+      <div class="cover">
+        <img id="successCoverFill" alt="Book cover"/>
+        <div class="cover-frame"></div>
+      </div>
+    </aside>
+
+    <main class="main-card">
+      <div class="badge">✓ Order Complete</div>
+      <h1 class="main-title">Your book is ready!</h1>
+      <p class="main-copy">Your personalized storybook has been created. Download it now or open the reader to enjoy it on any device.</p>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Child</div>
+          <div class="info-value" id="successChildName">-</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Book</div>
+          <div class="info-value" id="successBookTitle">-</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Format</div>
+          <div class="info-value">Digital PDF</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Pages</div>
+          <div class="info-value" id="successPages">-</div>
+        </div>
       </div>
 
-      <div></div>
-    </header>
+      <button id="openBookBtn" class="btn-primary" type="button">📖 Open Your Book</button>
+      <button id="goHomeBtn" class="btn-secondary" type="button">Back to Home</button>
+      <button id="createAnotherBtn" class="btn-secondary" type="button">Create Another Book</button>
 
-    <section class="success-layout">
-      <aside class="success-side-card">
-        <div class="success-cover">
-          <img id="successCoverFill" class="success-cover-fill" alt="Book cover art" />
-          <div class="success-cover-frame"></div>
-        </div>
-      </aside>
+      <div id="successStatusMsg" class="status-msg">Loading your order...</div>
+    </main>
+  </section>
+</div>
 
-      <main class="success-main-card">
-        <div class="success-badge">Order complete</div>
-        <h1 class="success-title">Thank you for your order</h1>
-        <p class="success-copy">
-          Your personalized storybook has been saved successfully. This page can be used as the confirmation screen after Shopify checkout.
-        </p>
-
-        <div class="success-summary">
-          <div class="summary-row">
-            <div class="summary-label">Child name</div>
-            <div id="successChildName" class="summary-value">-</div>
-          </div>
-
-          <div class="summary-row">
-            <div class="summary-label">Selected format</div>
-            <div id="successFormat" class="summary-value">-</div>
-          </div>
-
-          <div class="summary-row">
-            <div class="summary-label">Price</div>
-            <div id="successPrice" class="summary-value">-</div>
-          </div>
-
-          <div class="summary-row">
-            <div class="summary-label">Pages</div>
-            <div id="successPages" class="summary-value">-</div>
-          </div>
-        </div>
-
-        <div class="next-steps">
-          <div class="next-step">
-            The full book is now unlocked and ready for the next stage of delivery.
-          </div>
-          <div class="next-step">
-            In the next step, we will connect final checkout and order management with Shopify.
-          </div>
-          <div class="next-step">
-            After that, we will build the digital PDF and the printable book flow.
-          </div>
-        </div>
-
-        <div id="successStatusMsg" style="
-          margin-top: 4px;
-          font-size: 15px;
-          color: #d7c8b3;
-          line-height: 1.6;
-          min-height: 22px;
-        ">Loading your order…</div>
-
-        <div class="success-actions">
-          <button id="openBookBtn" class="primary-btn" type="button" style="display:none; align-items:center; gap:8px;">
-            📖 Open Your Book
-          </button>
-          <button id="goHomeBtn" class="secondary-btn" type="button">Back to home</button>
-          <button id="createAnotherBtn" class="secondary-btn" type="button">Create another book</button>
-        </div>
-      </main>
-    </section>
-  </div>
-
-  <script type="module" src="./success.js"></script>
+<script type="module" src="./success.js"></script>
 </body>
 </html>
