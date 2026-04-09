@@ -1,271 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lifebook - Reader View</title>
-  <link rel="stylesheet" href="./styles.css" />
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lifebook - Reader</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background:
-        radial-gradient(circle at top, rgba(27, 46, 94, 0.55) 0%, rgba(10, 16, 34, 0.96) 55%, rgba(5, 10, 20, 1) 100%),
-        url("assets/backgrounds/FE0410D4-7381-4ACC-8FB9-D8862D553EC0.PNG");
-      background-size: cover;
-      background-position: center;
-      color: #fff8ec;
-      min-height: 100vh;
-    }
-
-    .reader-shell {
-      width: min(980px, 94vw);
-      margin: 0 auto;
-      padding: 28px 0 80px;
-      position: relative;
-      z-index: 2;
-    }
-
-    .reader-topbar {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      margin-bottom: 26px;
-    }
-
-    .reader-back-btn {
-      justify-self: start;
-      appearance: none;
-      border: 1px solid rgba(240, 196, 109, 0.24);
-      background: rgba(255, 255, 255, 0.04);
-      color: #fff7ea;
-      border-radius: 999px;
-      padding: 12px 18px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .reader-brand {
-      justify-self: center;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .reader-brand img {
-      height: 44px;
-      width: auto;
-      display: block;
-    }
-
-    .reader-brand-text {
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: 28px;
-      color: #f7ecd7;
-    }
-
-    .reader-book-card,
-    .reader-page-card,
-    .reader-nav-card {
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
-        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
-      border: 1px solid rgba(240,196,109,0.14);
-      border-radius: 34px;
-      box-shadow: 0 18px 60px rgba(0,0,0,0.34);
-    }
-
-    .reader-book-card {
-      padding: 24px;
-      margin-bottom: 22px;
-    }
-
-    .reader-step {
-      color: #e9c57c;
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-    }
-
-    .reader-title {
-      margin: 0 0 10px;
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(40px, 5vw, 64px);
-      line-height: 0.95;
-      color: #fff7e8;
-      white-space: pre-line;
-    }
-
-    .reader-subtitle {
-      margin: 0;
-      font-size: 18px;
-      line-height: 1.6;
-      color: #d7c8b3;
-    }
-
-    .reader-page-card {
-      padding: 24px;
-      display: grid;
-      gap: 20px;
-    }
-
-    .reader-image-wrap {
-      border-radius: 24px;
-      overflow: hidden;
-      border: 1px solid rgba(240,196,109,0.16);
-      background: rgba(255,255,255,0.04);
-      min-height: 420px;
-    }
-
-    .reader-image {
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      object-fit: cover;
-      display: block;
-      background: rgba(255,255,255,0.04);
-    }
-
-    .reader-image-loading,
-    .reader-image-error {
-      min-height: 420px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 24px;
-      font-size: 16px;
-      line-height: 1.6;
-    }
-
-    .reader-image-loading {
-      color: #d4c3ab;
-    }
-
-    .reader-image-error {
-      color: #f3b5a5;
-    }
-
-    .reader-page-badge {
-      display: inline-flex;
-      width: fit-content;
-      align-items: center;
-      border-radius: 999px;
-      padding: 8px 14px;
-      background: rgba(240,196,109,0.08);
-      border: 1px solid rgba(240,196,109,0.16);
-      color: #efc977;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-      text-transform: uppercase;
-    }
-
-    .reader-page-text {
-      margin: 0;
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(24px, 2.2vw, 34px);
-      line-height: 1.45;
-      color: #fff7eb;
-      white-space: pre-wrap;
-    }
-
-    .reader-nav-card {
-      margin-top: 22px;
-      padding: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-
-    .reader-nav-left {
-      color: #d8c9b4;
-      font-size: 16px;
-      line-height: 1.5;
-    }
-
-    .reader-nav-actions {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .primary-btn,
-    .secondary-btn {
-      appearance: none;
-      border: none;
-      border-radius: 999px;
-      padding: 14px 24px;
-      font-size: 17px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 0.15s ease, opacity 0.15s ease;
-    }
-
-    .primary-btn:hover,
-    .secondary-btn:hover,
-    .reader-back-btn:hover {
-      transform: translateY(-1px);
-    }
-
-    .primary-btn {
-      background: linear-gradient(180deg, #f0c46d 0%, #d08e2b 100%);
-      color: #fffaf1;
-      box-shadow: 0 10px 24px rgba(208, 142, 43, 0.28);
-    }
-
-    .secondary-btn {
-      background: rgba(255,255,255,0.05);
-      color: #fff8ec;
-      border: 1px solid rgba(240,196,109,0.16);
-    }
+    :root{--cream:#fdf6ec;--cream-deep:#f5e9d4;--parchment:#ede0c8;--gold:#c8922a;--gold-light:#e8b84b;--gold-pale:#f5d98a;--brown:#5c3d1e;--text:#3a2810;--text-muted:#7a6048;--white:#ffffff;--shadow-warm:0 8px 40px rgba(100,60,20,0.12)}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Lato',sans-serif;background:var(--cream);color:var(--text);overflow-x:hidden}
+    nav{position:sticky;top:0;z-index:100;background:rgba(253,246,236,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--parchment);padding:0 5vw;height:68px;display:flex;align-items:center;justify-content:space-between}
+    .nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;cursor:pointer}
+    .nav-brand-icon{font-size:28px;filter:drop-shadow(0 2px 6px rgba(200,146,42,0.5))}
+    .nav-brand-name{font-family:'Playfair Display',serif;font-size:24px;color:var(--gold);letter-spacing:0.5px}
+    .nav-back{background:var(--white);color:var(--brown);border:1.5px solid var(--parchment);border-radius:50px;padding:9px 22px;font-family:'Lato',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all 0.2s}
+    .nav-back:hover{border-color:var(--gold-light)}
+    .shell{width:min(800px,94vw);margin:0 auto;padding:40px 0 80px}
+    .book-header{background:var(--white);border-radius:24px;padding:24px 26px;margin-bottom:14px;box-shadow:var(--shadow-warm);border:1px solid var(--parchment)}
+    .book-header h1{font-family:'Playfair Display',serif;font-size:clamp(20px,3.5vw,32px);color:var(--brown);line-height:1.1;margin-bottom:4px}
+    .book-header p{font-size:14px;color:var(--text-muted)}
+    .step-badge{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,#fff8ed,#fdf0d5);border:1px solid var(--gold-pale);border-radius:50px;padding:4px 12px;font-size:11px;color:var(--gold);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px}
+    .page-card{background:var(--white);border-radius:24px;padding:22px;margin-bottom:14px;box-shadow:var(--shadow-warm);border:1px solid var(--parchment);position:relative;overflow:hidden}
+    .page-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold-light),var(--gold))}
+    .page-badge{display:inline-block;padding:4px 12px;border-radius:50px;background:var(--cream-deep);border:1px solid var(--parchment);font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px}
+    .page-img-wrap{width:100%;border-radius:16px;overflow:hidden;background:var(--cream-deep);border:1px solid var(--parchment);margin-bottom:16px;min-height:240px;display:flex;align-items:center;justify-content:center}
+    .page-img-wrap img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+    .page-loading{text-align:center;padding:40px;color:var(--text-muted);font-size:14px;display:flex;flex-direction:column;align-items:center;gap:12px}
+    .page-error{text-align:center;padding:40px;color:#a03020;font-size:14px}
+    .page-text{font-family:'Playfair Display',serif;font-size:clamp(16px,2vw,21px);line-height:1.65;color:var(--brown)}
+    .nav-card{background:var(--white);border-radius:24px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;box-shadow:var(--shadow-warm);border:1px solid var(--parchment)}
+    .nav-counter{font-size:14px;color:var(--text-muted)}
+    .nav-actions{display:flex;gap:10px}
+    .btn-primary{background:linear-gradient(135deg,var(--gold-light),var(--gold));color:var(--white);border:none;border-radius:50px;padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 6px 28px rgba(200,146,42,0.35);transition:all 0.25s;font-family:'Lato',sans-serif}
+    .btn-primary:hover{transform:translateY(-2px)}
+    .btn-secondary{background:var(--white);color:var(--brown);border:1.5px solid var(--parchment);border-radius:50px;padding:12px 24px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Lato',sans-serif;transition:all 0.2s}
+    .btn-secondary:hover{border-color:var(--gold-light)}
+    .spinner{width:34px;height:34px;border-radius:50%;border:3px solid rgba(200,146,42,0.1);border-top-color:var(--gold-light);animation:spin 0.9s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media(max-width:480px){.shell{padding:20px 12px 60px}.page-card,.book-header,.nav-card{padding:14px}.nav-card{flex-direction:column}.nav-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}}
   </style>
 </head>
 <body>
-  <div class="reader-shell">
-    <header class="reader-topbar">
-      <button id="backToPreviewBtn" class="reader-back-btn" type="button">← Back</button>
-
-      <div class="reader-brand">
-        <img id="readerBrandLogo" src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook logo" />
-        <span class="reader-brand-text">lifebook</span>
-      </div>
-
-      <div></div>
-    </header>
-
-    <section class="reader-book-card">
-      <div class="reader-step">Reader view</div>
-      <h1 id="readerTitle" class="reader-title">Your Magical Adventure</h1>
-      <p id="readerSubtitle" class="reader-subtitle">A story where you are the hero</p>
-    </section>
-
-    <section class="reader-page-card">
-      <div class="reader-page-badge" id="readerPageBadge">Page 1</div>
-
-      <div class="reader-image-wrap" id="readerImageWrap">
-        <div class="reader-image-loading">Preparing page illustration...</div>
-      </div>
-
-      <p id="readerPageText" class="reader-page-text"></p>
-    </section>
-
-    <section class="reader-nav-card">
-      <div class="reader-nav-left">
-        <span id="readerPageCounter">Page 1 of 10</span>
-      </div>
-
-      <div class="reader-nav-actions">
-        <button id="prevPageBtn" class="secondary-btn" type="button">Previous</button>
-        <button id="nextPageBtn" class="primary-btn" type="button">Next</button>
-      </div>
-    </section>
+<nav>
+  <button class="nav-back" id="backToPreviewBtn">Back</button>
+  <a class="nav-brand" href="index.html"><span class="nav-brand-icon"></span><span class="nav-brand-name">lifebook</span></a>
+  <div style="width:80px"></div>
+</nav>
+<main class="shell">
+  <div class="book-header">
+    <div class="step-badge">Your Book</div>
+    <h1 id="readerTitle">Your Magical Adventure</h1>
+    <p id="readerSubtitle">A story where you are the hero</p>
   </div>
-
-  <script type="module" src="./reader.js"></script>
+  <div class="page-card">
+    <div class="page-badge" id="readerPageBadge">Page 1</div>
+    <div class="page-img-wrap" id="readerImageWrap">
+      <div class="page-loading"><div class="spinner"></div><span>Loading illustration...</span></div>
+    </div>
+    <p class="page-text" id="readerPageText"></p>
+  </div>
+  <div class="nav-card">
+    <div class="nav-counter" id="readerPageCounter">Page 1 of 10</div>
+    <div class="nav-actions">
+      <button class="btn-secondary" id="prevPageBtn">Prev</button>
+      <button class="btn-primary" id="nextPageBtn">Next</button>
+    </div>
+  </div>
+</main>
+<script type="module" src="./reader.js"></script>
 </body>
 </html>
