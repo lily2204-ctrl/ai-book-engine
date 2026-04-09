@@ -3,352 +3,195 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Lifebook - Preview</title>
-
+  <title>Lifebook - Your Preview</title>
   <style>
+    *{box-sizing:border-box}
     body{
-      margin:0;
-      font-family:Arial, sans-serif;
-      color:#fff8ec;
-      background:
-        radial-gradient(circle at top, rgba(27,46,94,0.55), rgba(5,10,20,1)),
+      margin:0;font-family:Arial,sans-serif;color:#fff8ec;
+      background:radial-gradient(circle at top,rgba(27,46,94,0.55),rgba(5,10,20,1)),
         url("assets/backgrounds/FE0410D4-7381-4ACC-8FB9-D8862D553EC0.PNG");
-      background-size:cover;
-      background-position:center;
-      min-height:100vh;
+      background-size:cover;background-position:center;min-height:100vh;
     }
 
-    .container{
-      width:min(1200px,94vw);
-      margin:auto;
-      padding:24px 0 60px;
-    }
+    .container{width:min(1100px,94vw);margin:auto;padding:20px 0 60px}
 
-    .top{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:16px;
-      margin-bottom:22px;
-      flex-wrap:wrap;
-    }
+    .top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+    .back{border:1px solid rgba(240,196,109,0.2);padding:11px 18px;border-radius:999px;cursor:pointer;background:rgba(255,255,255,0.04);color:#fff8ec;font-weight:700;font-size:15px}
+    .brand{display:flex;align-items:center;gap:10px;font-family:Georgia,serif;font-size:24px;color:#f7ecd7}
+    .brand img{height:40px;width:auto}
 
-    .back{
-      border:1px solid rgba(240,196,109,0.2);
-      padding:12px 18px;
-      border-radius:999px;
-      cursor:pointer;
-      background:rgba(255,255,255,0.04);
-      color:#fff8ec;
-      font-weight:700;
-      font-size:16px;
+    /* Loading screen */
+    .loading-screen{
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      min-height:60vh;text-align:center;padding:40px 20px;
     }
-
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      font-family:Georgia, "Times New Roman", serif;
-      font-size:28px;
-      color:#f7ecd7;
-    }
-
-    .brand img{
-      height:46px;
-      width:auto;
-      display:block;
-    }
-
-    .layout{
-      display:grid;
-      grid-template-columns:400px 1fr;
-      gap:22px;
-      align-items:start;
-    }
-
-    .cover-card,
-    .content-card{
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
-        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
-      border:1px solid rgba(240,196,109,0.14);
-      border-radius:30px;
-      box-shadow:0 18px 60px rgba(0,0,0,0.34);
-    }
-
-    .cover-card{
-      padding:20px;
-      position:sticky;
-      top:18px;
-    }
-
-    .cover{
-      border-radius:22px;
-      overflow:hidden;
-      border:1px solid rgba(240,196,109,0.2);
-      background:rgba(255,255,255,0.04);
-    }
-
-    .cover img{
-      width:100%;
-      display:block;
-      object-fit:cover;
-    }
-
-    .content-card{
-      padding:28px;
-    }
-
-    .title{
-      font-family:Georgia, "Times New Roman", serif;
-      font-size:clamp(40px, 6vw, 72px);
-      line-height:0.95;
-      margin:0 0 12px;
-      color:#fff7e8;
-    }
-
-    .subtitle{
-      color:#d7c8b3;
-      font-size:20px;
-      line-height:1.6;
-      margin-bottom:22px;
-    }
-
-    .unlock-note{
-      background:rgba(255,255,255,0.04);
-      border:1px solid rgba(240,196,109,0.12);
-      border-radius:20px;
-      padding:18px 20px;
-      color:#fff1cf;
-      font-size:16px;
-      line-height:1.6;
-      margin-bottom:28px;
-    }
-
-    .page{
+    .loading-spinner{
+      width:64px;height:64px;border-radius:50%;
+      border:4px solid rgba(240,196,109,0.15);
+      border-top-color:#f0c46d;
+      animation:spin 1s linear infinite;
       margin-bottom:24px;
-      padding:22px;
-      border-radius:24px;
-      background:rgba(255,255,255,0.04);
-      border:1px solid rgba(240,196,109,0.10);
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-title{font-family:Georgia,serif;font-size:clamp(24px,4vw,36px);color:#fff7e8;margin-bottom:12px}
+    .loading-status{font-size:16px;color:#c0b090;line-height:1.6;max-width:420px;margin-bottom:20px}
+    .loading-progress-wrap{width:280px;height:8px;background:rgba(255,255,255,0.06);border-radius:8px;overflow:hidden;margin:0 auto}
+    .loading-progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#f0c46d,#d08e2b);border-radius:8px;transition:width 0.8s ease}
+    .loading-steps{display:flex;flex-direction:column;gap:8px;margin-top:24px;width:100%;max-width:340px}
+    .loading-step{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);font-size:14px;color:#c0b090}
+    .loading-step.done{border-color:rgba(240,196,109,0.25);color:#f0c46d;background:rgba(240,196,109,0.06)}
+    .loading-step.active{border-color:rgba(240,196,109,0.35);color:#fff1cf;background:rgba(240,196,109,0.08)}
+    .step-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);flex-shrink:0}
+    .loading-step.done .step-dot{background:#f0c46d}
+    .loading-step.active .step-dot{background:#f0c46d;animation:pulse-dot 1s ease infinite}
+    @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.7)}}
+
+    /* Main layout */
+    .main-layout{display:none;grid-template-columns:380px 1fr;gap:20px;align-items:start}
+    .main-layout.visible{display:grid}
+
+    .cover-panel{
+      background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.03)),linear-gradient(180deg,rgba(18,23,41,0.96),rgba(14,18,33,0.98));
+      border:1px solid rgba(240,196,109,0.14);border-radius:28px;box-shadow:0 18px 60px rgba(0,0,0,0.34);
+      padding:18px;position:sticky;top:16px;
+    }
+    .cover-img{width:100%;border-radius:18px;display:block;border:1px solid rgba(240,196,109,0.2);background:rgba(255,255,255,0.04);min-height:200px;object-fit:cover}
+    .cover-placeholder{width:100%;aspect-ratio:3/4;border-radius:18px;background:linear-gradient(135deg,#0d1528,#070f1e);border:1px solid rgba(240,196,109,0.2);display:flex;align-items:center;justify-content:center}
+    .cover-placeholder-inner{text-align:center;color:#f0c46d;opacity:0.5}
+    .cover-placeholder-inner div{font-size:40px;margin-bottom:8px}
+    .cover-placeholder-inner span{font-size:13px}
+
+    .content-panel{
+      background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.03)),linear-gradient(180deg,rgba(18,23,41,0.96),rgba(14,18,33,0.98));
+      border:1px solid rgba(240,196,109,0.14);border-radius:28px;box-shadow:0 18px 60px rgba(0,0,0,0.34);
+      padding:26px;
     }
 
-    .page-label{
-      display:inline-block;
-      font-size:14px;
-      font-weight:700;
-      color:#e9c57c;
-      margin-bottom:14px;
-      text-transform:uppercase;
-      letter-spacing:0.5px;
+    .book-title{font-family:Georgia,serif;font-size:clamp(28px,4vw,48px);line-height:1;margin:0 0 8px;color:#fff7e8}
+    .book-subtitle{color:#c0b090;font-size:17px;line-height:1.5;margin-bottom:20px}
+
+    .unlock-banner{
+      background:linear-gradient(135deg,rgba(240,196,109,0.12),rgba(240,196,109,0.06));
+      border:1px solid rgba(240,196,109,0.28);border-radius:18px;
+      padding:18px 20px;margin-bottom:22px;
+      display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
     }
+    .unlock-text{flex:1}
+    .unlock-text strong{display:block;color:#f0c46d;font-size:16px;margin-bottom:4px}
+    .unlock-text span{color:#c0b090;font-size:14px;line-height:1.5}
+    .unlock-price{font-family:Georgia,serif;font-size:32px;color:#f0c46d;font-weight:700;flex-shrink:0}
 
-    .image-box{
-      width:100%;
-      min-height:240px;
-      background:rgba(255,255,255,0.05);
-      border-radius:20px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      margin-bottom:16px;
-      color:#fff1cf;
-      font-size:18px;
-      text-align:center;
-      overflow:hidden;
+    .pages-wrap{display:grid;gap:18px;margin-bottom:22px}
+
+    .page-card{border-radius:20px;background:rgba(255,255,255,0.04);border:1px solid rgba(240,196,109,0.08);overflow:hidden}
+    .page-img-wrap{width:100%;aspect-ratio:1/1;background:linear-gradient(135deg,rgba(240,196,109,0.06),rgba(255,255,255,0.03));display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+    .page-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+    .page-img-loading{display:flex;flex-direction:column;align-items:center;gap:10px;color:#8a7a60;font-size:14px}
+    .page-img-spinner{width:36px;height:36px;border-radius:50%;border:3px solid rgba(240,196,109,0.1);border-top-color:#f0c46d;animation:spin 1s linear infinite}
+    .page-num{font-size:12px;font-weight:700;color:#e9c57c;text-transform:uppercase;letter-spacing:0.5px;padding:14px 16px 8px}
+    .page-text{font-size:17px;line-height:1.7;color:#fff8ec;padding:0 16px 16px}
+
+    .locked-pages{border-radius:20px;background:rgba(255,255,255,0.03);border:1px dashed rgba(240,196,109,0.15);padding:24px;text-align:center;color:#7a6a50}
+    .locked-pages div{font-size:28px;margin-bottom:8px}
+    .locked-pages p{margin:0;font-size:15px;line-height:1.6}
+
+    .pay-btn{display:block;width:100%;padding:18px;border:none;border-radius:999px;background:linear-gradient(180deg,#f0c46d,#d08e2b);color:#fffaf1;cursor:pointer;font-weight:700;font-size:18px;box-shadow:0 10px 28px rgba(208,142,43,0.35);margin-bottom:10px;text-align:center}
+    .pay-btn:hover{transform:translateY(-1px);box-shadow:0 14px 36px rgba(208,142,43,0.45)}
+    .trust-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+    .trust-item{font-size:12px;color:#7a6a50;display:flex;align-items:center;gap:4px}
+
+    .still-generating{display:flex;align-items:center;gap:8px;font-size:13px;color:#8a7a60;margin-top:8px;justify-content:center}
+    .mini-spinner{width:14px;height:14px;border-radius:50%;border:2px solid rgba(240,196,109,0.15);border-top-color:#f0c46d;animation:spin 0.8s linear infinite}
+
+    @media(max-width:900px){
+      .main-layout{grid-template-columns:1fr}
+      .cover-panel{position:static}
     }
-
-    .page-text{
-      font-size:22px;
-      line-height:1.7;
-      color:#fff8ec;
-    }
-
-    .cta{
-      margin-top:28px;
-      display:flex;
-      gap:14px;
-      flex-wrap:wrap;
-    }
-
-    .btn{
-      padding:16px 30px;
-      border-radius:999px;
-      border:none;
-      cursor:pointer;
-      font-weight:700;
-      font-size:17px;
-      background:linear-gradient(180deg,#f0c46d,#d08e2b);
-      color:#fffaf1;
-      box-shadow:0 10px 24px rgba(208,142,43,0.28);
-    }
-
-    .btn-secondary{
-      padding:16px 30px;
-      border-radius:999px;
-      border:1px solid rgba(240,196,109,0.16);
-      cursor:pointer;
-      font-weight:700;
-      font-size:17px;
-      background:rgba(255,255,255,0.05);
-      color:#fff8ec;
-    }
-
-    @media(max-width:980px){
-      .layout{
-        grid-template-columns:1fr;
-      }
-
-      .cover-card{
-        position:static;
-      }
-
-      .content-card{
-        padding:22px;
-      }
-
-      .subtitle{
-        font-size:18px;
-      }
-
-      .page-text{
-        font-size:19px;
-      }
-
-      .image-box{
-        min-height:220px;
-      }
-    }
-
-    @media(max-width:640px){
-      .container{
-        width:min(100%, 100vw);
-        padding:16px 12px 42px;
-        box-sizing:border-box;
-      }
-
-      .top{
-        align-items:flex-start;
-      }
-
-      .brand{
-        font-size:24px;
-      }
-
-      .brand img{
-        height:40px;
-      }
-
-      .back{
-        font-size:15px;
-        padding:11px 16px;
-      }
-
-      .cover-card{
-        padding:14px;
-        border-radius:24px;
-      }
-
-      .content-card{
-        padding:18px;
-        border-radius:24px;
-      }
-
-      .title{
-        font-size:clamp(34px, 12vw, 52px);
-        line-height:0.95;
-      }
-
-      .subtitle{
-        font-size:17px;
-        line-height:1.55;
-        margin-bottom:18px;
-      }
-
-      .unlock-note{
-        padding:16px;
-        border-radius:18px;
-        font-size:15px;
-        line-height:1.55;
-        margin-bottom:22px;
-      }
-
-      .page{
-        padding:16px;
-        border-radius:20px;
-        margin-bottom:18px;
-      }
-
-      .page-label{
-        font-size:13px;
-        margin-bottom:12px;
-      }
-
-      .image-box{
-        min-height:180px;
-        border-radius:16px;
-        margin-bottom:14px;
-        font-size:16px;
-      }
-
-      .page-text{
-        font-size:17px;
-        line-height:1.65;
-      }
-
-      .cta{
-        flex-direction:column;
-        gap:12px;
-        margin-top:22px;
-      }
-
-      .btn,
-      .btn-secondary{
-        width:100%;
-        font-size:16px;
-        padding:16px 18px;
-      }
+    @media(max-width:480px){
+      .container{width:100%;padding:14px 12px 40px}
+      .content-panel{padding:18px}
+      .unlock-banner{flex-direction:column;align-items:flex-start}
     }
   </style>
 </head>
-
 <body>
-  <div class="container">
+<div class="container">
 
-    <div class="top">
-      <button class="back" onclick="history.back()">← Back</button>
-
-      <div class="brand">
-        <img src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook logo">
-        <span>lifebook</span>
-      </div>
+  <div class="top">
+    <button class="back" onclick="history.back()">← Back</button>
+    <div class="brand">
+      <img src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook" onerror="this.style.display='none'">
+      <span>lifebook</span>
     </div>
-
-    <div class="layout">
-      <div class="cover-card">
-        <div class="cover">
-          <img id="coverImage" alt="Book cover"/>
-        </div>
-      </div>
-
-      <div class="content-card">
-        <h1 class="title" id="bookTitle"></h1>
-        <div class="subtitle" id="bookSubtitle"></div>
-
-        <div class="unlock-note" id="unlockNote">
-          You are currently viewing only the first 2 preview pages. Complete payment to unlock the full book.
-        </div>
-
-        <div id="pagesContainer"></div>
-
-        <div class="cta">
-          <button class="btn" id="goToCheckoutBtn">Unlock Full Book</button>
-        </div>
-      </div>
-    </div>
-
   </div>
 
-  <script type="module" src="./preview.js"></script>
+  <!-- Loading screen -->
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-spinner"></div>
+    <div class="loading-title">Creating <span id="loadingChildName">your child</span>'s book...</div>
+    <div class="loading-status" id="loadingStatus">Analyzing the photo and building the character...</div>
+    <div class="loading-progress-wrap">
+      <div class="loading-progress-bar" id="loadingProgressBar"></div>
+    </div>
+    <div class="loading-steps">
+      <div class="loading-step active" id="lstep1"><div class="step-dot"></div>Analyzing photo</div>
+      <div class="loading-step" id="lstep2"><div class="step-dot"></div>Writing the story</div>
+      <div class="loading-step" id="lstep3"><div class="step-dot"></div>Illustrating first pages</div>
+      <div class="loading-step" id="lstep4"><div class="step-dot"></div>Creating the cover</div>
+    </div>
+  </div>
+
+  <!-- Main preview (shown when ready) -->
+  <div class="main-layout" id="mainLayout">
+
+    <div class="cover-panel">
+      <div id="coverWrap">
+        <div class="cover-placeholder" id="coverPlaceholder">
+          <div class="cover-placeholder-inner">
+            <div>📖</div>
+            <span>Cover loading...</span>
+          </div>
+        </div>
+        <img class="cover-img" id="coverImage" alt="Book cover" style="display:none" onload="this.style.display='block';document.getElementById('coverPlaceholder').style.display='none'"/>
+      </div>
+    </div>
+
+    <div class="content-panel">
+      <h1 class="book-title" id="bookTitle">Your Magical Book</h1>
+      <div class="book-subtitle" id="bookSubtitle"></div>
+
+      <div class="unlock-banner">
+        <div class="unlock-text">
+          <strong>Preview — First 2 pages</strong>
+          <span>Unlock the full book (all pages + PDF download)</span>
+        </div>
+        <div class="unlock-price">$39</div>
+      </div>
+
+      <div class="pages-wrap" id="pagesWrap"></div>
+
+      <div class="locked-pages">
+        <div>🔒</div>
+        <p>The remaining pages are ready after payment.<br>Instant download included.</p>
+      </div>
+
+      <button class="pay-btn" id="payBtn">Unlock Full Book — $39</button>
+
+      <div class="trust-row">
+        <span class="trust-item">🔒 Secure checkout</span>
+        <span class="trust-item">⚡ Instant download</span>
+        <span class="trust-item">✓ Stripe encrypted</span>
+      </div>
+
+      <div class="still-generating" id="stillGenerating" style="display:none">
+        <div class="mini-spinner"></div>
+        <span>Full book is still being prepared in the background...</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module" src="./preview.js"></script>
 </body>
 </html>
