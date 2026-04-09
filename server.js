@@ -10,34 +10,59 @@ import { createClient } from "@supabase/supabase-js";
 const app = express();
 app.use(cors());
 
-// ─── Stripe webhook needs the RAW body for signature verification ─────────────
+// Stripe webhook needs RAW body
 app.use("/webhooks/stripe", express.raw({ type: "*/*", limit: "25mb" }));
 app.use(express.json({ limit: "25mb" }));
+
+// Timeout middleware — prevents Railway from hanging on slow requests
+app.use((req, res, next) => {
+  res.setTimeout(300000, () => {
+    console.warn("Request timeout:", req.path);
+    if (!res.headersSent) {
+      res.status(503).json({ status: "error", message: "Request timeout" });
+    }
+  });
+  next();
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 app.use(express.static(path.join(__dirname, "public")));
 
-// ─── Clients ──────────────────────────────────────────────────────────────────
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+// Clients
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    db: { schema: "public" },
+    global: { headers: { "x-connection-timeout": "10" } }
+  }
 );
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// ─── Utilities ────────────────────────────────────────────────────────────────
+// Simple in-memory rate limiter for image generation
+const generationQueue = new Map();
+const MAX_CONCURRENT = 5;
+
+function canGenerate(bookId) {
+  const active = [...generationQueue.values()].filter(Boolean).length;
+  if (active >= MAX_CONCURRENT) return false;
+  generationQueue.set(bookId, true);
+  return true;
+}
+
+function releaseGeneration(bookId) {
+  generationQueue.delete(bookId);
+}
+
+// Utilities
 function safeJsonParse(raw, fallback = {}) {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return fallback;
-  }
+  try { return JSON.parse(raw); }
+  catch { return fallback; }
 }
 
 function sanitizeBrandTerms(text = "") {
@@ -57,11 +82,11 @@ function sanitizeBrandTerms(text = "") {
 function sanitizeStoryPayload(obj = {}) {
   return {
     ...obj,
-    childName:          sanitizeBrandTerms(obj.childName || ""),
-    storyIdea:          sanitizeBrandTerms(obj.storyIdea || ""),
-    illustrationStyle:  sanitizeBrandTerms(obj.illustrationStyle || ""),
-    croppedPhoto:       obj.croppedPhoto  || "",
-    originalPhoto:      obj.originalPhoto || ""
+    childName:         sanitizeBrandTerms(obj.childName || ""),
+    storyIdea:         sanitizeBrandTerms(obj.storyIdea || ""),
+    illustrationStyle: sanitizeBrandTerms(obj.illustrationStyle || ""),
+    croppedPhoto:      obj.croppedPhoto  || "",
+    originalPhoto:     obj.originalPhoto || ""
   };
 }
 
@@ -81,8 +106,7 @@ function buildCharacterPromptCore(characterDNA, style) {
   const ageLook = characterDNA.ageLook || "young child";
   const outfit  = characterDNA.outfit  || "simple timeless child outfit";
 
-  return `
-Main character reference:
+  return `Main character reference:
 - ${ageLook}
 - Hair: ${hair}
 - Skin tone: ${skin}
@@ -93,8 +117,7 @@ Main character reference:
 
 Keep this exact same child character consistent across all illustrations.
 Do not change the child's identity, age appearance, hair color, skin tone, or facial structure.
-Illustration style must be: ${style}.
-`.trim();
+Illustration style must be: ${style}.`.trim();
 }
 
 async function normalizeImageToBase64(imageItem) {
@@ -108,30 +131,30 @@ async function normalizeImageToBase64(imageItem) {
   return null;
 }
 
-// ─── DB helpers ───────────────────────────────────────────────────────────────
+// DB helpers
 function dbRowToBook(row) {
   if (!row) return null;
   return {
-    bookId:           row.book_id,
-    childName:        row.child_name        || "",
-    childAge:         row.child_age         || "",
-    childGender:      row.child_gender      || "",
-    storyIdea:        row.story_idea        || "",
-    illustrationStyle:row.illustration_style|| "",
-    croppedPhoto:     row.cropped_photo     || "",
-    originalPhoto:    row.original_photo    || "",
+    bookId:            row.book_id,
+    childName:         row.child_name         || "",
+    childAge:          row.child_age          || "",
+    childGender:       row.child_gender       || "",
+    storyIdea:         row.story_idea         || "",
+    illustrationStyle: row.illustration_style || "",
+    croppedPhoto:      row.cropped_photo      || "",
+    originalPhoto:     row.original_photo     || "",
     characterReference: row.character_reference || null,
-    generatedBook:    row.generated_book    || null,
-    coverImage:       row.cover_image       || null,
-    previewImages:    row.preview_images    || [],
-    fullImages:       row.full_images       || [],
-    selectedFormat:   row.selected_format   || "digital",
-    selectedPrice:    row.selected_price    || 39,
-    paymentStatus:    row.payment_status    || "pending",
-    purchaseUnlocked: row.purchase_unlocked === true,
-    stripeSessionId:  row.stripe_session_id || null,
-    createdAt:        row.created_at        || null,
-    updatedAt:        row.updated_at        || null
+    generatedBook:     row.generated_book     || null,
+    coverImage:        row.cover_image        || null,
+    previewImages:     row.preview_images     || [],
+    fullImages:        row.full_images        || [],
+    selectedFormat:    "digital",
+    selectedPrice:     39,
+    paymentStatus:     row.payment_status     || "pending",
+    purchaseUnlocked:  row.purchase_unlocked  === true,
+    stripeSessionId:   row.stripe_session_id  || null,
+    createdAt:         row.created_at         || null,
+    updatedAt:         row.updated_at         || null
   };
 }
 
@@ -149,8 +172,6 @@ function patchToDbFields(patch = {}) {
   if ("coverImage"         in patch) dbPatch.cover_image         = patch.coverImage;
   if ("previewImages"      in patch) dbPatch.preview_images      = patch.previewImages;
   if ("fullImages"         in patch) dbPatch.full_images         = patch.fullImages;
-  if ("selectedFormat"     in patch) dbPatch.selected_format     = patch.selectedFormat;
-  if ("selectedPrice"      in patch) dbPatch.selected_price      = patch.selectedPrice;
   if ("paymentStatus"      in patch) dbPatch.payment_status      = patch.paymentStatus;
   if ("purchaseUnlocked"   in patch) dbPatch.purchase_unlocked   = patch.purchaseUnlocked;
   if ("stripeSessionId"    in patch) dbPatch.stripe_session_id   = patch.stripeSessionId;
@@ -170,16 +191,16 @@ async function insertBook(book) {
       illustration_style: book.illustrationStyle,
       cropped_photo:      book.croppedPhoto,
       original_photo:     book.originalPhoto,
-      character_reference:book.characterReference,
-      generated_book:     book.generatedBook,
-      cover_image:        book.coverImage,
-      preview_images:     book.previewImages,
-      full_images:        book.fullImages,
-      selected_format:    book.selectedFormat,
-      selected_price:     book.selectedPrice,
-      payment_status:     book.paymentStatus,
-      purchase_unlocked:  book.purchaseUnlocked,
-      stripe_session_id:  book.stripeSessionId
+      character_reference: null,
+      generated_book:     null,
+      cover_image:        null,
+      preview_images:     [],
+      full_images:        [],
+      selected_format:    "digital",
+      selected_price:     39,
+      payment_status:     "pending",
+      purchase_unlocked:  false,
+      stripe_session_id:  null
     })
     .select()
     .single();
@@ -209,7 +230,7 @@ async function updateBook(bookId, patch) {
   return dbRowToBook(data);
 }
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
+// Routes
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
@@ -233,27 +254,18 @@ app.post("/api/books/create", async (req, res) => {
     const book = {
       bookId,
       childName:         cleanInput.childName        || "",
-      childAge:          rawInput.childAge            || "",
-      childGender:       rawInput.childGender         || "",
-      storyIdea:         cleanInput.storyIdea         || "",
+      childAge:          rawInput.childAge           || "",
+      childGender:       rawInput.childGender        || "",
+      storyIdea:         cleanInput.storyIdea        || "",
       illustrationStyle: cleanInput.illustrationStyle || "Soft Storybook",
-      croppedPhoto:      cleanInput.croppedPhoto      || "",
-      originalPhoto:     cleanInput.originalPhoto     || "",
-      characterReference:null,
-      generatedBook:     null,
-      coverImage:        null,
-      previewImages:     [],
-      fullImages:        [],
-      selectedFormat:    "digital",
-      selectedPrice:     39,
-      paymentStatus:     "pending",
-      purchaseUnlocked:  false,
-      stripeSessionId:   null
+      croppedPhoto:      cleanInput.croppedPhoto     || "",
+      originalPhoto:     cleanInput.originalPhoto    || ""
     };
 
     await insertBook(book);
     return res.json({ status: "ok", bookId });
   } catch (err) {
+    console.error("create book error:", err);
     return res.status(500).json({ status: "error", message: err?.message || "Failed to create book" });
   }
 });
@@ -268,56 +280,39 @@ app.patch("/api/books/:bookId", async (req, res) => {
   }
 });
 
-// ─── Stripe: Create Checkout Session ─────────────────────────────────────────
+// Stripe Checkout — digital only, always $39
 app.post("/api/create-checkout-session", async (req, res) => {
   try {
-    const { bookId, format } = req.body;
+    const { bookId } = req.body;
 
-    if (!bookId) {
-      return res.status(400).json({ status: "error", message: "Missing bookId" });
-    }
+    if (!bookId) return res.status(400).json({ status: "error", message: "Missing bookId" });
 
     const book = await getBook(bookId);
-    if (!book) {
-      return res.status(404).json({ status: "error", message: "Book not found" });
-    }
+    if (!book) return res.status(404).json({ status: "error", message: "Book not found" });
 
-    const isDigital    = (format || book.selectedFormat) !== "printed";
-    const priceInCents = isDigital ? 3900 : 4900; // $39 / $49
-    const productName  = isDigital
-      ? `Lifebook — Digital Edition (${book.childName})`
-      : `Lifebook — Printed Book (${book.childName})`;
-
-    const appUrl = process.env.APP_URL || "http://localhost:8080";
+    const appUrl     = process.env.APP_URL || "http://localhost:8080";
+    const productName = "Lifebook — Digital Storybook (" + book.childName + ")";
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: productName,
-              description: `Personalized storybook: "${book.generatedBook?.title || "Your Magical Adventure"}"`,
-              images: book.coverImage ? [] : [] // Stripe requires hosted URLs, not base64
-            },
-            unit_amount: priceInCents
+      line_items: [{
+        price_data: {
+          currency:     "usd",
+          product_data: {
+            name:        productName,
+            description: "Personalized storybook: \"" + (book.generatedBook?.title || "Your Magical Adventure") + "\""
           },
-          quantity: 1
-        }
-      ],
+          unit_amount: 3900
+        },
+        quantity: 1
+      }],
       mode: "payment",
-      metadata: {
-        bookId,
-        format: isDigital ? "digital" : "printed"
-      },
-      success_url: `${appUrl}/success.html?bookId=${bookId}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${appUrl}/checkout.html?bookId=${bookId}`
+      metadata: { bookId, format: "digital" },
+      success_url: appUrl + "/success.html?bookId=" + bookId + "&session_id={CHECKOUT_SESSION_ID}",
+      cancel_url:  appUrl + "/checkout.html?bookId=" + bookId
     });
 
-    // Save session ID to book so we can link it on webhook
     await updateBook(bookId, { stripeSessionId: session.id });
-
     return res.json({ status: "ok", url: session.url });
   } catch (err) {
     console.error("Stripe session error:", err);
@@ -325,36 +320,27 @@ app.post("/api/create-checkout-session", async (req, res) => {
   }
 });
 
-// ─── Stripe Webhook ───────────────────────────────────────────────────────────
+// Stripe Webhook
 app.post("/webhooks/stripe", async (req, res) => {
   const sig           = req.headers["stripe-signature"];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
   let event;
 
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
     console.error("Stripe webhook signature failed:", err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    return res.status(400).send("Webhook Error: " + err.message);
   }
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const bookId  = session.metadata?.bookId;
-
-    if (!bookId) {
-      console.warn("Stripe webhook: no bookId in metadata");
-      return res.status(200).send("ok");
-    }
+    if (!bookId) return res.status(200).send("ok");
 
     try {
-      await updateBook(bookId, {
-        paymentStatus:    "paid",
-        purchaseUnlocked: true,
-        stripeSessionId:  session.id
-      });
-      console.log(`Book ${bookId} unlocked via Stripe`);
+      await updateBook(bookId, { paymentStatus: "paid", purchaseUnlocked: true, stripeSessionId: session.id });
+      console.log("Book unlocked:", bookId);
     } catch (err) {
       console.error("Failed to unlock book:", err.message);
       return res.status(500).send("DB update failed");
@@ -364,13 +350,10 @@ app.post("/webhooks/stripe", async (req, res) => {
   return res.status(200).send("ok");
 });
 
-// ─── Unlock endpoint (manual / dev) ──────────────────────────────────────────
+// Manual unlock (dev/admin)
 app.post("/api/books/:bookId/unlock", async (req, res) => {
   try {
-    const updated = await updateBook(req.params.bookId, {
-      paymentStatus:    "paid",
-      purchaseUnlocked: true
-    });
+    const updated = await updateBook(req.params.bookId, { paymentStatus: "paid", purchaseUnlocked: true });
     if (!updated) return res.status(404).json({ status: "error", message: "Book not found" });
     return res.json({ status: "ok", book: updated });
   } catch (err) {
@@ -378,52 +361,44 @@ app.post("/api/books/:bookId/unlock", async (req, res) => {
   }
 });
 
-// ─── Batch generate all page images (parallel, 3 at a time) ─────────────────
+// Batch generate page images — with concurrency protection
 app.post("/api/books/:bookId/generate-images", async (req, res) => {
-  try {
-    const bookId = req.params.bookId;
-    const book   = await getBook(bookId);
+  const bookId = req.params.bookId;
 
+  if (!canGenerate(bookId)) {
+    return res.status(429).json({ status: "error", message: "Server busy, please retry in a moment" });
+  }
+
+  try {
+    const book = await getBook(bookId);
     if (!book) {
+      releaseGeneration(bookId);
       return res.status(404).json({ status: "error", message: "Book not found" });
     }
 
     const pages = book.generatedBook?.pages || [];
     if (pages.length === 0) {
+      releaseGeneration(bookId);
       return res.status(400).json({ status: "error", message: "No pages to generate" });
     }
 
     const characterReference = book.characterReference || {};
     const style = book.illustrationStyle || "Soft Storybook";
 
-    // Skip pages that already have images
     const existingImages = book.fullImages || [];
     const fullImages = [...existingImages];
 
-    // Pad array to match pages length
-    while (fullImages.length < pages.length) {
-      fullImages.push(null);
-    }
+    while (fullImages.length < pages.length) fullImages.push(null);
 
-    // Find which pages still need generation
-    const toGenerate = [];
-    for (let i = 0; i < pages.length; i++) {
-      if (!fullImages[i]) {
-        toGenerate.push(i);
-      }
-    }
+    const toGenerate = pages.map((_, i) => i).filter(i => !fullImages[i]);
 
     if (toGenerate.length === 0) {
-      return res.json({
-        status: "ok",
-        generated: 0,
-        total: pages.length,
-        message: "All images already exist"
-      });
+      releaseGeneration(bookId);
+      return res.json({ status: "ok", generated: 0, total: pages.length, message: "All images already exist" });
     }
 
-    // Generate in batches of 3 for speed without hammering the API
-    const BATCH_SIZE = 3;
+    // Generate 2 at a time (reduced from 3 to be gentler on OpenAI rate limits)
+    const BATCH_SIZE = 2;
 
     for (let batchStart = 0; batchStart < toGenerate.length; batchStart += BATCH_SIZE) {
       const batch = toGenerate.slice(batchStart, batchStart + BATCH_SIZE);
@@ -432,29 +407,11 @@ app.post("/api/books/:bookId/generate-images", async (req, res) => {
         batch.map(async (pageIndex) => {
           const page = pages[pageIndex];
 
-          const finalPrompt = `
-Create a premium children's storybook illustration.
-
-Illustration style: ${sanitizeBrandTerms(style)}
-
-Character consistency:
-${sanitizeBrandTerms(characterReference.characterPromptCore || "Keep the same main child character consistent.")}
-
-Scene:
-${sanitizeImagePrompt(page.imagePrompt || "")}
-
-Rules:
-- same child identity
-- same face structure
-- same hair and skin tone
-- warm magical storybook aesthetic
-- no text
-- no watermark
-- elegant composition
-- no logos
-- no brand names
-- no copyrighted costume emblems
-`.trim();
+          const finalPrompt = "Create a premium children's storybook illustration.\n\n" +
+            "Illustration style: " + sanitizeBrandTerms(style) + "\n\n" +
+            "Character consistency:\n" + sanitizeBrandTerms(characterReference.characterPromptCore || "Keep the same main child character consistent.") + "\n\n" +
+            "Scene:\n" + sanitizeImagePrompt(page.imagePrompt || "") + "\n\n" +
+            "Rules:\n- same child identity\n- same face structure\n- same hair and skin tone\n- warm magical storybook aesthetic\n- no text\n- no watermark\n- elegant composition\n- no logos\n- no brand names";
 
           const imgResp = await openai.images.generate({
             model:  "gpt-image-1",
@@ -467,63 +424,47 @@ Rules:
         })
       );
 
-      // Store successful results
       for (const result of results) {
         if (result.status === "fulfilled" && result.value.base64) {
-          fullImages[result.value.pageIndex] = `data:image/png;base64,${result.value.base64}`;
+          fullImages[result.value.pageIndex] = "data:image/png;base64," + result.value.base64;
         }
       }
 
-      // Save progress after each batch (so partial results are saved)
       await updateBook(bookId, { fullImages });
     }
 
+    releaseGeneration(bookId);
     const successCount = fullImages.filter(Boolean).length;
+    return res.json({ status: "ok", generated: toGenerate.length, succeeded: successCount, total: pages.length });
 
-    return res.json({
-      status:    "ok",
-      generated: toGenerate.length,
-      succeeded: successCount,
-      total:     pages.length
-    });
   } catch (err) {
+    releaseGeneration(bookId);
     console.error("Batch image generation failed:", err);
-    return res.status(500).json({
-      status:  "error",
-      message: err?.message || "Image generation failed"
-    });
+    return res.status(500).json({ status: "error", message: err?.message || "Image generation failed" });
   }
 });
 
-// ─── Image generation progress check ─────────────────────────────────────────
+// Image generation progress
 app.get("/api/books/:bookId/image-status", async (req, res) => {
   try {
     const book = await getBook(req.params.bookId);
     if (!book) return res.status(404).json({ status: "error", message: "Book not found" });
 
-    const totalPages    = book.generatedBook?.pages?.length || 0;
-    const fullImages    = book.fullImages || [];
-    const readyCount    = fullImages.filter(Boolean).length;
+    const totalPages = book.generatedBook?.pages?.length || 0;
+    const fullImages = book.fullImages || [];
+    const readyCount = fullImages.filter(Boolean).length;
 
-    return res.json({
-      status: "ok",
-      total:  totalPages,
-      ready:  readyCount,
-      done:   readyCount >= totalPages
-    });
+    return res.json({ status: "ok", total: totalPages, ready: readyCount, done: readyCount >= totalPages });
   } catch (err) {
     return res.status(500).json({ status: "error", message: err?.message || "Failed" });
   }
 });
 
-// ─── Character reference ──────────────────────────────────────────────────────
+// Character reference
 app.post("/generate-character-reference", async (req, res) => {
   try {
     const { child_photo, illustration_style } = req.body;
-
-    if (!child_photo) {
-      return res.status(400).json({ status: "error", message: "Missing child_photo" });
-    }
+    if (!child_photo) return res.status(400).json({ status: "error", message: "Missing child_photo" });
 
     const style     = illustration_style || "Soft Storybook";
     const safeStyle = sanitizeBrandTerms(style);
@@ -531,77 +472,33 @@ app.post("/generate-character-reference", async (req, res) => {
     const dnaCompletion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `
-Analyze the uploaded child photo and return ONLY JSON.
-
-Return:
-{
-  "hair": "string",
-  "skin": "string",
-  "eyes": "string",
-  "face": "string",
-  "ageLook": "string",
-  "outfit": "string",
-  "vibe": "string",
-  "summary": "string"
-}
-
-Rules:
-- Focus only on the child
-- Ignore any brand names, logos, copyrighted characters, or toy franchises
-- If clothing includes a recognizable character or logo, describe it generically
-              `.trim()
-            },
-            {
-              type: "image_url",
-              image_url: { url: child_photo }
-            }
-          ]
-        }
-      ],
+      messages: [{
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: "Analyze the uploaded child photo and return ONLY JSON.\n\nReturn:\n{\n  \"hair\": \"string\",\n  \"skin\": \"string\",\n  \"eyes\": \"string\",\n  \"face\": \"string\",\n  \"ageLook\": \"string\",\n  \"outfit\": \"string\",\n  \"vibe\": \"string\",\n  \"summary\": \"string\"\n}\n\nRules:\n- Focus only on the child\n- Ignore any brand names, logos, or copyrighted characters\n- If clothing includes a recognizable character, describe it generically"
+          },
+          { type: "image_url", image_url: { url: child_photo } }
+        ]
+      }],
       temperature: 0.2
     });
 
-    const dnaRaw      = dnaCompletion.choices?.[0]?.message?.content || "{}";
+    const dnaRaw = dnaCompletion.choices?.[0]?.message?.content || "{}";
     const characterDNA = safeJsonParse(dnaRaw, {
-      hair:    "soft brown child hair",
-      skin:    "natural warm skin tone",
-      eyes:    "bright child eyes",
-      face:    "soft rounded child face",
-      ageLook: "young child",
-      outfit:  "simple timeless child outfit",
-      vibe:    "warm curious child",
-      summary: "A warm curious child hero for a magical storybook."
+      hair: "soft brown child hair", skin: "natural warm skin tone",
+      eyes: "bright child eyes", face: "soft rounded child face",
+      ageLook: "young child", outfit: "simple timeless child outfit",
+      vibe: "warm curious child", summary: "A warm curious child hero for a magical storybook."
     });
 
     const promptCore = buildCharacterPromptCore(characterDNA, safeStyle);
 
-    const characterSheetPrompt = `
-Create a premium children's storybook character sheet.
-
-Style: ${safeStyle}
-
-${sanitizeBrandTerms(promptCore)}
-
-Create ONE clean composition showing the same child character in:
-- front view
-- slight side view
-- full body storybook pose
-
-Background:
-- clean soft storybook background
-- minimal and elegant
-- no text
-- no watermark
-- no logos
-- no branded costume details
-`.trim();
+    const characterSheetPrompt = "Create a premium children's storybook character sheet.\n\nStyle: " + safeStyle + "\n\n" +
+      sanitizeBrandTerms(promptCore) + "\n\n" +
+      "Create ONE clean composition showing the same child character in:\n- front view\n- slight side view\n- full body storybook pose\n\n" +
+      "Background: clean soft storybook background, minimal, no text, no watermark, no logos";
 
     const imageResp = await openai.images.generate({
       model:  "gpt-image-1",
@@ -612,99 +509,51 @@ Background:
     const characterSheetBase64 = await normalizeImageToBase64(imageResp?.data?.[0]);
 
     return res.json({
-      status:              "ok",
+      status: "ok",
       characterDNA,
       characterPromptCore: promptCore,
       characterSummary:    characterDNA.summary || "",
       characterSheetBase64
     });
   } catch (err) {
-    return res.status(500).json({
-      status:  "error",
-      message: "Character reference generation failed",
-      details: err?.message || "unknown_error"
-    });
+    return res.status(500).json({ status: "error", message: "Character reference generation failed", details: err?.message || "unknown_error" });
   }
 });
 
-// ─── Create book (story text) ─────────────────────────────────────────────────
+// Create book story text
 app.post("/create-book", async (req, res) => {
   try {
-    const {
-      child_name,
-      age,
-      gender,
-      story_type,
-      illustration_style,
-      character_reference
-    } = req.body;
+    const { child_name, age, gender, story_type, illustration_style, character_reference } = req.body;
 
     if (!child_name || !age || !story_type) {
-      return res.status(400).json({
-        status:  "error",
-        message: "Missing required fields: child_name, age, story_type"
-      });
+      return res.status(400).json({ status: "error", message: "Missing required fields: child_name, age, story_type" });
     }
 
-    const style            = illustration_style || "Soft Storybook";
-    const characterSummary = character_reference?.characterSummary    || "A warm curious child hero";
-    const characterPromptCore = character_reference?.characterPromptCore || "";
+    const style = illustration_style || "Soft Storybook";
+    const cleanChildName  = sanitizeBrandTerms(child_name || "");
+    const cleanStoryType  = sanitizeBrandTerms(story_type || "");
+    const cleanStyle      = sanitizeBrandTerms(style || "");
+    const cleanSummary    = sanitizeBrandTerms(character_reference?.characterSummary || "A warm curious child hero");
+    const cleanPromptCore = sanitizeBrandTerms(character_reference?.characterPromptCore || "");
 
-    const cleanStoryType         = sanitizeBrandTerms(story_type        || "");
-    const cleanChildName         = sanitizeBrandTerms(child_name        || "");
-    const cleanStyle             = sanitizeBrandTerms(style             || "");
-    const cleanCharacterSummary  = sanitizeBrandTerms(characterSummary  || "");
-    const cleanCharacterPromptCore = sanitizeBrandTerms(characterPromptCore || "");
-
-    const prompt = `
-You are a premium personalized children's book writer.
-
-Child name: ${cleanChildName}
-Child age: ${age}
-Child gender: ${gender || "not specified"}
-Story direction: ${cleanStoryType}
-Illustration style: ${cleanStyle}
-
-Character summary:
-${cleanCharacterSummary}
-
-Character consistency instructions:
-${cleanCharacterPromptCore}
-
-Return ONLY JSON:
-{
-  "title": "string",
-  "subtitle": "string",
-  "pages": [
-    {
-      "text": "string",
-      "imagePrompt": "string"
-    }
-  ]
-}
-
-Rules:
-- Exactly 10 story pages
-- Each page text must be 35-70 words
-- The child must clearly be the hero
-- imagePrompt must describe the same child consistently
-- No page numbers inside text
-- No brand names
-- Do not mention copyrighted characters or logos
-- Convert any branded clothing or toys into generic descriptions
-`.trim();
+    const prompt = "You are a premium personalized children's book writer.\n\n" +
+      "Child name: " + cleanChildName + "\nChild age: " + age + "\nChild gender: " + (gender || "not specified") + "\n" +
+      "Story direction: " + cleanStoryType + "\nIllustration style: " + cleanStyle + "\n\n" +
+      "Character summary:\n" + cleanSummary + "\n\nCharacter consistency instructions:\n" + cleanPromptCore + "\n\n" +
+      "Return ONLY JSON:\n{\n  \"title\": \"string\",\n  \"subtitle\": \"string\",\n  \"pages\": [{\"text\": \"string\", \"imagePrompt\": \"string\"}]\n}\n\n" +
+      "Rules:\n- Exactly 10 story pages\n- Each page text must be 35-70 words\n- The child must clearly be the hero\n- imagePrompt must describe the same child consistently\n- No page numbers inside text\n- No brand names or copyrighted characters";
 
     const completion = await openai.chat.completions.create({
-      model:           "gpt-4o-mini",
+      model: "gpt-4o-mini",
       response_format: { type: "json_object" },
-      messages:        [{ role: "user", content: prompt }],
-      temperature:     0.8
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.8
     });
 
     const raw  = completion.choices?.[0]?.message?.content || "{}";
     const book = safeJsonParse(raw, {});
 
-    const title    = sanitizeBrandTerms(book.title    || `The Magical Adventure of ${cleanChildName}`);
+    const title    = sanitizeBrandTerms(book.title    || "The Magical Adventure of " + cleanChildName);
     const subtitle = sanitizeBrandTerms(book.subtitle || "A story where you are the hero");
     const pages    = Array.isArray(book.pages) ? book.pages.slice(0, 10) : [];
 
@@ -713,69 +562,32 @@ Rules:
       title,
       subtitle,
       illustration_style: cleanStyle,
-      pages: pages.map((p) => ({
-        text:        sanitizeBrandTerms(String(p.text        || "").trim()),
+      pages: pages.map(p => ({
+        text:        sanitizeBrandTerms(String(p.text || "").trim()),
         imagePrompt: sanitizeImagePrompt(String(p.imagePrompt || "").trim())
       }))
     });
   } catch (err) {
-    return res.status(500).json({
-      status:  "error",
-      message: "Book generation failed",
-      details: err?.message || "unknown_error"
-    });
+    return res.status(500).json({ status: "error", message: "Book generation failed", details: err?.message || "unknown_error" });
   }
 });
 
-// ─── Generate cover image ─────────────────────────────────────────────────────
+// Generate cover image
 app.post("/generate-cover-image", async (req, res) => {
   try {
-    const {
-      title,
-      subtitle,
-      story_type,
-      illustration_style,
-      characterPromptCore,
-      characterSummary
-    } = req.body;
-
-    if (!title) {
-      return res.status(400).json({ status: "error", message: "Missing required field: title" });
-    }
+    const { title, subtitle, story_type, illustration_style, characterPromptCore, characterSummary } = req.body;
+    if (!title) return res.status(400).json({ status: "error", message: "Missing required field: title" });
 
     const style = illustration_style || "Soft Storybook";
 
-    const coverPrompt = `
-Create a premium children's storybook COVER illustration.
-
-Illustration style: ${sanitizeBrandTerms(style)}
-
-LOCKED CHILD CHARACTER:
-${sanitizeBrandTerms(characterPromptCore || "Keep the same main child character consistent.")}
-
-SHORT CHARACTER SUMMARY:
-${sanitizeBrandTerms(characterSummary || "A warm curious child hero.")}
-
-BOOK TITLE:
-${sanitizeBrandTerms(title)}
-
-BOOK SUBTITLE:
-${sanitizeBrandTerms(subtitle || "")}
-
-STORY DIRECTION:
-${sanitizeBrandTerms(story_type || "A magical storybook adventure.")}
-
-Rules:
-- create ONE beautiful single cover illustration
-- show the child as the hero
-- magical, premium, warm
-- no character sheet
-- no multiple poses
-- no text rendered into the image
-- no watermark
-- no logos
-- no copyrighted costume emblems
-`.trim();
+    const coverPrompt = "Create a premium children's storybook COVER illustration.\n\n" +
+      "Illustration style: " + sanitizeBrandTerms(style) + "\n\n" +
+      "LOCKED CHILD CHARACTER:\n" + sanitizeBrandTerms(characterPromptCore || "Keep the same main child character consistent.") + "\n\n" +
+      "CHARACTER SUMMARY:\n" + sanitizeBrandTerms(characterSummary || "A warm curious child hero.") + "\n\n" +
+      "BOOK TITLE: " + sanitizeBrandTerms(title) + "\n" +
+      "BOOK SUBTITLE: " + sanitizeBrandTerms(subtitle || "") + "\n" +
+      "STORY DIRECTION: " + sanitizeBrandTerms(story_type || "A magical storybook adventure.") + "\n\n" +
+      "Rules:\n- ONE beautiful single cover illustration\n- show the child as the hero\n- magical, premium, warm\n- no character sheet\n- no multiple poses\n- no text rendered into image\n- no watermark\n- no logos";
 
     const imgResp = await openai.images.generate({
       model:  "gpt-image-1",
@@ -786,47 +598,23 @@ Rules:
     const coverImageBase64 = await normalizeImageToBase64(imgResp?.data?.[0]);
     return res.json({ status: "ok", coverImageBase64 });
   } catch (err) {
-    return res.status(200).json({
-      status:         "fallback",
-      coverImageBase64: null,
-      message:        "Cover generation was blocked, fallback will be used on client."
-    });
+    return res.status(200).json({ status: "fallback", coverImageBase64: null, message: "Cover generation blocked, fallback used." });
   }
 });
 
-// ─── Generate page image ──────────────────────────────────────────────────────
+// Generate single page image
 app.post("/generate-image", async (req, res) => {
   try {
     const { prompt, illustration_style, characterPromptCore } = req.body;
+    if (!prompt) return res.status(400).json({ status: "error", message: "Missing required field: prompt" });
 
-    if (!prompt) {
-      return res.status(400).json({ status: "error", message: "Missing required field: prompt" });
-    }
+    const style = illustration_style || "Soft Storybook";
 
-    const style       = illustration_style || "Soft Storybook";
-    const finalPrompt = `
-Create a premium children's storybook illustration.
-
-Illustration style: ${sanitizeBrandTerms(style)}
-
-Character consistency:
-${sanitizeBrandTerms(characterPromptCore || "Keep the same main child character consistent.")}
-
-Scene:
-${sanitizeImagePrompt(prompt)}
-
-Rules:
-- same child identity
-- same face structure
-- same hair and skin tone
-- warm magical storybook aesthetic
-- no text
-- no watermark
-- elegant composition
-- no logos
-- no brand names
-- no copyrighted costume emblems
-`.trim();
+    const finalPrompt = "Create a premium children's storybook illustration.\n\n" +
+      "Illustration style: " + sanitizeBrandTerms(style) + "\n\n" +
+      "Character consistency:\n" + sanitizeBrandTerms(characterPromptCore || "Keep the same main child character consistent.") + "\n\n" +
+      "Scene:\n" + sanitizeImagePrompt(prompt) + "\n\n" +
+      "Rules:\n- same child identity\n- same face structure\n- same hair and skin tone\n- warm magical storybook aesthetic\n- no text\n- no watermark\n- no logos";
 
     const imgResp = await openai.images.generate({
       model:  "gpt-image-1",
@@ -837,16 +625,17 @@ Rules:
     const imageBase64 = await normalizeImageToBase64(imgResp?.data?.[0]);
     return res.json({ status: "ok", imageBase64 });
   } catch (err) {
-    return res.status(500).json({
-      status:  "error",
-      message: "Image generation failed",
-      details: err?.message || "unknown_error"
-    });
+    return res.status(500).json({ status: "error", message: "Image generation failed", details: err?.message || "unknown_error" });
   }
 });
 
-// ─── Start server ─────────────────────────────────────────────────────────────
+// Health check
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Start server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server running on port " + PORT);
 });
