@@ -3,369 +3,130 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Lifebook - Delivery Center</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Lifebook - Your Book</title>
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      color: #fff8ec;
-      background:
-        radial-gradient(circle at top, rgba(27,46,94,0.55), rgba(5,10,20,1)),
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:Arial,sans-serif;color:#fff8ec;
+      background:radial-gradient(circle at top,rgba(27,46,94,0.55),rgba(5,10,20,1)),
         url("assets/backgrounds/FE0410D4-7381-4ACC-8FB9-D8862D553EC0.PNG");
-      background-size: cover;
-      background-position: center;
-      min-height: 100vh;
+      background-size:cover;background-position:center;min-height:100vh;
     }
-
-    .shell {
-      width: min(1240px, 94vw);
-      margin: 0 auto;
-      padding: 24px 0 60px;
-    }
-
-    .topbar {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      margin-bottom: 24px;
-      gap: 16px;
-    }
-
-    .back-btn {
-      justify-self: start;
-      appearance: none;
-      border: 1px solid rgba(240,196,109,0.24);
-      background: rgba(255,255,255,0.04);
-      color: #fff7ea;
-      border-radius: 999px;
-      padding: 12px 18px;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .back-btn:hover { transform: translateY(-1px); }
-
-    .brand {
-      justify-self: center;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .brand img {
-      height: 60px;
-      width: auto;
-      display: block;
-    }
-
-    .brand-text {
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: 30px;
-      color: #f7ecd7;
-    }
-
-    .hero-card {
-      background:
-        radial-gradient(circle at top center, rgba(241,188,101,0.12) 0%, transparent 25%),
-        linear-gradient(180deg, rgba(18,23,41,0.98), rgba(14,18,33,0.99));
-      border: 1px solid rgba(240,196,109,0.18);
-      border-radius: 32px;
-      box-shadow: 0 18px 60px rgba(0,0,0,0.34);
-      padding: 30px;
-      margin-bottom: 20px;
-    }
-
-    .eyebrow {
-      color: #e9c57c;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-
-    .hero-card h1 {
-      margin: 0 0 10px;
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(36px, 5vw, 58px);
-      line-height: 0.96;
-      color: #f9f1e4;
-    }
-
-    .hero-card p {
-      margin: 0;
-      color: #cfc0ab;
-      font-size: 18px;
-      line-height: 1.7;
-      max-width: 760px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 20px;
-      align-items: start;
-    }
-
-    .card {
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.03)),
-        linear-gradient(180deg, rgba(18,23,41,0.96), rgba(14,18,33,0.98));
-      border: 1px solid rgba(240,196,109,0.14);
-      border-radius: 30px;
-      box-shadow: 0 18px 60px rgba(0,0,0,0.34);
-      padding: 26px;
-    }
-
-    .card h2 {
-      margin: 0 0 14px;
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: 28px;
-      color: #f7efdf;
-    }
-
-    .card p {
-      margin: 0 0 16px;
-      color: #cfc0ab;
-      line-height: 1.65;
-      font-size: 16px;
-    }
-
-    .action-btn {
-      display: block;
-      width: 100%;
-      margin-top: 10px;
-      padding: 16px 24px;
-      border: none;
-      border-radius: 999px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      text-align: center;
-      transition: transform 0.15s ease, opacity 0.15s ease;
-      box-sizing: border-box;
-    }
-
-    .action-btn:hover { transform: translateY(-1px); }
-
-    .action-btn.primary {
-      background: linear-gradient(180deg, #f0c46d, #d08e2b);
-      color: #fffaf1;
-      box-shadow: 0 10px 24px rgba(208,142,43,0.28);
-    }
-
-    .action-btn.secondary {
-      background: rgba(255,255,255,0.05);
-      color: #fff8ec;
-      border: 1px solid rgba(240,196,109,0.16);
-    }
-
-    .summary-line {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 11px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.07);
-      color: #d3c4b0;
-      font-size: 15px;
-    }
-
-    .summary-line:last-of-type { border-bottom: none; }
-
-    .summary-line strong { color: #f0c46d; }
-
-    .cover-img {
-      width: 100%;
-      max-width: 260px;
-      aspect-ratio: 1 / 1.2;
-      object-fit: cover;
-      border-radius: 22px;
-      display: block;
-      margin-top: 16px;
-      box-shadow: 0 14px 28px rgba(0,0,0,0.22);
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(240,196,109,0.18);
-    }
-
-    .status-note {
-      margin-top: 14px;
-      font-size: 14px;
-      line-height: 1.5;
-      color: #a89985;
-    }
-
-    .loading-state {
-      color: #c0b090;
-      font-style: italic;
-      font-size: 15px;
-      margin-top: 8px;
-    }
-
-    @media (max-width: 900px) {
-      .grid { grid-template-columns: 1fr; }
-      .topbar { grid-template-columns: 1fr; }
-      .brand { justify-self: start; }
-    }
-
-    @media (max-width: 640px) {
-      .shell { width: 100%; padding: 16px 14px 48px; box-sizing: border-box; }
-      .card { padding: 18px; border-radius: 24px; }
-      .hero-card { padding: 22px; border-radius: 26px; }
-    }
+    .shell{width:min(960px,94vw);margin:0 auto;padding:24px 0 60px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+    .back-btn{appearance:none;border:1px solid rgba(240,196,109,0.24);background:rgba(255,255,255,0.04);color:#fff7ea;border-radius:999px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer}
+    .brand{display:flex;align-items:center;gap:12px;font-family:Georgia,serif;font-size:24px;color:#f7ecd7}
+    .brand img{height:40px;width:auto}
+    .hero-card{background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.03)),linear-gradient(180deg,rgba(18,23,41,0.96),rgba(14,18,33,0.98));border:1px solid rgba(240,196,109,0.18);border-radius:28px;box-shadow:0 18px 60px rgba(0,0,0,0.34);padding:26px;margin-bottom:18px}
+    .hero-card h1{margin:0 0 8px;font-family:Georgia,serif;font-size:clamp(30px,5vw,48px);line-height:1;color:#f9f1e4}
+    .hero-card p{margin:0;color:#cfc0ab;font-size:16px;line-height:1.65}
+    .grid{display:grid;grid-template-columns:1.1fr 0.9fr;gap:18px;align-items:start}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.03)),linear-gradient(180deg,rgba(18,23,41,0.96),rgba(14,18,33,0.98));border:1px solid rgba(240,196,109,0.14);border-radius:26px;box-shadow:0 18px 60px rgba(0,0,0,0.34);padding:22px}
+    .card h2{margin:0 0 14px;font-family:Georgia,serif;font-size:22px;color:#f7efdf}
+    .action-btn{display:block;width:100%;margin-bottom:10px;padding:15px 20px;border:none;border-radius:999px;font-size:16px;font-weight:700;cursor:pointer;text-align:center}
+    .action-btn.primary{background:linear-gradient(180deg,#f0c46d,#d08e2b);color:#fffaf1;box-shadow:0 10px 24px rgba(208,142,43,0.28)}
+    .action-btn.secondary{background:rgba(255,255,255,0.05);color:#fff8ec;border:1px solid rgba(240,196,109,0.16)}
+    .summary-line{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.07);color:#d3c4b0;font-size:14px}
+    .summary-line:last-of-type{border-bottom:none}
+    .summary-line strong{color:#f0c46d}
+    .cover-img{width:100%;max-width:240px;aspect-ratio:1/1.2;object-fit:cover;border-radius:18px;display:block;margin-top:14px;box-shadow:0 14px 28px rgba(0,0,0,0.22);background:rgba(255,255,255,0.06);border:1px solid rgba(240,196,109,0.18)}
+    .status-note{margin-top:12px;font-size:13px;line-height:1.5;color:#a89985}
+    @media(max-width:820px){.grid{grid-template-columns:1fr}}
+    @media(max-width:480px){.shell{width:100%;padding:14px 12px 40px;box-sizing:border-box}.card{padding:16px}.hero-card{padding:18px}}
   </style>
 </head>
 <body>
-  <div class="shell">
-    <header class="topbar">
-      <button class="back-btn" id="backBtn" type="button">← Back</button>
-
-      <div class="brand">
-        <img src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook logo" id="brandLogo" />
-        <span class="brand-text">lifebook</span>
-      </div>
-
-      <div></div>
-    </header>
-
-    <div class="hero-card">
-      <div class="eyebrow">Delivery Center</div>
-      <h1>Your book is ready</h1>
-      <p>Access your full story, open the premium book reader, or use the print-ready version.</p>
+<div class="shell">
+  <header class="topbar">
+    <button class="back-btn" id="backBtn" type="button">← Back</button>
+    <div class="brand">
+      <img src="assets/branding/6C38A8F4-9FC1-434F-BB73-4933001086FB.PNG" alt="Lifebook" onerror="this.style.display='none'">
+      <span>lifebook</span>
     </div>
+  </header>
 
-    <div class="grid">
-      <!-- Left: actions -->
-      <div class="card">
-        <h2>Digital delivery</h2>
-        <p>Choose how you want to experience your personalized storybook.</p>
-
-        <button class="action-btn primary" id="openReaderBtn" type="button">📖 Open Book Reader</button>
-        <button class="action-btn secondary" id="openFullPreviewBtn" type="button">Full Preview</button>
-        <button class="action-btn secondary" id="openPrintReadyBtn" type="button">Print-Ready View</button>
-      </div>
-
-      <!-- Right: order summary -->
-      <div class="card">
-        <h2>Order summary</h2>
-
-        <div class="summary-line">
-          <span>Child</span>
-          <strong id="deliveryChildName">—</strong>
-        </div>
-        <div class="summary-line">
-          <span>Book</span>
-          <strong id="deliveryBookTitle">—</strong>
-        </div>
-        <div class="summary-line">
-          <span>Format</span>
-          <strong id="deliveryFormat">—</strong>
-        </div>
-        <div class="summary-line">
-          <span>Status</span>
-          <strong id="deliveryStatus">—</strong>
-        </div>
-
-        <img id="deliveryCoverImage" class="cover-img" alt="Book cover" />
-
-        <div class="status-note" id="deliveryNote"></div>
-      </div>
-    </div>
+  <div class="hero-card">
+    <h1>Your book is ready 🎉</h1>
+    <p>Open the reader to enjoy your personalized storybook on any device.</p>
   </div>
 
-  <script type="module">
-    const API_BASE = window.location.origin;
+  <div class="grid">
+    <div class="card">
+      <h2>Access your book</h2>
+      <button class="action-btn primary" id="openReaderBtn" type="button">📖 Open Book Reader</button>
+      <button class="action-btn secondary" id="openFullPreviewBtn" type="button">Preview All Pages</button>
+    </div>
 
-    function getUrlParam(name) {
-      return new URLSearchParams(window.location.search).get(name);
+    <div class="card">
+      <h2>Order summary</h2>
+      <div class="summary-line"><span>Child</span><strong id="deliveryChildName">—</strong></div>
+      <div class="summary-line"><span>Book</span><strong id="deliveryBookTitle">—</strong></div>
+      <div class="summary-line"><span>Format</span><strong>Digital PDF</strong></div>
+      <div class="summary-line"><span>Status</span><strong id="deliveryStatus">—</strong></div>
+      <img id="deliveryCoverImage" class="cover-img" alt="Book cover"/>
+      <div class="status-note" id="deliveryNote"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  var API_BASE = window.location.origin;
+
+  function getUrlParam(name) {
+    return new URLSearchParams(window.location.search).get(name);
+  }
+
+  var bookId = getUrlParam("bookId");
+
+  document.getElementById("backBtn").addEventListener("click", function() {
+    if (bookId) window.location.href = "success.html?bookId=" + encodeURIComponent(bookId);
+    else window.history.back();
+  });
+
+  document.getElementById("openReaderBtn").addEventListener("click", function() {
+    if (bookId) window.location.href = "reader.html?bookId=" + encodeURIComponent(bookId);
+  });
+
+  document.getElementById("openFullPreviewBtn").addEventListener("click", function() {
+    if (bookId) window.location.href = "preview.html?bookId=" + encodeURIComponent(bookId);
+  });
+
+  async function init() {
+    var note = document.getElementById("deliveryNote");
+    if (!bookId) {
+      if (note) note.textContent = "Could not find your book.";
+      return;
     }
 
-    const bookId  = getUrlParam("bookId");
-    const orderId = getUrlParam("orderId") || getUrlParam("order_id");
+    try {
+      var res  = await fetch(API_BASE + "/api/books/" + encodeURIComponent(bookId));
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to load book");
+      var book = data.book;
 
-    // Hide broken logo
-    const logo = document.getElementById("brandLogo");
-    if (logo) logo.addEventListener("error", () => { logo.style.display = "none"; });
+      document.getElementById("deliveryChildName").textContent = book.childName || "—";
+      document.getElementById("deliveryBookTitle").textContent = (book.generatedBook && book.generatedBook.title) || "—";
+      document.getElementById("deliveryStatus").textContent    = book.purchaseUnlocked ? "Paid" : "Pending";
 
-    // Back button
-    document.getElementById("backBtn").addEventListener("click", () => {
-      if (bookId) {
-        window.location.href = `success.html?bookId=${encodeURIComponent(bookId)}`;
-      } else {
-        window.history.back();
+      var coverEl = document.getElementById("deliveryCoverImage");
+      var src = book.coverImage || book.croppedPhoto || book.originalPhoto;
+      if (src) coverEl.src = src;
+      else coverEl.style.display = "none";
+
+      document.getElementById("openReaderBtn").onclick = function() {
+        window.location.href = "reader.html?bookId=" + encodeURIComponent(book.bookId);
+      };
+
+      if (!book.purchaseUnlocked && note) {
+        note.textContent = "Payment is being confirmed. The reader will be available shortly.";
       }
-    });
-
-    // Navigation buttons
-    document.getElementById("openReaderBtn").addEventListener("click", () => {
-      if (bookId) window.location.href = `reader.html?bookId=${encodeURIComponent(bookId)}`;
-    });
-
-    document.getElementById("openFullPreviewBtn").addEventListener("click", () => {
-      if (bookId) window.location.href = `preview.html?bookId=${encodeURIComponent(bookId)}`;
-    });
-
-    document.getElementById("openPrintReadyBtn").addEventListener("click", () => {
-      if (bookId) window.location.href = `print.html?bookId=${encodeURIComponent(bookId)}`;
-    });
-
-    // ── Load book from API ──────────────────────────────────────────────────
-    async function resolveBookId() {
-      if (bookId) return bookId;
-      if (orderId) {
-        const res = await fetch(`${API_BASE}/api/order/${encodeURIComponent(orderId)}`);
-        const data = await res.json();
-        if (res.ok && data.bookId) return data.bookId;
-      }
-      return null;
+    } catch(err) {
+      console.error("delivery init error:", err);
+      if (note) note.textContent = "Failed to load order details. Please refresh.";
     }
+  }
 
-    async function init() {
-      const note = document.getElementById("deliveryNote");
-
-      try {
-        const resolvedId = await resolveBookId();
-
-        if (!resolvedId) {
-          if (note) note.textContent = "Could not find your book. Please go back and try again.";
-          return;
-        }
-
-        const res  = await fetch(`${API_BASE}/api/books/${encodeURIComponent(resolvedId)}`);
-        const data = await res.json();
-
-        if (!res.ok) throw new Error(data.message || "Failed to load book");
-        const book = data.book;
-
-        // Populate summary
-        document.getElementById("deliveryChildName").textContent = book.childName  || "—";
-        document.getElementById("deliveryBookTitle").textContent = book.generatedBook?.title || "—";
-        document.getElementById("deliveryFormat").textContent    = book.selectedFormat === "printed" ? "Printed Book" : "Digital Book";
-        document.getElementById("deliveryStatus").textContent    = book.purchaseUnlocked ? "✓ Paid" : "Pending";
-
-        // Cover image
-        const coverEl = document.getElementById("deliveryCoverImage");
-        const src = book.coverImage || book.croppedPhoto || book.originalPhoto;
-        if (src) { coverEl.src = src; }
-        else { coverEl.style.display = "none"; }
-
-        // Update reader button to include bookId
-        document.getElementById("openReaderBtn").onclick = () => {
-          window.location.href = `reader.html?bookId=${encodeURIComponent(book.bookId)}`;
-        };
-
-        if (!book.purchaseUnlocked) {
-          if (note) note.textContent = "⚠ Payment is still being confirmed. The book reader will be available shortly.";
-        }
-
-      } catch (err) {
-        console.error("delivery init error:", err);
-        if (note) note.textContent = "Failed to load order details. Please refresh or contact support.";
-      }
-    }
-
-    init();
-  </script>
+  init();
+</script>
 </body>
 </html>
