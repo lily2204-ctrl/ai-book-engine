@@ -319,3 +319,115 @@ nav, .wizard-topbar {
   .modal-body-layout { grid-template-columns: 1fr; }
   .inner-card { padding: 18px; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   MOBILE-FIRST ADDITIONS — full responsive for all inner pages
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Touch targets ── */
+button, .primary-btn, .continue-btn, .secondary-btn, .back-link-button,
+.nav-back, .btn-primary, .btn-secondary, .pay-btn, .btn-gold {
+  min-height: 44px;
+  touch-action: manipulation;
+}
+
+/* ── Inputs bigger on mobile ── */
+.input-label input, .input-label select, .input-label textarea {
+  font-size: 16px; /* prevents iOS zoom */
+}
+
+/* ── Page shells ── */
+.shell { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+
+/* ── Nav logo on mobile ── */
+.brand-image { height: 36px; }
+
+/* ── Upload drop zone mobile ── */
+@media (max-width: 480px) {
+  .upload-drop { min-height: 130px; padding: 18px; }
+  .upload-title { font-size: 18px; }
+}
+
+/* ── Style grid 2 cols always on small ── */
+@media (max-width: 480px) {
+  .style-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .style-name { font-size: 13px; }
+  .style-text { font-size: 10px; }
+}
+
+/* ── Modal full screen on mobile ── */
+@media (max-width: 640px) {
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal-card {
+    border-radius: 24px 24px 0 0;
+    max-height: 92vh;
+    width: 100%;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+  .modal-body-layout { grid-template-columns: 1fr; }
+}
+
+/* ── Summary rows ── */
+@media (max-width: 480px) {
+  .summary-row { grid-template-columns: 1fr; gap: 2px; }
+  .summary-label { font-size: 10px; }
+}
+
+/* ── Inner card padding ── */
+@media (max-width: 480px) {
+  .inner-card { padding: 16px; border-radius: 18px; }
+}
+
+/* ── Crop page canvas ── */
+@media (max-width: 640px) {
+  .crop-shell { padding: 12px 12px 60px; }
+  .crop-card { padding: 16px; border-radius: 24px; }
+  .crop-action-row { flex-direction: column; }
+  .continue-btn, .secondary-btn { width: 100%; }
+}
+
+/* ── Preview page ── */
+@media (max-width: 480px) {
+  .loading-steps { max-width: 280px; }
+  .lstep { font-size: 13px; padding: 9px 12px; }
+  .main-layout { grid-template-columns: 1fr !important; }
+  .cover-panel { position: static !important; }
+  .unlock-banner { flex-direction: column; }
+  .unlock-price { font-size: 24px; }
+  .pay-btn { font-size: 16px; padding: 15px 24px; }
+}
+
+/* ── Reader page ── */
+@media (max-width: 640px) {
+  .pages-grid { grid-template-columns: 1fr !important; }
+  .book-header { padding: 16px; flex-direction: column; gap: 12px; }
+  .view-toggle { align-self: stretch; justify-content: center; }
+  .download-banner { flex-direction: column; text-align: center; }
+  .btn-download { width: 100%; justify-content: center; }
+}
+
+/* ── Checkout page ── */
+@media (max-width: 640px) {
+  .layout { grid-template-columns: 1fr !important; }
+  .cover-card { position: static !important; }
+  .details-grid { grid-template-columns: 1fr 1fr; }
+  .price-box { flex-direction: column; text-align: center; gap: 8px; }
+}
+
+/* ── Delivery / reader ── */
+@media (max-width: 640px) {
+  .hero { flex-direction: column; padding: 18px 16px; }
+  .hero-btns { width: 100%; }
+  .hero-btns .btn-gold, .hero-btns .btn-ghost { flex: 1; justify-content: center; text-align: center; }
+  .book-spread { max-width: 100% !important; grid-template-columns: 1fr !important; }
+  .spread-left { border-right: none; border-bottom: 1px solid var(--parchment); }
+  .flipper-nav { gap: 8px; }
+  .download-card { flex-direction: column; }
+  .download-card .btn-gold { width: 100%; justify-content: center; }
+}
+
+/* ── Safe area bottom (iPhone notch) ── */
+@media (max-width: 640px) {
+  body { padding-bottom: env(safe-area-inset-bottom); }
+  nav { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+}
