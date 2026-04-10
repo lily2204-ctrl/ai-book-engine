@@ -684,7 +684,7 @@ Return ONLY JSON:
 }
 
 Rules:
-- Exactly 10 story pages
+- Exactly 16 story pages
 - Each page text must be 35-70 words
 - The child must clearly be the hero
 - imagePrompt must describe the same child consistently
@@ -706,7 +706,7 @@ Rules:
 
     const title    = sanitizeBrandTerms(book.title    || `The Magical Adventure of ${cleanChildName}`);
     const subtitle = sanitizeBrandTerms(book.subtitle || "A story where you are the hero");
-    const pages    = Array.isArray(book.pages) ? book.pages.slice(0, 10) : [];
+    const pages    = Array.isArray(book.pages) ? book.pages.slice(0, 16) : [];
 
     return res.json({
       status: "ok",
@@ -910,7 +910,7 @@ Return ONLY JSON:
   "pages": [{"text": "string (35-70 words)", "imagePrompt": "string"}]
 }
 
-Rules: exactly 10 pages, child is hero, no brand names.`.trim();
+Rules: exactly 16 pages, child is hero, no brand names.`.trim();
 
       const storyCompletion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -926,7 +926,7 @@ Rules: exactly 10 pages, child is hero, no brand names.`.trim();
         characterDNA,
         characterPromptCore: promptCore,
         characterSummary:    characterDNA.summary || "",
-        pages: (storyRaw.pages || []).slice(0, 10).map(p => ({
+        pages: (storyRaw.pages || []).slice(0, 16).map(p => ({
           text:        sanitizeBrandTerms(String(p.text        || "").trim()),
           imagePrompt: sanitizeImagePrompt(String(p.imagePrompt || "").trim())
         }))
@@ -934,7 +934,10 @@ Rules: exactly 10 pages, child is hero, no brand names.`.trim();
 
       await updateBook(bookId, { generatedBook });
 
-      // ── Step 3: First 2 page images + cover IN PARALLEL ─────────────────
+
+
+      // ── Step 3: Cover + first 4 pages ALL IN PARALLEL ───────────────────
+      // This gives the user a preview within ~25-30 seconds
       const pages = generatedBook.pages;
       const fullImages = new Array(pages.length).fill(null);
 
@@ -954,48 +957,62 @@ Title: ${sanitizeBrandTerms(generatedBook.title)}
 Story: ${sanitizeBrandTerms(book.storyIdea || "magical adventure")}
 Rules: child as hero, magical, no text in image, no watermark, no logos.`.trim();
 
-      const [coverResult, page0Result, page1Result] = await Promise.allSettled([
+      // Cover + pages 0-3 all at once (5 parallel requests = ~25 sec)
+      const previewRequests = [
         openai.images.generate({ model: "gpt-image-1", prompt: coverPromptText, size: "1024x1024" }),
-        pages[0] ? openai.images.generate({ model: "gpt-image-1", prompt: makeImgPrompt(pages[0].imagePrompt), size: "1024x1024" }) : Promise.resolve(null),
-        pages[1] ? openai.images.generate({ model: "gpt-image-1", prompt: makeImgPrompt(pages[1].imagePrompt), size: "1024x1024" }) : Promise.resolve(null)
-      ]);
+        ...pages.slice(0, 4).map(p =>
+          openai.images.generate({ model: "gpt-image-1", prompt: makeImgPrompt(p.imagePrompt), size: "1024x1024" })
+        )
+      ];
 
+      const previewResults = await Promise.allSettled(previewRequests);
+
+      // Cover
       let coverImage = null;
-      if (coverResult.status === "fulfilled" && coverResult.value) {
-        const b64 = await normalizeImageToBase64(coverResult.value?.data?.[0]);
+      if (previewResults[0]?.status === "fulfilled" && previewResults[0].value) {
+        const b64 = await normalizeImageToBase64(previewResults[0].value?.data?.[0]);
         if (b64) coverImage = "data:image/png;base64," + b64;
       }
-      if (page0Result.status === "fulfilled" && page0Result.value) {
-        const b64 = await normalizeImageToBase64(page0Result.value?.data?.[0]);
-        if (b64) fullImages[0] = "data:image/png;base64," + b64;
-      }
-      if (page1Result.status === "fulfilled" && page1Result.value) {
-        const b64 = await normalizeImageToBase64(page1Result.value?.data?.[0]);
-        if (b64) fullImages[1] = "data:image/png;base64," + b64;
+      // Pages 0-3
+      for (let i = 0; i < 4; i++) {
+        const r = previewResults[i + 1];
+        if (r?.status === "fulfilled" && r.value) {
+          const b64 = await normalizeImageToBase64(r.value?.data?.[0]);
+          if (b64) fullImages[i] = "data:image/png;base64," + b64;
+        }
       }
 
-      await updateBook(bookId, { coverImage, fullImages });
+      // Save preview — user can now see the book in ~30 seconds
+      await updateBook(bookId, { coverImage, fullImages: [...fullImages] });
+      console.log(`Book ${bookId} preview ready.`);
 
-      // ── Step 4: Remaining pages in batches of 3 ─────────────────────────
+      // ── Step 4: Remaining pages in batches of 8 (parallel) ──────────────
+      // Each batch of 8 = ~25 sec. 12 remaining pages = 2 batches = ~50 sec more
       const remaining = [];
-      for (let i = 2; i < pages.length; i++) remaining.push(i);
+      for (let i = 4; i < pages.length; i++) remaining.push(i);
 
-      for (let b = 0; b < remaining.length; b += 3) {
-        const batch = remaining.slice(b, b + 3);
+      const BATCH_SIZE = 8;
+      for (let b = 0; b < remaining.length; b += BATCH_SIZE) {
+        const batch = remaining.slice(b, b + BATCH_SIZE);
         const results = await Promise.allSettled(
-          batch.map(i => openai.images.generate({ model: "gpt-image-1", prompt: makeImgPrompt(pages[i].imagePrompt), size: "1024x1024" }))
+          batch.map(i => openai.images.generate({
+            model: "gpt-image-1",
+            prompt: makeImgPrompt(pages[i].imagePrompt),
+            size: "1024x1024"
+          }))
         );
         for (let j = 0; j < batch.length; j++) {
           const r = results[j];
-          if (r.status === "fulfilled" && r.value) {
+          if (r?.status === "fulfilled" && r.value) {
             const b64 = await normalizeImageToBase64(r.value?.data?.[0]);
             if (b64) fullImages[batch[j]] = "data:image/png;base64," + b64;
           }
         }
         await updateBook(bookId, { fullImages: [...fullImages] });
+        console.log(`Book ${bookId} batch done: pages ${batch[0]}-${batch[batch.length-1]}`);
       }
 
-      console.log(`Book ${bookId} generation complete.`);
+      console.log(`Book ${bookId} generation complete (${pages.length} pages).`);
     } catch (err) {
       console.error(`Book ${bookId} generation failed:`, err.message);
     }
