@@ -6,6 +6,7 @@ import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
 
 const app = express();
 app.use(cors());
@@ -30,6 +31,8 @@ const supabase = createClient(
 );
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 function safeJsonParse(raw, fallback = {}) {
@@ -120,6 +123,7 @@ function dbRowToBook(row) {
     illustrationStyle:row.illustration_style|| "",
     croppedPhoto:     row.cropped_photo     || "",
     originalPhoto:    row.original_photo    || "",
+    customerEmail:    row.customer_email    || "",
     characterReference: row.character_reference || null,
     generatedBook:    row.generated_book    || null,
     coverImage:       row.cover_image       || null,
@@ -144,6 +148,7 @@ function patchToDbFields(patch = {}) {
   if ("illustrationStyle"  in patch) dbPatch.illustration_style  = patch.illustrationStyle;
   if ("croppedPhoto"       in patch) dbPatch.cropped_photo       = patch.croppedPhoto;
   if ("originalPhoto"      in patch) dbPatch.original_photo      = patch.originalPhoto;
+  if ("customerEmail"      in patch) dbPatch.customer_email      = patch.customerEmail;
   if ("characterReference" in patch) dbPatch.character_reference = patch.characterReference;
   if ("generatedBook"      in patch) dbPatch.generated_book      = patch.generatedBook;
   if ("coverImage"         in patch) dbPatch.cover_image         = patch.coverImage;
@@ -170,6 +175,7 @@ async function insertBook(book) {
       illustration_style: book.illustrationStyle,
       cropped_photo:      book.croppedPhoto,
       original_photo:     book.originalPhoto,
+      customer_email:     book.customerEmail || "",
       character_reference:book.characterReference,
       generated_book:     book.generatedBook,
       cover_image:        book.coverImage,
@@ -224,6 +230,100 @@ app.get("/api/books/:bookId", async (req, res) => {
   }
 });
 
+// ─── Email helper ─────────────────────────────────────────────────────────────
+async function sendBookReadyEmail(book) {
+  if (!book.customerEmail) return;
+
+  const appUrl    = process.env.APP_URL || "http://localhost:8080";
+  const bookTitle = book.generatedBook?.title || "Your Magical Storybook";
+  const childName = book.childName || "your child";
+  const downloadUrl = `${appUrl}/delivery.html?bookId=${book.bookId}`;
+
+  try {
+    await resend.emails.send({
+      from: "Lifebook <books@lifebook.ai>",
+      to:   book.customerEmail,
+      subject: `Your book is ready! "${bookTitle}"`,
+      html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"/></head>
+<body style="margin:0;padding:0;background:#fdf6ec;font-family:Georgia,serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fdf6ec;padding:40px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#1a1008,#5c3d1e);padding:36px 40px;text-align:center;">
+            <div style="font-size:32px;margin-bottom:8px;">📖</div>
+            <div style="font-family:Georgia,serif;font-size:28px;color:#f5d98a;letter-spacing:0.5px;">lifebook</div>
+            <div style="font-size:13px;color:#c4a87a;margin-top:4px;letter-spacing:1px;">AI CHILDREN'S STORYBOOKS</div>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:40px;">
+            <p style="font-family:Georgia,serif;font-size:26px;color:#3a2810;margin:0 0 16px;">
+              ✨ ${childName}'s book is ready!
+            </p>
+            <p style="font-size:16px;color:#7a6048;line-height:1.7;margin:0 0 24px;">
+              Your personalized storybook <strong style="color:#3a2810;">"${bookTitle}"</strong>
+              has been created and is waiting for you.
+            </p>
+
+            <!-- CTA Button -->
+            <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
+              <tr>
+                <td style="background:linear-gradient(135deg,#e8b84b,#c8922a);border-radius:50px;padding:16px 36px;">
+                  <a href="${downloadUrl}"
+                     style="font-family:Arial,sans-serif;font-size:17px;font-weight:700;color:#ffffff;text-decoration:none;display:block;">
+                    Download My Book &rarr;
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+            <p style="font-size:14px;color:#a08060;line-height:1.6;margin:0 0 8px;">
+              Or copy this link to your browser:
+            </p>
+            <p style="font-size:13px;color:#c8922a;word-break:break-all;margin:0 0 32px;">
+              ${downloadUrl}
+            </p>
+
+            <hr style="border:none;border-top:1px solid #f0e4d0;margin:0 0 24px;" />
+
+            <p style="font-size:13px;color:#b09070;line-height:1.6;margin:0;">
+              Questions? Reply to this email and we'll get back to you.<br/>
+              Thank you for using Lifebook 💛
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#fdf6ec;padding:20px 40px;text-align:center;">
+            <p style="font-size:12px;color:#c4a87a;margin:0;">
+              © 2026 Lifebook · AI Children's Storybooks
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+      `.trim()
+    });
+    console.log("Book ready email sent to:", book.customerEmail);
+  } catch(err) {
+    console.error("Failed to send book ready email:", err.message);
+    // Don't throw — email failure should not break the book generation
+  }
+}
+
 app.post("/api/books/create", async (req, res) => {
   try {
     const cleanInput = sanitizeStoryPayload(req.body || {});
@@ -239,6 +339,7 @@ app.post("/api/books/create", async (req, res) => {
       illustrationStyle: cleanInput.illustrationStyle || "Soft Storybook",
       croppedPhoto:      cleanInput.croppedPhoto      || "",
       originalPhoto:     cleanInput.originalPhoto     || "",
+      customerEmail:     rawInput.customerEmail       || "",
       characterReference:null,
       generatedBook:     null,
       coverImage:        null,
@@ -480,6 +581,10 @@ Rules:
 
     const successCount = fullImages.filter(Boolean).length;
 
+    // Send "book ready" email to customer
+    const finalBook = await getBook(bookId);
+    await sendBookReadyEmail(finalBook);
+
     return res.json({
       status:    "ok",
       generated: toGenerate.length,
@@ -684,7 +789,7 @@ Return ONLY JSON:
 }
 
 Rules:
-- Exactly 16 story pages
+- Exactly 10 story pages
 - Each page text must be 35-70 words
 - The child must clearly be the hero
 - imagePrompt must describe the same child consistently
@@ -706,7 +811,7 @@ Rules:
 
     const title    = sanitizeBrandTerms(book.title    || `The Magical Adventure of ${cleanChildName}`);
     const subtitle = sanitizeBrandTerms(book.subtitle || "A story where you are the hero");
-    const pages    = Array.isArray(book.pages) ? book.pages.slice(0, 16) : [];
+    const pages    = Array.isArray(book.pages) ? book.pages.slice(0, 10) : [];
 
     return res.json({
       status: "ok",
@@ -843,180 +948,6 @@ Rules:
       details: err?.message || "unknown_error"
     });
   }
-});
-
-
-// ─── GENERATE FULL BOOK (server-side, fire-and-forget) ───────────────────────
-// crop.js calls this once, then redirects to preview. Server does everything.
-app.post("/api/books/:bookId/generate-full", async (req, res) => {
-  const bookId = req.params.bookId;
-
-  // Respond immediately so client can redirect to preview
-  res.json({ status: "ok", message: "Generation started" });
-
-  // Run generation in background (don't await)
-  (async () => {
-    try {
-      const book = await getBook(bookId);
-      if (!book) return;
-
-      const style       = book.illustrationStyle || "Soft Storybook";
-      const safeStyle   = sanitizeBrandTerms(style);
-      const croppedPhoto = book.croppedPhoto || "";
-
-      // ── Step 1: Character DNA (text only, fast) ──────────────────────────
-      const dnaCompletion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        response_format: { type: "json_object" },
-        messages: [{
-          role: "user",
-          content: [
-            { type: "text", text: `Analyze this child photo. Return ONLY JSON:\n{\n  "hair": "string",\n  "skin": "string",\n  "eyes": "string",\n  "face": "string",\n  "ageLook": "string",\n  "outfit": "string",\n  "vibe": "string",\n  "summary": "string"\n}\nFocus only on the child. Describe clothing generically.` },
-            { type: "image_url", image_url: { url: croppedPhoto } }
-          ]
-        }],
-        temperature: 0.2
-      });
-
-      const characterDNA = safeJsonParse(dnaCompletion.choices?.[0]?.message?.content || "{}", {
-        hair: "soft child hair", skin: "natural skin tone", eyes: "bright child eyes",
-        face: "soft child face", ageLook: "young child", outfit: "simple child outfit",
-        vibe: "warm curious child", summary: "A warm curious child hero."
-      });
-
-      const promptCore = buildCharacterPromptCore(characterDNA, safeStyle);
-      const charRef = {
-        characterDNA,
-        characterPromptCore: promptCore,
-        characterSummary: characterDNA.summary || ""
-      };
-
-      await updateBook(bookId, { characterReference: charRef });
-
-      // ── Step 2: Story text ───────────────────────────────────────────────
-      const storyPrompt = `
-You are a premium personalized children's book writer.
-Child name: ${sanitizeBrandTerms(book.childName || "")}
-Child age: ${book.childAge || ""}
-Child gender: ${book.childGender || ""}
-Story direction: ${sanitizeBrandTerms(book.storyIdea || "A magical adventure")}
-Illustration style: ${safeStyle}
-Character: ${sanitizeBrandTerms(characterDNA.summary || "")}
-
-Return ONLY JSON:
-{
-  "title": "string",
-  "subtitle": "string",
-  "pages": [{"text": "string (35-70 words)", "imagePrompt": "string"}]
-}
-
-Rules: exactly 16 pages, child is hero, no brand names.`.trim();
-
-      const storyCompletion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        response_format: { type: "json_object" },
-        messages: [{ role: "user", content: storyPrompt }],
-        temperature: 0.8
-      });
-
-      const storyRaw = safeJsonParse(storyCompletion.choices?.[0]?.message?.content || "{}", {});
-      const generatedBook = {
-        title:    sanitizeBrandTerms(storyRaw.title    || `The Adventure of ${book.childName}`),
-        subtitle: sanitizeBrandTerms(storyRaw.subtitle || "A story where you are the hero"),
-        characterDNA,
-        characterPromptCore: promptCore,
-        characterSummary:    characterDNA.summary || "",
-        pages: (storyRaw.pages || []).slice(0, 16).map(p => ({
-          text:        sanitizeBrandTerms(String(p.text        || "").trim()),
-          imagePrompt: sanitizeImagePrompt(String(p.imagePrompt || "").trim())
-        }))
-      };
-
-      await updateBook(bookId, { generatedBook });
-
-
-
-      // ── Step 3: Cover + first 4 pages ALL IN PARALLEL ───────────────────
-      // This gives the user a preview within ~25-30 seconds
-      const pages = generatedBook.pages;
-      const fullImages = new Array(pages.length).fill(null);
-
-      const makeImgPrompt = (pagePrompt) => `
-Create a premium children's storybook illustration.
-Style: ${safeStyle}
-Character:
-${sanitizeBrandTerms(promptCore)}
-Scene: ${sanitizeImagePrompt(pagePrompt)}
-Rules: same child, same face/hair/skin, warm magical, no text, no watermark, no logos.`.trim();
-
-      const coverPromptText = `
-Create a premium children's storybook COVER.
-Style: ${safeStyle}
-Character: ${sanitizeBrandTerms(promptCore)}
-Title: ${sanitizeBrandTerms(generatedBook.title)}
-Story: ${sanitizeBrandTerms(book.storyIdea || "magical adventure")}
-Rules: child as hero, magical, no text in image, no watermark, no logos.`.trim();
-
-      // Cover + pages 0-3 all at once (5 parallel requests = ~25 sec)
-      const previewRequests = [
-        openai.images.generate({ model: "gpt-image-1", prompt: coverPromptText, size: "1024x1024" }),
-        ...pages.slice(0, 4).map(p =>
-          openai.images.generate({ model: "gpt-image-1", prompt: makeImgPrompt(p.imagePrompt), size: "1024x1024" })
-        )
-      ];
-
-      const previewResults = await Promise.allSettled(previewRequests);
-
-      // Cover
-      let coverImage = null;
-      if (previewResults[0]?.status === "fulfilled" && previewResults[0].value) {
-        const b64 = await normalizeImageToBase64(previewResults[0].value?.data?.[0]);
-        if (b64) coverImage = "data:image/png;base64," + b64;
-      }
-      // Pages 0-3
-      for (let i = 0; i < 4; i++) {
-        const r = previewResults[i + 1];
-        if (r?.status === "fulfilled" && r.value) {
-          const b64 = await normalizeImageToBase64(r.value?.data?.[0]);
-          if (b64) fullImages[i] = "data:image/png;base64," + b64;
-        }
-      }
-
-      // Save preview — user can now see the book in ~30 seconds
-      await updateBook(bookId, { coverImage, fullImages: [...fullImages] });
-      console.log(`Book ${bookId} preview ready.`);
-
-      // ── Step 4: Remaining pages in batches of 8 (parallel) ──────────────
-      // Each batch of 8 = ~25 sec. 12 remaining pages = 2 batches = ~50 sec more
-      const remaining = [];
-      for (let i = 4; i < pages.length; i++) remaining.push(i);
-
-      const BATCH_SIZE = 8;
-      for (let b = 0; b < remaining.length; b += BATCH_SIZE) {
-        const batch = remaining.slice(b, b + BATCH_SIZE);
-        const results = await Promise.allSettled(
-          batch.map(i => openai.images.generate({
-            model: "gpt-image-1",
-            prompt: makeImgPrompt(pages[i].imagePrompt),
-            size: "1024x1024"
-          }))
-        );
-        for (let j = 0; j < batch.length; j++) {
-          const r = results[j];
-          if (r?.status === "fulfilled" && r.value) {
-            const b64 = await normalizeImageToBase64(r.value?.data?.[0]);
-            if (b64) fullImages[batch[j]] = "data:image/png;base64," + b64;
-          }
-        }
-        await updateBook(bookId, { fullImages: [...fullImages] });
-        console.log(`Book ${bookId} batch done: pages ${batch[0]}-${batch[batch.length-1]}`);
-      }
-
-      console.log(`Book ${bookId} generation complete (${pages.length} pages).`);
-    } catch (err) {
-      console.error(`Book ${bookId} generation failed:`, err.message);
-    }
-  })();
 });
 
 // ─── Start server ─────────────────────────────────────────────────────────────
