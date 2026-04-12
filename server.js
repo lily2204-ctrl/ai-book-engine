@@ -551,7 +551,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
 
       // ── STEP 2: Generate story text ───────────────────────────────────────────
       if (!book.generatedBook?.pages?.length) {
-        const storyPrompt = `You are a premium personalized children's book writer.\n\nChild name: ${sanitizeBrandTerms(childName)}\nChild age: ${childAge}\nChild gender: ${childGender}\nStory direction: ${sanitizeBrandTerms(storyIdea)}\nIllustration style: ${safeStyle}\n\nCharacter summary:\n${sanitizeBrandTerms(characterSummary)}\n\nCharacter consistency instructions:\n${sanitizeBrandTerms(promptCore)}\n\nReturn ONLY JSON:\n{\n  "title": "string",\n  "subtitle": "string",\n  "pages": [\n    {\n      "text": "string",\n      "imagePrompt": "string"\n    }\n  ]\n}\n\nRules:\n- Exactly 10 story pages\n- Each page text must be 35-70 words\n- The child must clearly be the hero\n- imagePrompt must describe the same child consistently\n- No page numbers inside text\n- No brand names\n- Do not mention copyrighted characters or logos`;
+        const storyPrompt = `You are a premium personalized children's book writer.\n\nChild name: ${sanitizeBrandTerms(childName)}\nChild age: ${childAge}\nChild gender: ${childGender}\nStory direction: ${sanitizeBrandTerms(storyIdea)}\nIllustration style: ${safeStyle}\n\nCharacter summary:\n${sanitizeBrandTerms(characterSummary)}\n\nCharacter consistency instructions:\n${sanitizeBrandTerms(promptCore)}\n\nReturn ONLY JSON:\n{\n  "title": "string",\n  "subtitle": "string",\n  "pages": [\n    {\n      "text": "string",\n      "imagePrompt": "string"\n    }\n  ]\n}\n\nRules:\n- Exactly 16 story pages\n- Each page text must be 35-70 words\n- The child must clearly be the hero\n- imagePrompt must describe the same child consistently\n- No page numbers inside text\n- No brand names\n- Do not mention copyrighted characters or logos`;
 
         const storyCompletion = await openai.chat.completions.create({
           model: "gpt-4o-mini",
@@ -566,7 +566,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
           title:    sanitizeBrandTerms(storyData.title    || `The Magical Adventure of ${childName}`),
           subtitle: sanitizeBrandTerms(storyData.subtitle || "A story where you are the hero"),
           pages:    Array.isArray(storyData.pages)
-            ? storyData.pages.slice(0, 10).map(p => ({
+            ? storyData.pages.slice(0, 16).map(p => ({
                 text:        sanitizeBrandTerms(String(p.text        || "").trim()),
                 imagePrompt: sanitizeImagePrompt(String(p.imagePrompt || "").trim())
               }))
@@ -648,6 +648,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
       }
 
       console.log("generate-full: completed for bookId:", bookId);
+      console.log("generate-full: email sent to:", (await getBook(bookId))?.customerEmail || "no email");
 
     } catch (err) {
       console.error("generate-full: fatal error for bookId:", bookId, err.message);
@@ -965,7 +966,7 @@ Return ONLY JSON:
 }
 
 Rules:
-- Exactly 10 story pages
+- Exactly 16 story pages
 - Each page text must be 35-70 words
 - The child must clearly be the hero
 - imagePrompt must describe the same child consistently
@@ -987,7 +988,7 @@ Rules:
 
     const title    = sanitizeBrandTerms(book.title    || `The Magical Adventure of ${cleanChildName}`);
     const subtitle = sanitizeBrandTerms(book.subtitle || "A story where you are the hero");
-    const pages    = Array.isArray(book.pages) ? book.pages.slice(0, 10) : [];
+    const pages    = Array.isArray(book.pages) ? book.pages.slice(0, 16) : [];
 
     return res.json({
       status: "ok",
