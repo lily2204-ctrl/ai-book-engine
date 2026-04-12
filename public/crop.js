@@ -91,7 +91,8 @@ continueBtn.addEventListener("click", async function() {
         storyIdea:          data.storyIdea          || "",
         illustrationStyle:  data.illustrationStyle  || "Soft Storybook",
         croppedPhoto:       croppedPhoto,
-        originalPhoto:      data.originalPhoto      || ""
+        originalPhoto:      data.originalPhoto      || "",
+        customerEmail:      data.customerEmail      || ""
       })
     });
     var createData = await createRes.json();

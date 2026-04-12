@@ -234,14 +234,14 @@ app.get("/api/books/:bookId", async (req, res) => {
 async function sendBookReadyEmail(book) {
   if (!book.customerEmail) return;
 
-  const appUrl    = process.env.APP_URL || "http://localhost:8080";
+  const appUrl    = process.env.APP_URL || "https://lifebooks.online";
   const bookTitle = book.generatedBook?.title || "Your Magical Storybook";
   const childName = book.childName || "your child";
   const downloadUrl = `${appUrl}/delivery.html?bookId=${book.bookId}`;
 
   try {
     await resend.emails.send({
-      from: "Lifebook <books@lifebook.ai>",
+      from: "Lifebook <books@lifebooks.online>",
       to:   book.customerEmail,
       subject: `Your book is ready! "${bookTitle}"`,
       html: `
@@ -389,7 +389,7 @@ app.post("/api/create-checkout-session", async (req, res) => {
       ? `Lifebook — Digital Edition (${book.childName})`
       : `Lifebook — Printed Book (${book.childName})`;
 
-    const appUrl = process.env.APP_URL || "http://localhost:8080";
+    const appUrl = process.env.APP_URL || "https://lifebooks.online";
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -601,41 +601,50 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
         }
       }
 
-      // ── STEP 4: Page images (batches of 3) ───────────────────────────────────
+      // ── STEP 4: Page images — priority first (pages 0-1), then rest ────────
       const bookBeforeImgs  = await getBook(bookId);
       const existingImages  = bookBeforeImgs.fullImages || [];
       const fullImages      = [...existingImages];
       while (fullImages.length < pages.length) fullImages.push(null);
 
-      const toGenerate = [];
-      for (let i = 0; i < pages.length; i++) {
-        if (!fullImages[i]) toGenerate.push(i);
+      // פונקציה ליצירת תמונה אחת
+      async function generatePageImage(pageIndex) {
+        const page = pages[pageIndex];
+        const imgPrompt = `Create a premium children's storybook illustration.\n\nIllustration style: ${safeStyle}\n\nCharacter consistency:\n${sanitizeBrandTerms(promptCore)}\n\nScene:\n${sanitizeImagePrompt(page.imagePrompt || "")}\n\nRules:\n- same child identity\n- same face structure\n- same hair and skin tone\n- warm magical storybook aesthetic\n- no text\n- no watermark\n- elegant composition\n- no logos\n- no brand names\n- no copyrighted costume emblems`;
+        const imgResp = await openai.images.generate({ model: "gpt-image-1", prompt: imgPrompt, size: "1024x1024" });
+        return await normalizeImageToBase64(imgResp?.data?.[0]);
       }
 
+      // שלב 4א: 2 תמונות ראשונות במקביל (preview צריך אותן מהר)
+      const priorityResults = await Promise.allSettled([
+        fullImages[0] ? null : generatePageImage(0),
+        fullImages[1] ? null : generatePageImage(1),
+      ]);
+      for (let i = 0; i < 2; i++) {
+        const r = priorityResults[i];
+        if (r?.status === "fulfilled" && r.value) {
+          fullImages[i] = `data:image/png;base64,${r.value}`;
+        }
+      }
+      await updateBook(bookId, { fullImages });
+
+      // שלב 4ב: שאר התמונות (3-16) בbatches של 3
+      const remaining = [];
+      for (let i = 2; i < pages.length; i++) {
+        if (!fullImages[i]) remaining.push(i);
+      }
       const BATCH_SIZE = 3;
-      for (let batchStart = 0; batchStart < toGenerate.length; batchStart += BATCH_SIZE) {
-        const batch = toGenerate.slice(batchStart, batchStart + BATCH_SIZE);
-
+      for (let batchStart = 0; batchStart < remaining.length; batchStart += BATCH_SIZE) {
+        const batch = remaining.slice(batchStart, batchStart + BATCH_SIZE);
         const results = await Promise.allSettled(batch.map(async (pageIndex) => {
-          const page = pages[pageIndex];
-          const imgPrompt = `Create a premium children's storybook illustration.\n\nIllustration style: ${safeStyle}\n\nCharacter consistency:\n${sanitizeBrandTerms(promptCore)}\n\nScene:\n${sanitizeImagePrompt(page.imagePrompt || "")}\n\nRules:\n- same child identity\n- same face structure\n- same hair and skin tone\n- warm magical storybook aesthetic\n- no text\n- no watermark\n- elegant composition\n- no logos\n- no brand names\n- no copyrighted costume emblems`;
-
-          const imgResp = await openai.images.generate({
-            model: "gpt-image-1",
-            prompt: imgPrompt,
-            size:  "1024x1024"
-          });
-
-          const base64 = await normalizeImageToBase64(imgResp?.data?.[0]);
+          const base64 = await generatePageImage(pageIndex);
           return { pageIndex, base64 };
         }));
-
         for (const result of results) {
-          if (result.status === "fulfilled" && result.value.base64) {
+          if (result.status === "fulfilled" && result.value?.base64) {
             fullImages[result.value.pageIndex] = `data:image/png;base64,${result.value.base64}`;
           }
         }
-
         await updateBook(bookId, { fullImages });
       }
 
