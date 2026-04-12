@@ -479,6 +479,182 @@ app.post("/api/books/:bookId/unlock", async (req, res) => {
   }
 });
 
+// ─── Generate Full Book (story + cover + images) — fires in background ────────
+app.post("/api/books/:bookId/generate-full", async (req, res) => {
+  const bookId = req.params.bookId;
+
+  // Respond immediately so crop.js can redirect to preview
+  res.json({ status: "ok", message: "Generation started in background" });
+
+  // Run everything async — errors are caught and saved to DB
+  (async () => {
+    try {
+      const book = await getBook(bookId);
+      if (!book) { console.error("generate-full: book not found", bookId); return; }
+
+      const childName         = book.childName         || "The Child";
+      const childAge          = book.childAge          || "5";
+      const childGender       = book.childGender       || "not specified";
+      const storyIdea         = book.storyIdea         || "a magical adventure";
+      const illustrationStyle = book.illustrationStyle || "Soft Storybook";
+      const croppedPhoto      = book.croppedPhoto      || book.originalPhoto || "";
+      const safeStyle         = sanitizeBrandTerms(illustrationStyle);
+
+      // ── STEP 1: Character reference (photo → DNA + prompt core) ──────────────
+      let characterReference = book.characterReference || null;
+
+      if (!characterReference && croppedPhoto) {
+        try {
+          const dnaCompletion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            response_format: { type: "json_object" },
+            messages: [{
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `Analyze the uploaded child photo and return ONLY JSON.\nReturn:\n{\n  "hair": "string",\n  "skin": "string",\n  "eyes": "string",\n  "face": "string",\n  "ageLook": "string",\n  "outfit": "string",\n  "vibe": "string",\n  "summary": "string"\n}\nRules:\n- Focus only on the child\n- Ignore any brand names, logos, copyrighted characters, or toy franchises\n- If clothing includes a recognizable character or logo, describe it generically`
+                },
+                { type: "image_url", image_url: { url: croppedPhoto } }
+              ]
+            }],
+            temperature: 0.2
+          });
+
+          const characterDNA = safeJsonParse(dnaCompletion.choices?.[0]?.message?.content || "{}", {
+            hair: "soft child hair", skin: "warm natural skin tone",
+            eyes: "bright child eyes", face: "soft rounded child face",
+            ageLook: "young child", outfit: "simple timeless child outfit",
+            vibe: "warm curious child", summary: "A warm curious child hero for a magical storybook."
+          });
+
+          const promptCore = buildCharacterPromptCore(characterDNA, safeStyle);
+          characterReference = {
+            characterDNA,
+            characterPromptCore: promptCore,
+            characterSummary: characterDNA.summary || "A warm curious child hero."
+          };
+          await updateBook(bookId, { characterReference });
+        } catch (err) {
+          console.warn("generate-full: character reference failed, continuing without it:", err.message);
+          characterReference = {
+            characterDNA: {},
+            characterPromptCore: `A young child aged ${childAge}, warm storybook style.`,
+            characterSummary: `A ${childAge}-year-old child hero.`
+          };
+          await updateBook(bookId, { characterReference });
+        }
+      }
+
+      const promptCore       = characterReference?.characterPromptCore || `A young child aged ${childAge}.`;
+      const characterSummary = characterReference?.characterSummary    || `A ${childAge}-year-old child hero.`;
+
+      // ── STEP 2: Generate story text ───────────────────────────────────────────
+      if (!book.generatedBook?.pages?.length) {
+        const storyPrompt = `You are a premium personalized children's book writer.\n\nChild name: ${sanitizeBrandTerms(childName)}\nChild age: ${childAge}\nChild gender: ${childGender}\nStory direction: ${sanitizeBrandTerms(storyIdea)}\nIllustration style: ${safeStyle}\n\nCharacter summary:\n${sanitizeBrandTerms(characterSummary)}\n\nCharacter consistency instructions:\n${sanitizeBrandTerms(promptCore)}\n\nReturn ONLY JSON:\n{\n  "title": "string",\n  "subtitle": "string",\n  "pages": [\n    {\n      "text": "string",\n      "imagePrompt": "string"\n    }\n  ]\n}\n\nRules:\n- Exactly 10 story pages\n- Each page text must be 35-70 words\n- The child must clearly be the hero\n- imagePrompt must describe the same child consistently\n- No page numbers inside text\n- No brand names\n- Do not mention copyrighted characters or logos`;
+
+        const storyCompletion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          response_format: { type: "json_object" },
+          messages: [{ role: "user", content: storyPrompt }],
+          temperature: 0.8
+        });
+
+        const storyRaw  = storyCompletion.choices?.[0]?.message?.content || "{}";
+        const storyData = safeJsonParse(storyRaw, {});
+        const generatedBook = {
+          title:    sanitizeBrandTerms(storyData.title    || `The Magical Adventure of ${childName}`),
+          subtitle: sanitizeBrandTerms(storyData.subtitle || "A story where you are the hero"),
+          pages:    Array.isArray(storyData.pages)
+            ? storyData.pages.slice(0, 10).map(p => ({
+                text:        sanitizeBrandTerms(String(p.text        || "").trim()),
+                imagePrompt: sanitizeImagePrompt(String(p.imagePrompt || "").trim())
+              }))
+            : []
+        };
+        await updateBook(bookId, { generatedBook });
+      }
+
+      // Re-fetch to get latest state
+      const bookAfterStory = await getBook(bookId);
+      const pages          = bookAfterStory.generatedBook?.pages || [];
+      const title          = bookAfterStory.generatedBook?.title    || `The Magical Adventure of ${childName}`;
+      const subtitle       = bookAfterStory.generatedBook?.subtitle || "A story where you are the hero";
+
+      // ── STEP 3: Cover image ───────────────────────────────────────────────────
+      if (!bookAfterStory.coverImage) {
+        try {
+          const coverPrompt = `Create a premium children's storybook COVER illustration.\n\nIllustration style: ${safeStyle}\n\nLOCKED CHILD CHARACTER:\n${sanitizeBrandTerms(promptCore)}\n\nSHORT CHARACTER SUMMARY:\n${sanitizeBrandTerms(characterSummary)}\n\nBOOK TITLE:\n${sanitizeBrandTerms(title)}\n\nBOOK SUBTITLE:\n${sanitizeBrandTerms(subtitle)}\n\nSTORY DIRECTION:\n${sanitizeBrandTerms(storyIdea)}\n\nRules:\n- create ONE beautiful single cover illustration\n- show the child as the hero\n- magical, premium, warm\n- no character sheet\n- no multiple poses\n- no text rendered into the image\n- no watermark\n- no logos\n- no copyrighted costume emblems`;
+
+          const coverResp = await openai.images.generate({
+            model: "gpt-image-1",
+            prompt: coverPrompt,
+            size:  "1024x1024"
+          });
+
+          const coverBase64 = await normalizeImageToBase64(coverResp?.data?.[0]);
+          if (coverBase64) {
+            await updateBook(bookId, { coverImage: `data:image/png;base64,${coverBase64}` });
+          }
+        } catch (err) {
+          console.warn("generate-full: cover generation failed:", err.message);
+        }
+      }
+
+      // ── STEP 4: Page images (batches of 3) ───────────────────────────────────
+      const bookBeforeImgs  = await getBook(bookId);
+      const existingImages  = bookBeforeImgs.fullImages || [];
+      const fullImages      = [...existingImages];
+      while (fullImages.length < pages.length) fullImages.push(null);
+
+      const toGenerate = [];
+      for (let i = 0; i < pages.length; i++) {
+        if (!fullImages[i]) toGenerate.push(i);
+      }
+
+      const BATCH_SIZE = 3;
+      for (let batchStart = 0; batchStart < toGenerate.length; batchStart += BATCH_SIZE) {
+        const batch = toGenerate.slice(batchStart, batchStart + BATCH_SIZE);
+
+        const results = await Promise.allSettled(batch.map(async (pageIndex) => {
+          const page = pages[pageIndex];
+          const imgPrompt = `Create a premium children's storybook illustration.\n\nIllustration style: ${safeStyle}\n\nCharacter consistency:\n${sanitizeBrandTerms(promptCore)}\n\nScene:\n${sanitizeImagePrompt(page.imagePrompt || "")}\n\nRules:\n- same child identity\n- same face structure\n- same hair and skin tone\n- warm magical storybook aesthetic\n- no text\n- no watermark\n- elegant composition\n- no logos\n- no brand names\n- no copyrighted costume emblems`;
+
+          const imgResp = await openai.images.generate({
+            model: "gpt-image-1",
+            prompt: imgPrompt,
+            size:  "1024x1024"
+          });
+
+          const base64 = await normalizeImageToBase64(imgResp?.data?.[0]);
+          return { pageIndex, base64 };
+        }));
+
+        for (const result of results) {
+          if (result.status === "fulfilled" && result.value.base64) {
+            fullImages[result.value.pageIndex] = `data:image/png;base64,${result.value.base64}`;
+          }
+        }
+
+        await updateBook(bookId, { fullImages });
+      }
+
+      // ── STEP 5: Send book ready email ─────────────────────────────────────────
+      try {
+        const finalBook = await getBook(bookId);
+        await sendBookReadyEmail(finalBook);
+      } catch (err) {
+        console.warn("generate-full: email send failed:", err.message);
+      }
+
+      console.log("generate-full: completed for bookId:", bookId);
+
+    } catch (err) {
+      console.error("generate-full: fatal error for bookId:", bookId, err.message);
+    }
+  })();
+});
+
 // ─── Batch generate all page images (parallel, 3 at a time) ─────────────────
 app.post("/api/books/:bookId/generate-images", async (req, res) => {
   try {
