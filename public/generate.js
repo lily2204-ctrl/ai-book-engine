@@ -95,7 +95,7 @@ async function safeStoreImage(key, dataUrl, maxDimension, quality) {
 }
 
 async function apiJson(url, options, timeoutMs) {
-  if (timeoutMs === undefined) timeoutMs = 25000;
+  if (timeoutMs === undefined) timeoutMs = 90000;
   var controller = new AbortController();
   var timer = setTimeout(function() { controller.abort(); }, timeoutMs);
   try {
@@ -142,7 +142,8 @@ async function createBookRecordIfNeeded() {
       storyIdea:         wizardData.storyIdea         || "",
       illustrationStyle: wizardData.illustrationStyle || "Soft Storybook",
       croppedPhoto:      wizardData.croppedPhoto      || "",
-      originalPhoto:     wizardData.originalPhoto     || ""
+      originalPhoto:     wizardData.originalPhoto     || "",
+      customerEmail:     wizardData.customerEmail     || ""
     })
   }, 10000);
   var newBookId = result.bookId || "";
