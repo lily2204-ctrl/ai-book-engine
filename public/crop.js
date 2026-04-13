@@ -174,3 +174,4 @@ continueBtn.addEventListener("click", async function() {
 
 backBtn      && backBtn.addEventListener("click",      function() { window.location.href = "wizard.html"; });
 chooseNewBtn && chooseNewBtn.addEventListener("click", function() { updateBookData({ originalPhoto: "", croppedPhoto: "" }); window.location.href = "wizard.html"; });
+
