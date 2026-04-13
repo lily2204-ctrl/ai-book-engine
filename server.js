@@ -477,6 +477,17 @@ app.post("/webhooks/stripe", async (req, res) => {
         stripeSessionId:  session.id
       });
       console.log(`Book ${bookId} unlocked via Stripe`);
+
+      // ── Send "book is ready" email now that payment is confirmed ──
+      try {
+        const paidBook = await getBook(bookId);
+        await sendBookReadyEmail(paidBook);
+        console.log(`Book ready email sent to: ${paidBook?.customerEmail}`);
+      } catch (emailErr) {
+        console.error("Failed to send book ready email after payment:", emailErr.message);
+        // Don't fail the webhook — payment already processed
+      }
+
     } catch (err) {
       console.error("Failed to unlock book:", err.message);
       return res.status(500).send("DB update failed");
@@ -494,6 +505,16 @@ app.post("/api/books/:bookId/unlock", async (req, res) => {
       purchaseUnlocked: true
     });
     if (!updated) return res.status(404).json({ status: "error", message: "Book not found" });
+
+    // Send book ready email
+    try {
+      const unlockedBook = await getBook(req.params.bookId);
+      await sendBookReadyEmail(unlockedBook);
+      console.log(`Book ready email sent to: ${unlockedBook?.customerEmail}`);
+    } catch (emailErr) {
+      console.error("Failed to send book ready email on unlock:", emailErr.message);
+    }
+
     return res.json({ status: "ok", book: updated });
   } catch (err) {
     return res.status(500).json({ status: "error", message: err?.message || "Failed to unlock book" });
@@ -669,16 +690,8 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
         await updateBook(bookId, { fullImages });
       }
 
-      // ── STEP 5: Send book ready email ─────────────────────────────────────────
-      try {
-        const finalBook = await getBook(bookId);
-        await sendBookReadyEmail(finalBook);
-      } catch (err) {
-        console.warn("generate-full: email send failed:", err.message);
-      }
-
+      // ── STEP 5: Done — email will be sent after payment (Stripe webhook) ──────
       console.log("generate-full: completed for bookId:", bookId);
-      console.log("generate-full: email sent to:", (await getBook(bookId))?.customerEmail || "no email");
 
     } catch (err) {
       console.error("generate-full: fatal error for bookId:", bookId, err.message);
@@ -788,9 +801,7 @@ Rules:
 
     const successCount = fullImages.filter(Boolean).length;
 
-    // Send "book ready" email to customer
-    const finalBook = await getBook(bookId);
-    await sendBookReadyEmail(finalBook);
+    // Note: book ready email is sent after payment (Stripe webhook), not here
 
     return res.json({
       status:    "ok",
