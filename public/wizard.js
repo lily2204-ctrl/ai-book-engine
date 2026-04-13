@@ -200,7 +200,11 @@ if (galleryInput) {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-  clearBookData();
+  // Only clear if coming fresh (no existing photo from a previous session)
+  var existing = getBookData();
+  if (!existing.originalPhoto) {
+    clearBookData();
+  }
   restoreSetupData();
   bindStyleSelection();
 });
