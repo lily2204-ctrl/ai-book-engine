@@ -235,15 +235,17 @@ async function sendBookReadyEmail(book) {
   if (!book.customerEmail) return;
 
   const appUrl    = process.env.APP_URL || "https://lifebooks.online";
-  const bookTitle = book.generatedBook?.title || "Your Magical Storybook";
+  const bookTitle = book.generatedBook?.title    || "Your Magical Storybook";
+  const bookSub   = book.generatedBook?.subtitle || "A personalized adventure";
   const childName = book.childName || "your child";
+  const pageCount = book.generatedBook?.pages?.length || 16;
   const downloadUrl = `${appUrl}/delivery.html?bookId=${book.bookId}`;
 
   try {
     await resend.emails.send({
       from: "Lifebook <books@lifebooks.online>",
       to:   book.customerEmail,
-      subject: `Your book is ready! "${bookTitle}"`,
+      subject: `✨ ${childName}'s book is ready! "${bookTitle}"`,
       html: `
 <!DOCTYPE html>
 <html>
@@ -251,61 +253,80 @@ async function sendBookReadyEmail(book) {
 <body style="margin:0;padding:0;background:#fdf6ec;font-family:Georgia,serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fdf6ec;padding:40px 0;">
     <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+      <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 8px 40px rgba(100,60,20,0.12);border:1px solid #ede0c8;">
 
         <!-- Header -->
         <tr>
-          <td style="background:linear-gradient(135deg,#1a1008,#5c3d1e);padding:36px 40px;text-align:center;">
-            <div style="font-size:32px;margin-bottom:8px;">📖</div>
-            <div style="font-family:Georgia,serif;font-size:28px;color:#f5d98a;letter-spacing:0.5px;">lifebook</div>
-            <div style="font-size:13px;color:#c4a87a;margin-top:4px;letter-spacing:1px;">AI CHILDREN'S STORYBOOKS</div>
+          <td style="background:linear-gradient(135deg,#1a1008,#5c3d1e);padding:40px;text-align:center;">
+            <div style="font-size:36px;margin-bottom:10px;">📖</div>
+            <div style="font-family:Georgia,serif;font-size:30px;color:#f5d98a;letter-spacing:0.5px;">lifebook</div>
+            <div style="font-size:12px;color:#c4a87a;margin-top:5px;letter-spacing:2px;text-transform:uppercase;">AI Children's Storybooks</div>
           </td>
         </tr>
 
-        <!-- Body -->
+        <!-- Hero message -->
         <tr>
-          <td style="padding:40px;">
-            <p style="font-family:Georgia,serif;font-size:26px;color:#3a2810;margin:0 0 16px;">
-              ✨ ${childName}'s book is ready!
+          <td style="padding:40px 44px 28px;">
+            <p style="font-family:Georgia,serif;font-size:28px;color:#3a2810;margin:0 0 14px;line-height:1.2;">
+              🎉 ${childName}'s book is ready!
             </p>
-            <p style="font-size:16px;color:#7a6048;line-height:1.7;margin:0 0 24px;">
-              Your personalized storybook <strong style="color:#3a2810;">"${bookTitle}"</strong>
-              has been created and is waiting for you.
+            <p style="font-size:16px;color:#7a6048;line-height:1.7;margin:0 0 28px;">
+              Your personalized storybook has been beautifully crafted and is waiting for you.
             </p>
+
+            <!-- Book info box -->
+            <table cellpadding="0" cellspacing="0" width="100%" style="background:#fdf6ec;border-radius:16px;border:1px solid #ede0c8;margin-bottom:28px;">
+              <tr>
+                <td style="padding:20px 24px;">
+                  <p style="font-family:Georgia,serif;font-size:20px;color:#5c3d1e;margin:0 0 4px;">"${bookTitle}"</p>
+                  <p style="font-size:14px;color:#8a6240;margin:0 0 14px;font-style:italic;">${bookSub}</p>
+                  <table cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="padding-right:24px;">
+                        <span style="font-size:11px;color:#c8922a;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;">Pages</span><br/>
+                        <span style="font-size:15px;color:#3a2810;">${pageCount} illustrated pages</span>
+                      </td>
+                      <td>
+                        <span style="font-size:11px;color:#c8922a;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;">Hero</span><br/>
+                        <span style="font-size:15px;color:#3a2810;">${childName}</span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
 
             <!-- CTA Button -->
             <table cellpadding="0" cellspacing="0" style="margin:0 0 32px;">
               <tr>
-                <td style="background:linear-gradient(135deg,#e8b84b,#c8922a);border-radius:50px;padding:16px 36px;">
+                <td style="background:linear-gradient(135deg,#e8b84b,#c8922a);border-radius:50px;padding:16px 40px;box-shadow:0 6px 24px rgba(200,146,42,0.35);">
                   <a href="${downloadUrl}"
-                     style="font-family:Arial,sans-serif;font-size:17px;font-weight:700;color:#ffffff;text-decoration:none;display:block;">
-                    Download My Book &rarr;
+                     style="font-family:Arial,sans-serif;font-size:17px;font-weight:700;color:#ffffff;text-decoration:none;display:block;white-space:nowrap;">
+                    Read &amp; Download My Book →
                   </a>
                 </td>
               </tr>
             </table>
 
-            <p style="font-size:14px;color:#a08060;line-height:1.6;margin:0 0 8px;">
-              Or copy this link to your browser:
-            </p>
-            <p style="font-size:13px;color:#c8922a;word-break:break-all;margin:0 0 32px;">
+            <p style="font-size:13px;color:#b09070;line-height:1.6;margin:0 0 8px;">Or copy this link:</p>
+            <p style="font-size:12px;color:#c8922a;word-break:break-all;margin:0 0 32px;background:#fdf6ec;padding:10px 14px;border-radius:10px;border:1px solid #ede0c8;">
               ${downloadUrl}
             </p>
 
-            <hr style="border:none;border-top:1px solid #f0e4d0;margin:0 0 24px;" />
+            <hr style="border:none;border-top:1px solid #f0e4d0;margin:0 0 20px;" />
 
-            <p style="font-size:13px;color:#b09070;line-height:1.6;margin:0;">
-              Questions? Reply to this email and we'll get back to you.<br/>
-              Thank you for using Lifebook 💛
+            <p style="font-size:13px;color:#b09070;line-height:1.7;margin:0;">
+              Questions or issues? Just reply to this email and we'll help right away.<br/>
+              Thank you for creating with Lifebook 💛
             </p>
           </td>
         </tr>
 
         <!-- Footer -->
         <tr>
-          <td style="background:#fdf6ec;padding:20px 40px;text-align:center;">
+          <td style="background:#fdf6ec;border-top:1px solid #ede0c8;padding:18px 44px;text-align:center;">
             <p style="font-size:12px;color:#c4a87a;margin:0;">
-              © 2026 Lifebook · AI Children's Storybooks
+              © 2026 Lifebook · AI Children's Storybooks · <a href="${appUrl}/contact.html" style="color:#c8922a;text-decoration:none;">Contact Us</a>
             </p>
           </td>
         </tr>
@@ -633,7 +654,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
       for (let i = 2; i < pages.length; i++) {
         if (!fullImages[i]) remaining.push(i);
       }
-      const BATCH_SIZE = 3;
+      const BATCH_SIZE = 5;
       for (let batchStart = 0; batchStart < remaining.length; batchStart += BATCH_SIZE) {
         const batch = remaining.slice(batchStart, batchStart + BATCH_SIZE);
         const results = await Promise.allSettled(batch.map(async (pageIndex) => {
@@ -710,7 +731,7 @@ app.post("/api/books/:bookId/generate-images", async (req, res) => {
     }
 
     // Generate in batches of 3 for speed without hammering the API
-    const BATCH_SIZE = 3;
+    const BATCH_SIZE = 5;
 
     for (let batchStart = 0; batchStart < toGenerate.length; batchStart += BATCH_SIZE) {
       const batch = toGenerate.slice(batchStart, batchStart + BATCH_SIZE);
@@ -1133,6 +1154,110 @@ Rules:
       message: "Image generation failed",
       details: err?.message || "unknown_error"
     });
+  }
+});
+
+// ─── Contact form ─────────────────────────────────────────────────────────────
+app.post("/api/contact", async (req, res) => {
+  try {
+    const { name, email, subject, message } = req.body || {};
+    if (!name || !email || !message) {
+      return res.status(400).json({ ok: false, error: "Missing required fields" });
+    }
+
+    const subjectLabels = {
+      "book-issue":   "Issue with my book",
+      "payment":      "Payment question",
+      "generation":   "Generation took too long",
+      "pdf":          "PDF download problem",
+      "other":        "Something else",
+    };
+    const subjectLine = subjectLabels[subject] || subject || "General inquiry";
+    const appUrl = process.env.APP_URL || "https://lifebooks.online";
+    const adminEmail = process.env.ADMIN_EMAIL || "books@lifebooks.online";
+
+    // ── Notify admin ──────────────────────────────────────────────────────────
+    await resend.emails.send({
+      from:    "Lifebook Contact <books@lifebooks.online>",
+      to:      [adminEmail],
+      replyTo: email,
+      subject: `[Contact] ${subjectLine} — from ${name}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#fdf6ec">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="background:linear-gradient(135deg,#1a1008,#5c3d1e);padding:24px 32px;border-radius:16px 16px 0 0;text-align:center">
+                <span style="font-size:28px">📖</span>
+                <div style="font-family:Georgia,serif;font-size:22px;color:#f5d98a;margin-top:6px">New contact message</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="background:#fff;padding:24px 32px;border:1px solid #ede0c8;border-top:none;border-radius:0 0 16px 16px">
+                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px">
+                  <tr>
+                    <td style="padding:8px 12px;background:#fdf6ec;font-weight:700;color:#c8922a;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;width:100px;border-radius:6px 0 0 6px">Name</td>
+                    <td style="padding:8px 12px;color:#3a2810;font-size:14px">${name}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px 12px;background:#f5e9d4;font-weight:700;color:#c8922a;font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Email</td>
+                    <td style="padding:8px 12px;font-size:14px"><a href="mailto:${email}" style="color:#c8922a">${email}</a></td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px 12px;background:#fdf6ec;font-weight:700;color:#c8922a;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;border-radius:0 0 0 6px">Topic</td>
+                    <td style="padding:8px 12px;color:#3a2810;font-size:14px">${subjectLine}</td>
+                  </tr>
+                </table>
+                <div style="padding:16px;background:#fdf6ec;border-left:3px solid #c8922a;border-radius:4px;font-size:14px;line-height:1.7;color:#3a2810;white-space:pre-wrap">${message.replace(/</g,"&lt;")}</div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      `,
+    });
+
+    // ── Auto-reply to sender ──────────────────────────────────────────────────
+    await resend.emails.send({
+      from:    "Lifebook <books@lifebooks.online>",
+      to:      [email],
+      subject: "We got your message! 📖",
+      html: `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:0;background:#fdf6ec">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="background:linear-gradient(135deg,#1a1008,#5c3d1e);padding:36px;text-align:center">
+                <div style="font-size:36px;margin-bottom:8px">📖</div>
+                <div style="font-family:Georgia,serif;font-size:26px;color:#f5d98a">lifebook</div>
+                <div style="font-size:11px;color:#c4a87a;margin-top:4px;letter-spacing:2px;text-transform:uppercase">AI Children's Storybooks</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="background:#fff;padding:36px;border:1px solid #ede0c8;border-top:none">
+                <h2 style="font-family:Georgia,serif;color:#5c3d1e;margin:0 0 12px;font-size:24px">Thanks, ${name}! 🎉</h2>
+                <p style="color:#7a6048;line-height:1.7;margin:0 0 20px">We've received your message and will get back to you within <strong>24 hours</strong>.</p>
+                <div style="background:#fdf6ec;border-radius:14px;padding:18px;border:1px solid #ede0c8;margin-bottom:24px">
+                  <p style="color:#c8922a;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin:0 0 8px">Your message</p>
+                  <p style="color:#3a2810;line-height:1.7;font-size:14px;margin:0;white-space:pre-wrap">${message.replace(/</g,"&lt;")}</p>
+                </div>
+                <p style="color:#7a6048;font-size:13px;line-height:1.6;margin:0">
+                  While you wait, feel free to <a href="${appUrl}" style="color:#c8922a;text-decoration:none;font-weight:700">visit your book</a> any time.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="background:#fdf6ec;padding:16px;text-align:center;border:1px solid #ede0c8;border-top:none;border-radius:0 0 16px 16px">
+                <p style="font-size:12px;color:#b09070;margin:0">© 2026 Lifebook · <a href="${appUrl}/contact.html" style="color:#c8922a;text-decoration:none">Contact Us</a></p>
+              </td>
+            </tr>
+          </table>
+        </div>
+      `,
+    });
+
+    console.log(`Contact form submitted by ${name} <${email}> — topic: ${subjectLine}`);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("Contact form error:", err.message);
+    return res.status(500).json({ ok: false, error: "Failed to send message" });
   }
 });
 

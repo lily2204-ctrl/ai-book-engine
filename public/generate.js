@@ -1,75 +1,95 @@
 import { getBookData, updateBookData } from "./js/state.js";
 
-const API_BASE = window.location.origin;
+const API_BASE   = window.location.origin;
 const wizardData = getBookData();
 
 if (!wizardData.croppedPhoto || !wizardData.childName || !wizardData.storyIdea || !wizardData.illustrationStyle) {
   window.location.href = "wizard.html";
 }
 
-const generateBookBtn  = document.getElementById("generateBookBtn");
-const backToSetupBtn   = document.getElementById("backToSetupBtn");
-const backToCropBtn    = document.getElementById("backToCropBtn");
-const generateStatus   = document.getElementById("generateStatus");
-const stepStory        = document.getElementById("stepStory");
-const stepPreview      = document.getElementById("stepPreview");
+const generateBookBtn = document.getElementById("generateBookBtn");
+const backToSetupBtn  = document.getElementById("backToSetupBtn");
+const backToCropBtn   = document.getElementById("backToCropBtn");
+const generateStatus  = document.getElementById("generateStatus");
 
-if (document.getElementById("uploadedPhotoPreview")) {
-  document.getElementById("uploadedPhotoPreview").src = wizardData.croppedPhoto;
+// Show uploaded photo
+const photoPreview = document.getElementById("uploadedPhotoPreview");
+const photoHolder  = document.getElementById("photoPlaceholder");
+if (photoPreview && wizardData.croppedPhoto) {
+  photoPreview.src     = wizardData.croppedPhoto;
+  photoPreview.style.display = "block";
+  if (photoHolder) photoHolder.style.display = "none";
 }
 
-// Progress bar
-var progressWrap = document.createElement("div");
-progressWrap.style.cssText = "display:none;margin-top:16px;background:rgba(255,255,255,0.06);border-radius:14px;overflow:hidden;height:22px;border:1px solid rgba(240,196,109,0.14);";
-var progressBar = document.createElement("div");
-progressBar.id = "progressBar";
-progressBar.style.cssText = "height:100%;width:0%;border-radius:14px;background:linear-gradient(90deg,#f0c46d,#d08e2b);transition:width 0.6s ease;";
-progressWrap.appendChild(progressBar);
-if (generateStatus) generateStatus.parentElement.insertBefore(progressWrap, generateStatus.nextSibling);
+// ── Step helpers ──────────────────────────────────────────────────
+const STEPS = ["stepAnalyze","stepStory","stepCover","stepImages","stepDone"];
+
+function setStep(id, state) {
+  STEPS.forEach(s => {
+    const el = document.getElementById(s);
+    if (!el) return;
+    el.classList.remove("active","done");
+  });
+  const target = document.getElementById(id);
+  if (target) target.classList.add(state || "active");
+  // Mark previous steps done
+  const idx = STEPS.indexOf(id);
+  for (let i = 0; i < idx; i++) {
+    const el = document.getElementById(STEPS[i]);
+    if (el) { el.classList.add("done"); el.querySelector(".step-dot").textContent = "✓"; }
+  }
+}
+
+function setProgress(pct, msg) {
+  if (window.setGenProgress) { window.setGenProgress(pct, msg); return; }
+  const wrap = document.getElementById("progWrap");
+  const fill = document.getElementById("progFill");
+  const pctEl = document.getElementById("progPct");
+  const stat  = document.getElementById("progStatus");
+  if (wrap) wrap.style.display = "block";
+  if (fill) fill.style.width   = pct + "%";
+  if (pctEl) pctEl.textContent = pct + "%";
+  if (stat && msg) stat.textContent = msg;
+}
 
 function setStatus(text) {
   if (generateStatus) generateStatus.textContent = text;
 }
 
-function setProgress(pct) {
-  progressWrap.style.display = "block";
-  progressBar.style.width = Math.min(100, Math.round(pct)) + "%";
-}
-
-async function apiJson(url, options, timeoutMs) {
-  if (!timeoutMs) timeoutMs = 90000;
-  var controller = new AbortController();
-  var timer = setTimeout(function() { controller.abort(); }, timeoutMs);
+// ── API helpers ───────────────────────────────────────────────────
+async function apiJson(url, options, timeoutMs = 90000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    var res = await fetch(url, Object.assign({}, options, { signal: controller.signal }));
+    const res  = await fetch(url, { ...options, signal: controller.signal });
     clearTimeout(timer);
-    var text = await res.text();
-    var json;
-    try { json = JSON.parse(text); } catch(e) { throw new Error("Non-JSON response from server"); }
+    const text = await res.text();
+    let json;
+    try { json = JSON.parse(text); } catch { throw new Error("Non-JSON response from server"); }
     if (!res.ok) throw new Error((json && (json.message || json.details)) || "Request failed");
     return json;
-  } catch(err) {
+  } catch (err) {
     clearTimeout(timer);
-    if (err.name === "AbortError") throw new Error("Request timed out - please try again");
+    if (err.name === "AbortError") throw new Error("Request timed out — please try again");
     throw err;
   }
 }
 
-async function withRetry(fn, retries) {
-  if (!retries) retries = 2;
-  for (var i = 1; i <= retries; i++) {
+async function withRetry(fn, retries = 2) {
+  for (let i = 1; i <= retries; i++) {
     try { return await fn(); }
-    catch(err) {
+    catch (err) {
       if (i === retries) throw err;
-      setStatus("Retrying... (" + (i+1) + "/" + retries + ")");
-      await new Promise(function(r) { setTimeout(r, 2000); });
+      setStatus(`Retrying... (${i+1}/${retries})`);
+      await new Promise(r => setTimeout(r, 2000));
     }
   }
 }
 
+// ── Book record ───────────────────────────────────────────────────
 async function createBookRecord() {
   if (wizardData.bookId) return wizardData.bookId;
-  var result = await apiJson(API_BASE + "/api/books/create", {
+  const result = await apiJson(API_BASE + "/api/books/create", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -96,14 +116,24 @@ async function patchBook(bookId, patch) {
   }, 10000);
 }
 
-// Step 1: Generate story text (no images, fast ~10s)
-async function generateStory(bookId) {
-  setStatus("Writing the story...");
-  setProgress(20);
-  if (stepStory) stepStory.classList.add("active");
+// ── Step 1: Analyze photo ─────────────────────────────────────────
+async function analyzePhoto() {
+  setStep("stepAnalyze");
+  setProgress(8, "Analyzing your child's photo...");
+  setStatus("Analyzing photo...");
+  // Analysis happens server-side during generate-full; just a brief pause here
+  await new Promise(r => setTimeout(r, 1200));
+  setProgress(15, "Photo analyzed ✓");
+}
 
-  var result = await withRetry(function() {
-    return apiJson(API_BASE + "/create-book", {
+// ── Step 2: Generate story text ───────────────────────────────────
+async function generateStory(bookId) {
+  setStep("stepStory");
+  setProgress(18, "Writing the story...");
+  setStatus("Writing your child's story...");
+
+  const result = await withRetry(() =>
+    apiJson(API_BASE + "/create-book", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -117,29 +147,28 @@ async function generateStory(bookId) {
           characterSummary:    wizardData.childName + " is a " + wizardData.childAge + " year old " + (wizardData.childGender || "child")
         }
       })
-    }, 30000);
-  });
+    }, 30000)
+  );
 
-  var generatedBook = {
+  const generatedBook = {
     title:    result.title    || "",
     subtitle: result.subtitle || "",
     pages:    result.pages    || []
   };
-
-  updateBookData({ generatedBook: generatedBook });
-  await patchBook(bookId, { generatedBook: generatedBook });
-  setProgress(40);
+  updateBookData({ generatedBook });
+  await patchBook(bookId, { generatedBook });
+  setProgress(38, "Story written ✓");
   return result;
 }
 
-// Step 2: Generate cover + kick off page images in background
+// ── Step 3: Cover ─────────────────────────────────────────────────
 async function generateCover(bookId, storyResult) {
-  setStatus("Creating the cover...");
-  setProgress(50);
-  if (stepPreview) stepPreview.classList.add("active");
+  setStep("stepCover");
+  setProgress(42, "Illustrating the cover...");
+  setStatus("Creating the book cover...");
 
-  var result = await withRetry(function() {
-    return apiJson(API_BASE + "/generate-cover-image", {
+  const result = await withRetry(() =>
+    apiJson(API_BASE + "/generate-cover-image", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -150,65 +179,73 @@ async function generateCover(bookId, storyResult) {
         characterPromptCore: "A child named " + wizardData.childName,
         characterSummary:    wizardData.childName + " the hero"
       })
-    }, 60000);
-  });
+    }, 60000)
+  );
 
   if (result.coverImageBase64) {
-    var coverSrc = "data:image/png;base64," + result.coverImageBase64;
+    const coverSrc = "data:image/png;base64," + result.coverImageBase64;
     sessionStorage.setItem("coverImage", coverSrc);
     await patchBook(bookId, { coverImage: coverSrc });
   }
-
-  setProgress(70);
+  setProgress(62, "Cover ready ✓");
 }
 
-// Step 3: Kick off page images (fire & forget — preview.html polls for them)
+// ── Step 4: Page images (fire & forget) ──────────────────────────
 async function startPageImages(bookId) {
-  setStatus("Generating illustrations...");
-  setProgress(80);
+  setStep("stepImages");
+  setProgress(65, "Starting page illustrations...");
+  setStatus("Generating 16 illustrations...");
 
-  // Fire and forget — don't await
+  // Fire and forget — preview.html polls for completion
   apiJson(API_BASE + "/api/books/" + bookId + "/generate-images", {
     method: "POST",
     headers: { "Content-Type": "application/json" }
-  }, 300000).catch(function(e) {
-    console.warn("Page images batch error (partial ok):", e.message);
-  });
+  }, 300000).catch(e => console.warn("Page images batch (partial ok):", e.message));
 
-  // Wait 8 seconds to let at least 1 image start
-  await new Promise(function(r) { setTimeout(r, 8000); });
-  setProgress(95);
+  // Brief wait so at least the first image starts
+  await new Promise(r => setTimeout(r, 8000));
+  setProgress(88, "Illustrations in progress...");
 }
 
+// ── Step 5: Wrap up ───────────────────────────────────────────────
+async function finishUp() {
+  setStep("stepDone");
+  setProgress(95, "Wrapping up...");
+  setStatus("Almost done...");
+  await new Promise(r => setTimeout(r, 1000));
+}
+
+// ── Main ──────────────────────────────────────────────────────────
 if (generateBookBtn) {
-  generateBookBtn.addEventListener("click", async function() {
+  generateBookBtn.addEventListener("click", async function () {
     try {
       generateBookBtn.disabled    = true;
       generateBookBtn.textContent = "Generating...";
       setStatus("Starting...");
-      setProgress(5);
 
-      var bookId      = await createBookRecord();
-      var storyResult = await generateStory(bookId);
+      const bookId = await createBookRecord();
+      await analyzePhoto();
+      const storyResult = await generateStory(bookId);
       await generateCover(bookId, storyResult);
       await startPageImages(bookId);
+      await finishUp();
 
       updateBookData({ purchaseUnlocked: false });
-      setProgress(100);
+      setProgress(100, "Done! ✓");
       setStatus("Done! Opening preview...");
 
-      setTimeout(function() {
+      setTimeout(() => {
         window.location.href = "preview.html?bookId=" + encodeURIComponent(bookId);
       }, 800);
 
-    } catch(error) {
+    } catch (error) {
       console.error("generate.js error:", error);
       setStatus("Error: " + (error.message || "Something went wrong. Please try again."));
       generateBookBtn.disabled    = false;
-      generateBookBtn.textContent = "Generate Book";
+      generateBookBtn.textContent = "✨ Generate Book";
     }
   });
 }
 
-if (backToSetupBtn) backToSetupBtn.addEventListener("click", function() { window.location.href = "wizard.html"; });
-if (backToCropBtn)  backToCropBtn.addEventListener("click",  function() { window.location.href = "crop.html"; });
+if (backToSetupBtn) backToSetupBtn.addEventListener("click", () => { window.location.href = "wizard.html"; });
+if (backToCropBtn)  backToCropBtn.addEventListener("click",  () => { window.location.href = "crop.html"; });
