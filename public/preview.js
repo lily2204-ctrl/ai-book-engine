@@ -88,9 +88,14 @@ async function pollForBook() {
 
   setLoadingStep(1, "Analyzing photo and building character...", 10);
 
+  var firstCheck = true;
+
   while (elapsed < maxWait) {
-    await new Promise(function(r) { setTimeout(r, pollEvery * 1000); });
-    elapsed += pollEvery;
+    if (!firstCheck) {
+      await new Promise(function(r) { setTimeout(r, pollEvery * 1000); });
+      elapsed += pollEvery;
+    }
+    firstCheck = false;
 
     try {
       var res  = await fetch(API_BASE + "/api/books/" + bookId);
@@ -119,8 +124,8 @@ async function pollForBook() {
         setLoadingStep(4, "Almost ready...", 90);
       }
 
-      // Show preview as soon as we have story + at least 1 image (cover or page)
-      if (!previewShown && hasStory && (hasImages || hasCover)) {
+      // Show preview as soon as we have the story — don't wait for images!
+      if (!previewShown && hasStory) {
         previewShown = true;
         renderPreview(book);
         showPreview();

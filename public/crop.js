@@ -99,22 +99,24 @@ continueBtn.addEventListener("click", async function() {
     var bookId = createData.bookId || "";
     updateBookData({ bookId });
 
-    // 3. Kick off server-side generation (fire and forget — server responds immediately)
-    if (bookId) {
-      fetch(window.location.origin + "/api/books/" + bookId + "/generate-full", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" }
-      }).catch(function(e) { console.warn("generate-full kick:", e.message); });
+    if (!bookId) {
+      throw new Error("Failed to create book record. Please try again.");
     }
 
-    // 4. Go to preview immediately (server generates in background)
+    // 3. Kick off server-side generation (fire and forget)
+    fetch(window.location.origin + "/api/books/" + bookId + "/generate-full", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    }).catch(function(e) { console.warn("generate-full kick:", e.message); });
+
+    // 4. Go to preview immediately
     window.location.href = "preview.html?bookId=" + encodeURIComponent(bookId);
 
   } catch(err) {
     console.error("crop continue failed:", err);
     continueBtn.disabled = false;
     continueBtn.textContent = "✓ Create My Book";
-    alert("Something went wrong. Please try again.");
+    alert("Something went wrong: " + err.message);
   }
 });
 
