@@ -58,7 +58,49 @@ cropCanvas.addEventListener("touchstart", function(e) { var r = cropCanvas.getBo
 cropCanvas.addEventListener("touchmove",  function(e) { if (!isDragging) return; e.preventDefault(); var r = cropCanvas.getBoundingClientRect(), t = e.touches[0]; var x = t.clientX - r.left, y = t.clientY - r.top; offsetX += x - startDragX; offsetY += y - startDragY; startDragX = x; startDragY = y; drawCanvas(); }, { passive: false });
 cropCanvas.addEventListener("touchend",   function() { isDragging = false; });
 
-// ── Continue: crop → create book → kick server generation → go to preview ──
+// ── Warm-up: create book record + start story generation IMMEDIATELY on crop page load ──
+// This gives us ~30-60s head start while the user crops their photo!
+var warmBookId = "";
+(async function startWarmUp() {
+  try {
+    var data = getBookData();
+    // Only warm up if we have the basics
+    if (!data.childName || !data.storyIdea) return;
+
+    // Create book record immediately (without croppedPhoto yet)
+    var createRes = await fetch(window.location.origin + "/api/books/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        childName:          data.childName          || "",
+        childAge:           data.childAge           || "",
+        childGender:        data.childGender        || "",
+        storyIdea:          data.storyIdea          || "",
+        illustrationStyle:  data.illustrationStyle  || "Soft Storybook",
+        croppedPhoto:       "",
+        originalPhoto:      data.originalPhoto      || "",
+        customerEmail:      data.customerEmail      || ""
+      })
+    });
+    var createData = await createRes.json();
+    warmBookId = createData.bookId || "";
+    if (!warmBookId) return;
+
+    updateBookData({ bookId: warmBookId });
+    console.log("crop: warm-up started for bookId:", warmBookId);
+
+    // Kick off story generation immediately (fire and forget)
+    fetch(window.location.origin + "/api/books/" + warmBookId + "/warm-up", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    }).catch(function(e) { console.warn("warm-up kick:", e.message); });
+
+  } catch(e) {
+    console.warn("warm-up failed:", e.message);
+  }
+})();
+
+// ── Continue: crop → update book with photo → kick full generation → go to preview ──
 continueBtn.addEventListener("click", async function() {
   try {
     continueBtn.disabled = true;
@@ -79,26 +121,39 @@ continueBtn.addEventListener("click", async function() {
     var croppedPhoto = exportCanvas.toDataURL("image/jpeg", 0.9);
     updateBookData({ croppedPhoto });
 
-    // 2. Create book record in DB
-    var data = getBookData();
-    var createRes = await fetch(window.location.origin + "/api/books/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        childName:          data.childName          || "",
-        childAge:           data.childAge           || "",
-        childGender:        data.childGender        || "",
-        storyIdea:          data.storyIdea          || "",
-        illustrationStyle:  data.illustrationStyle  || "Soft Storybook",
-        croppedPhoto:       croppedPhoto,
-        originalPhoto:      data.originalPhoto      || ""
-      })
-    });
-    var createData = await createRes.json();
-    var bookId = createData.bookId || "";
-    updateBookData({ bookId });
+    // 2. Use warm bookId if already created, otherwise create now
+    var bookId = warmBookId || getBookData().bookId || "";
 
-    // 3. Kick off server-side generation (fire and forget — server responds immediately)
+    if (bookId) {
+      // Update existing book with the cropped photo
+      await fetch(window.location.origin + "/api/books/" + bookId, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ croppedPhoto })
+      });
+    } else {
+      // Fallback: create fresh (warm-up failed)
+      var data = getBookData();
+      var createRes = await fetch(window.location.origin + "/api/books/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          childName:          data.childName          || "",
+          childAge:           data.childAge           || "",
+          childGender:        data.childGender        || "",
+          storyIdea:          data.storyIdea          || "",
+          illustrationStyle:  data.illustrationStyle  || "Soft Storybook",
+          croppedPhoto:       croppedPhoto,
+          originalPhoto:      data.originalPhoto      || "",
+          customerEmail:      data.customerEmail      || ""
+        })
+      });
+      var createData = await createRes.json();
+      bookId = createData.bookId || "";
+      updateBookData({ bookId });
+    }
+
+    // 3. Kick off full generation (character reference with photo + images)
     if (bookId) {
       fetch(window.location.origin + "/api/books/" + bookId + "/generate-full", {
         method: "POST",
@@ -106,7 +161,7 @@ continueBtn.addEventListener("click", async function() {
       }).catch(function(e) { console.warn("generate-full kick:", e.message); });
     }
 
-    // 4. Go to preview immediately (server generates in background)
+    // 4. Go to preview immediately
     window.location.href = "preview.html?bookId=" + encodeURIComponent(bookId);
 
   } catch(err) {
