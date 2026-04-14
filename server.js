@@ -810,14 +810,6 @@ Rules:
     }
   }
 });
-  } catch (err) {
-    console.error("Batch image generation failed:", err);
-    return res.status(500).json({
-      status:  "error",
-      message: err?.message || "Image generation failed"
-    });
-  }
-});
 
 // ─── Image generation progress check ─────────────────────────────────────────
 app.get("/api/books/:bookId/image-status", async (req, res) => {
