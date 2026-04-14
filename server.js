@@ -7,6 +7,7 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import sharp from "sharp";
 
 const app = express();
 app.use(cors());
@@ -109,6 +110,17 @@ async function normalizeImageToBase64(imageItem) {
     return Buffer.from(arr).toString("base64");
   }
   return null;
+}
+
+// Compress a base64 image: resize to 512×512 JPEG quality 70.
+// Reduces ~1.5 MB PNG → ~40-80 KB JPEG so fullImages array stays small in Supabase.
+async function compressImage(base64Str) {
+  const buf = Buffer.from(base64Str, "base64");
+  const compressed = await sharp(buf)
+    .resize(512, 512)
+    .jpeg({ quality: 70 })
+    .toBuffer();
+  return compressed.toString("base64");
 }
 
 // ─── DB helpers ───────────────────────────────────────────────────────────────
@@ -769,9 +781,10 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
             size:  "1024x1024"
           });
 
-          const coverBase64 = await normalizeImageToBase64(coverResp?.data?.[0]);
-          if (coverBase64) {
-            await updateBookField(bookId, { coverImage: `data:image/png;base64,${coverBase64}` });
+          const coverRaw = await normalizeImageToBase64(coverResp?.data?.[0]);
+          if (coverRaw) {
+            const coverCompressed = await compressImage(coverRaw);
+            await updateBookField(bookId, { coverImage: `data:image/jpeg;base64,${coverCompressed}` });
           }
         } catch (err) {
           console.warn("generate-full: cover generation failed:", err.message);
@@ -794,15 +807,28 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
         for (let attempt = 1; attempt <= 2; attempt++) {
           try {
             const imgResp = await openai.images.generate({ model: "gpt-image-1", prompt: imgPrompt, size: "1024x1024" });
-            const b64 = await normalizeImageToBase64(imgResp?.data?.[0]);
-            if (b64) return b64;
-            console.warn(`generate-full [${bookId}]: page ${pageIndex} returned empty image (attempt ${attempt})`);
+            const rawB64 = await normalizeImageToBase64(imgResp?.data?.[0]);
+            if (!rawB64) {
+              console.warn(`generate-full [${bookId}]: page ${pageIndex} returned empty image (attempt ${attempt})`);
+              continue;
+            }
+            // Compress before storing: 1024px PNG (~1.5 MB) → 512px JPEG (~40-80 KB)
+            const compressed = await compressImage(rawB64);
+            return compressed;
           } catch (err) {
             console.error(`generate-full [${bookId}]: page ${pageIndex} image failed (attempt ${attempt}):`, err.message);
-            if (attempt < 2) await new Promise(r => setTimeout(r, 3000)); // brief pause before retry
+            if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
           }
         }
         return null;
+      }
+
+      // Helper: save one image to DB immediately after it's generated
+      async function savePageImage(pageIndex, base64) {
+        fullImages[pageIndex] = `data:image/jpeg;base64,${base64}`;
+        await updateBookField(bookId, { fullImages });
+        const doneCount = fullImages.filter(Boolean).length;
+        console.log(`generate-full [${bookId}]: page ${pageIndex} saved — ${doneCount}/${pages.length} images done`);
       }
 
       // Step 4a: first 2 pages in parallel (preview needs them quickly)
@@ -810,18 +836,18 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
         fullImages[0] ? null : generatePageImage(0),
         fullImages[1] ? null : generatePageImage(1),
       ]);
+      // Save each priority image individually
       for (let i = 0; i < 2; i++) {
         const r = priorityResults[i];
         if (r?.status === "fulfilled" && r.value) {
-          fullImages[i] = `data:image/png;base64,${r.value}`;
+          await savePageImage(i, r.value);
         } else if (r?.status === "rejected") {
           console.error(`generate-full [${bookId}]: priority image ${i} rejected:`, r.reason?.message || r.reason);
         }
       }
-      await updateBookField(bookId, { fullImages });
       console.log(`generate-full [${bookId}]: STEP 4a done — priority images (0-1) saved`);
 
-      // Step 4b: remaining pages in batches of 3
+      // Step 4b: remaining pages in batches of 3 — save each image individually
       const remaining = [];
       for (let i = 2; i < pages.length; i++) {
         if (!fullImages[i]) remaining.push(i);
@@ -833,16 +859,14 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
           const base64 = await generatePageImage(pageIndex);
           return { pageIndex, base64 };
         }));
+        // Save each image from the batch individually (one DB write per image)
         for (const result of results) {
           if (result.status === "fulfilled" && result.value?.base64) {
-            fullImages[result.value.pageIndex] = `data:image/png;base64,${result.value.base64}`;
+            await savePageImage(result.value.pageIndex, result.value.base64);
           } else if (result.status === "rejected") {
             console.error(`generate-full [${bookId}]: batch image rejected:`, result.reason?.message || result.reason);
           }
         }
-        await updateBookField(bookId, { fullImages });
-        const doneCount = fullImages.filter(Boolean).length;
-        console.log(`generate-full [${bookId}]: STEP 4b batch done — ${doneCount}/${pages.length} images saved`);
       }
 
       // ── STEP 5: All done — send "book ready" email ───────────────────────────
@@ -906,7 +930,7 @@ app.post("/api/books/:bookId/generate-images", async (req, res) => {
           if (!fullImages[i]) toGenerate.push(i);
         }
 
-        const BATCH_SIZE = 3; // 3 parallel — stable, not too aggressive
+        const BATCH_SIZE = 3;
         let savedCount = 0;
 
         for (let batchStart = 0; batchStart < toGenerate.length; batchStart += BATCH_SIZE) {
@@ -944,24 +968,23 @@ Rules:
                 size:   "1024x1024"
               });
 
-              const base64 = await normalizeImageToBase64(imgResp?.data?.[0]);
-              return { pageIndex, base64 };
+              const rawB64 = await normalizeImageToBase64(imgResp?.data?.[0]);
+              if (!rawB64) return { pageIndex, base64: null };
+              const compressed = await compressImage(rawB64);
+              return { pageIndex, base64: compressed };
             })
           );
 
-          let batchHadNew = false;
+          // Save each image individually (one DB write per image)
           for (const result of results) {
             if (result.status === "fulfilled" && result.value?.base64) {
-              fullImages[result.value.pageIndex] = `data:image/png;base64,${result.value.base64}`;
+              fullImages[result.value.pageIndex] = `data:image/jpeg;base64,${result.value.base64}`;
               savedCount++;
-              batchHadNew = true;
+              await updateBookField(bookId, { fullImages });
+              console.log(`generate-images: page ${result.value.pageIndex} saved — ${savedCount}/${toGenerate.length} for book ${bookId}`);
+            } else if (result.status === "rejected") {
+              console.error(`generate-images: image rejected:`, result.reason?.message || result.reason);
             }
-          }
-
-          // Save after every batch so polling clients see progress
-          if (batchHadNew) {
-            await updateBookField(bookId, { fullImages });
-            console.log(`generate-images: saved ${savedCount}/${toGenerate.length} images for book ${bookId}`);
           }
         }
 
