@@ -215,6 +215,17 @@ async function updateBook(bookId, patch) {
   return dbRowToBook(data);
 }
 
+// Lightweight update that does NOT return the full row.
+// Use this for saving large data (base64 images) to avoid PostgREST response size limits.
+async function updateBookField(bookId, patch) {
+  const dbPatch = patchToDbFields(patch);
+  const { error } = await supabase
+    .from("books")
+    .update(dbPatch)
+    .eq("book_id", bookId);
+  if (error) throw error;
+}
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
@@ -654,6 +665,8 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
       const book = await getBook(bookId);
       if (!book) { console.error("generate-full: book not found", bookId); return; }
 
+      console.log(`generate-full [${bookId}]: START — child: ${book.childName}, style: ${book.illustrationStyle}`);
+
       const childName         = book.childName         || "The Child";
       const childAge          = book.childAge          || "5";
       const childGender       = book.childGender       || "not specified";
@@ -710,6 +723,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
 
       const promptCore       = characterReference?.characterPromptCore || `A young child aged ${childAge}.`;
       const characterSummary = characterReference?.characterSummary    || `A ${childAge}-year-old child hero.`;
+      console.log(`generate-full [${bookId}]: STEP 1 done — character reference ready`);
 
       // ── STEP 2: Generate story text ───────────────────────────────────────────
       if (!book.generatedBook?.pages?.length) {
@@ -742,6 +756,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
       const pages          = bookAfterStory.generatedBook?.pages || [];
       const title          = bookAfterStory.generatedBook?.title    || `The Magical Adventure of ${childName}`;
       const subtitle       = bookAfterStory.generatedBook?.subtitle || "A story where you are the hero";
+      console.log(`generate-full [${bookId}]: STEP 2 done — story written, ${pages.length} pages`);
 
       // ── STEP 3: Cover image ───────────────────────────────────────────────────
       if (!bookAfterStory.coverImage) {
@@ -756,7 +771,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
 
           const coverBase64 = await normalizeImageToBase64(coverResp?.data?.[0]);
           if (coverBase64) {
-            await updateBook(bookId, { coverImage: `data:image/png;base64,${coverBase64}` });
+            await updateBookField(bookId, { coverImage: `data:image/png;base64,${coverBase64}` });
           }
         } catch (err) {
           console.warn("generate-full: cover generation failed:", err.message);
@@ -764,20 +779,33 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
       }
 
       // ── STEP 4: Page images — priority first (pages 0-1), then rest ────────
+      console.log(`generate-full [${bookId}]: STEP 3 done — cover ready, starting page images`);
       const bookBeforeImgs  = await getBook(bookId);
       const existingImages  = bookBeforeImgs.fullImages || [];
       const fullImages      = [...existingImages];
       while (fullImages.length < pages.length) fullImages.push(null);
 
-      // פונקציה ליצירת תמונה אחת
+      // Generate a single page image (with 1 retry on failure)
       async function generatePageImage(pageIndex) {
         const page = pages[pageIndex];
+        if (!page) throw new Error(`No page data at index ${pageIndex}`);
         const imgPrompt = `Create a premium children's storybook illustration.\n\nIllustration style: ${safeStyle}\n\nCharacter consistency:\n${sanitizeBrandTerms(promptCore)}\n\nScene:\n${sanitizeImagePrompt(page.imagePrompt || "")}\n\nRules:\n- same child identity\n- same face structure\n- same hair and skin tone\n- warm magical storybook aesthetic\n- no text\n- no watermark\n- elegant composition\n- no logos\n- no brand names\n- no copyrighted costume emblems`;
-        const imgResp = await openai.images.generate({ model: "gpt-image-1", prompt: imgPrompt, size: "1024x1024" });
-        return await normalizeImageToBase64(imgResp?.data?.[0]);
+
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            const imgResp = await openai.images.generate({ model: "gpt-image-1", prompt: imgPrompt, size: "1024x1024" });
+            const b64 = await normalizeImageToBase64(imgResp?.data?.[0]);
+            if (b64) return b64;
+            console.warn(`generate-full [${bookId}]: page ${pageIndex} returned empty image (attempt ${attempt})`);
+          } catch (err) {
+            console.error(`generate-full [${bookId}]: page ${pageIndex} image failed (attempt ${attempt}):`, err.message);
+            if (attempt < 2) await new Promise(r => setTimeout(r, 3000)); // brief pause before retry
+          }
+        }
+        return null;
       }
 
-      // שלב 4א: 2 תמונות ראשונות במקביל (preview צריך אותן מהר)
+      // Step 4a: first 2 pages in parallel (preview needs them quickly)
       const priorityResults = await Promise.allSettled([
         fullImages[0] ? null : generatePageImage(0),
         fullImages[1] ? null : generatePageImage(1),
@@ -786,16 +814,19 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
         const r = priorityResults[i];
         if (r?.status === "fulfilled" && r.value) {
           fullImages[i] = `data:image/png;base64,${r.value}`;
+        } else if (r?.status === "rejected") {
+          console.error(`generate-full [${bookId}]: priority image ${i} rejected:`, r.reason?.message || r.reason);
         }
       }
-      await updateBook(bookId, { fullImages });
+      await updateBookField(bookId, { fullImages });
+      console.log(`generate-full [${bookId}]: STEP 4a done — priority images (0-1) saved`);
 
-      // שלב 4ב: שאר התמונות (3-16) בbatches של 3
+      // Step 4b: remaining pages in batches of 3
       const remaining = [];
       for (let i = 2; i < pages.length; i++) {
         if (!fullImages[i]) remaining.push(i);
       }
-      const BATCH_SIZE = 5;
+      const BATCH_SIZE = 3;
       for (let batchStart = 0; batchStart < remaining.length; batchStart += BATCH_SIZE) {
         const batch = remaining.slice(batchStart, batchStart + BATCH_SIZE);
         const results = await Promise.allSettled(batch.map(async (pageIndex) => {
@@ -805,9 +836,13 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
         for (const result of results) {
           if (result.status === "fulfilled" && result.value?.base64) {
             fullImages[result.value.pageIndex] = `data:image/png;base64,${result.value.base64}`;
+          } else if (result.status === "rejected") {
+            console.error(`generate-full [${bookId}]: batch image rejected:`, result.reason?.message || result.reason);
           }
         }
-        await updateBook(bookId, { fullImages });
+        await updateBookField(bookId, { fullImages });
+        const doneCount = fullImages.filter(Boolean).length;
+        console.log(`generate-full [${bookId}]: STEP 4b batch done — ${doneCount}/${pages.length} images saved`);
       }
 
       // ── STEP 5: All done — send "book ready" email ───────────────────────────
@@ -827,7 +862,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
       }
 
     } catch (err) {
-      console.error("generate-full: fatal error for bookId:", bookId, err.message);
+      console.error(`generate-full [${bookId}]: FATAL ERROR — ${err.message}`, err.stack?.split('\n')[1] || '');
     }
   })();
 });
@@ -925,7 +960,7 @@ Rules:
 
           // Save after every batch so polling clients see progress
           if (batchHadNew) {
-            await updateBook(bookId, { fullImages });
+            await updateBookField(bookId, { fullImages });
             console.log(`generate-images: saved ${savedCount}/${toGenerate.length} images for book ${bookId}`);
           }
         }
