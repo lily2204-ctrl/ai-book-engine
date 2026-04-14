@@ -196,15 +196,18 @@ async function startPageImages(bookId) {
   setProgress(65, "Starting page illustrations...");
   setStatus("Generating 16 illustrations...");
 
-  // Fire and forget — preview.html polls for completion
-  apiJson(API_BASE + "/api/books/" + bookId + "/generate-images", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" }
-  }, 300000).catch(e => console.warn("Page images batch (partial ok):", e.message));
+  // Server responds immediately and generates in background
+  try {
+    await apiJson(API_BASE + "/api/books/" + bookId + "/generate-images", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    }, 15000); // short timeout — server replies instantly
+  } catch(e) {
+    console.warn("generate-images kick-off:", e.message);
+    // Non-fatal — generation may still be running on server
+  }
 
-  // Brief wait so at least the first image starts
-  await new Promise(r => setTimeout(r, 8000));
-  setProgress(88, "Illustrations in progress...");
+  setProgress(88, "Illustrations generating in background...");
 }
 
 // ── Step 5: Wrap up ───────────────────────────────────────────────

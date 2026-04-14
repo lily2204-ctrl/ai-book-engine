@@ -699,7 +699,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
   })();
 });
 
-// ─── Batch generate all page images (parallel, 3 at a time) ─────────────────
+// ─── Batch generate all page images — fires in background ────────────────────
 app.post("/api/books/:bookId/generate-images", async (req, res) => {
   try {
     const bookId = req.params.bookId;
@@ -714,47 +714,41 @@ app.post("/api/books/:bookId/generate-images", async (req, res) => {
       return res.status(400).json({ status: "error", message: "No pages to generate" });
     }
 
-    const characterReference = book.characterReference || {};
-    const style = book.illustrationStyle || "Soft Storybook";
-
-    // Skip pages that already have images
     const existingImages = book.fullImages || [];
-    const fullImages = [...existingImages];
+    const alreadyDone = existingImages.filter(Boolean).length;
 
-    // Pad array to match pages length
-    while (fullImages.length < pages.length) {
-      fullImages.push(null);
+    if (alreadyDone >= pages.length) {
+      return res.json({ status: "ok", generated: 0, total: pages.length, message: "All images already exist" });
     }
 
-    // Find which pages still need generation
-    const toGenerate = [];
-    for (let i = 0; i < pages.length; i++) {
-      if (!fullImages[i]) {
-        toGenerate.push(i);
-      }
-    }
+    // ── Respond immediately so client isn't waiting ──
+    res.json({ status: "ok", message: "Image generation started in background", total: pages.length });
 
-    if (toGenerate.length === 0) {
-      return res.json({
-        status: "ok",
-        generated: 0,
-        total: pages.length,
-        message: "All images already exist"
-      });
-    }
+    // ── Generate in background ──────────────────────────────────────────────
+    (async () => {
+      try {
+        const characterReference = book.characterReference || {};
+        const style = book.illustrationStyle || "Soft Storybook";
 
-    // Generate in batches of 3 for speed without hammering the API
-    const BATCH_SIZE = 5;
+        const fullImages = [...existingImages];
+        while (fullImages.length < pages.length) fullImages.push(null);
 
-    for (let batchStart = 0; batchStart < toGenerate.length; batchStart += BATCH_SIZE) {
-      const batch = toGenerate.slice(batchStart, batchStart + BATCH_SIZE);
+        const toGenerate = [];
+        for (let i = 0; i < pages.length; i++) {
+          if (!fullImages[i]) toGenerate.push(i);
+        }
 
-      const results = await Promise.allSettled(
-        batch.map(async (pageIndex) => {
-          const page = pages[pageIndex];
+        const BATCH_SIZE = 3; // 3 parallel — stable, not too aggressive
+        let savedCount = 0;
 
-          const finalPrompt = `
-Create a premium children's storybook illustration.
+        for (let batchStart = 0; batchStart < toGenerate.length; batchStart += BATCH_SIZE) {
+          const batch = toGenerate.slice(batchStart, batchStart + BATCH_SIZE);
+
+          const results = await Promise.allSettled(
+            batch.map(async (pageIndex) => {
+              const page = pages[pageIndex];
+
+              const finalPrompt = `Create a premium children's storybook illustration.
 
 Illustration style: ${sanitizeBrandTerms(style)}
 
@@ -774,41 +768,48 @@ Rules:
 - elegant composition
 - no logos
 - no brand names
-- no copyrighted costume emblems
-`.trim();
+- no copyrighted costume emblems`.trim();
 
-          const imgResp = await openai.images.generate({
-            model:  "gpt-image-1",
-            prompt: finalPrompt,
-            size:   "1024x1024"
-          });
+              const imgResp = await openai.images.generate({
+                model:  "gpt-image-1",
+                prompt: finalPrompt,
+                size:   "1024x1024"
+              });
 
-          const base64 = await normalizeImageToBase64(imgResp?.data?.[0]);
-          return { pageIndex, base64 };
-        })
-      );
+              const base64 = await normalizeImageToBase64(imgResp?.data?.[0]);
+              return { pageIndex, base64 };
+            })
+          );
 
-      // Store successful results
-      for (const result of results) {
-        if (result.status === "fulfilled" && result.value.base64) {
-          fullImages[result.value.pageIndex] = `data:image/png;base64,${result.value.base64}`;
+          let batchHadNew = false;
+          for (const result of results) {
+            if (result.status === "fulfilled" && result.value?.base64) {
+              fullImages[result.value.pageIndex] = `data:image/png;base64,${result.value.base64}`;
+              savedCount++;
+              batchHadNew = true;
+            }
+          }
+
+          // Save after every batch so polling clients see progress
+          if (batchHadNew) {
+            await updateBook(bookId, { fullImages });
+            console.log(`generate-images: saved ${savedCount}/${toGenerate.length} images for book ${bookId}`);
+          }
         }
+
+        console.log(`generate-images: completed ${savedCount} images for book ${bookId}`);
+      } catch (err) {
+        console.error("generate-images background error:", err.message);
       }
+    })();
 
-      // Save progress after each batch (so partial results are saved)
-      await updateBook(bookId, { fullImages });
+  } catch (err) {
+    console.error("generate-images setup error:", err.message);
+    if (!res.headersSent) {
+      res.status(500).json({ status: "error", message: err?.message || "Failed to start image generation" });
     }
-
-    const successCount = fullImages.filter(Boolean).length;
-
-    // Note: book ready email is sent after payment (Stripe webhook), not here
-
-    return res.json({
-      status:    "ok",
-      generated: toGenerate.length,
-      succeeded: successCount,
-      total:     pages.length
-    });
+  }
+});
   } catch (err) {
     console.error("Batch image generation failed:", err);
     return res.status(500).json({
