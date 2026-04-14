@@ -470,28 +470,28 @@ app.post("/webhooks/stripe", async (req, res) => {
       return res.status(200).send("ok");
     }
 
-    try {
-      await updateBook(bookId, {
-        paymentStatus:    "paid",
-        purchaseUnlocked: true,
-        stripeSessionId:  session.id
-      });
-      console.log(`Book ${bookId} unlocked via Stripe`);
+    // ── Respond to Stripe IMMEDIATELY (must be within 30s) ──
+    res.status(200).send("ok");
 
-      // ── Send "book is ready" email now that payment is confirmed ──
+    // ── Do the heavy work in background (non-blocking) ──
+    (async () => {
       try {
+        await updateBook(bookId, {
+          paymentStatus:    "paid",
+          purchaseUnlocked: true,
+          stripeSessionId:  session.id
+        });
+        console.log(`Book ${bookId} unlocked via Stripe`);
+
         const paidBook = await getBook(bookId);
         await sendBookReadyEmail(paidBook);
         console.log(`Book ready email sent to: ${paidBook?.customerEmail}`);
-      } catch (emailErr) {
-        console.error("Failed to send book ready email after payment:", emailErr.message);
-        // Don't fail the webhook — payment already processed
+      } catch (err) {
+        console.error("Stripe post-payment processing failed:", err.message);
       }
+    })();
 
-    } catch (err) {
-      console.error("Failed to unlock book:", err.message);
-      return res.status(500).send("DB update failed");
-    }
+    return; // already sent response above
   }
 
   return res.status(200).send("ok");

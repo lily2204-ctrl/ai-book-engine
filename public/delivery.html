@@ -344,10 +344,27 @@ async function generatePDF() {
     p(5, 'Loading book data...');
     book = await loadBook();
     const pages  = book.generatedBook?.pages || [];
-    const images = book.fullImages || [];
+    let   images = book.fullImages || [];
     const title  = book.generatedBook?.title  || 'Your Magical Adventure';
     const sub    = book.generatedBook?.subtitle || 'A Bedtime Journey to Dreamland';
     const child  = book.childName || 'your child';
+
+    // ── Wait for images if not all ready (up to 3 min) ──────────────────────
+    const readyCount = images.filter(Boolean).length;
+    if (readyCount < pages.length) {
+      p(6, 'Waiting for illustrations (' + readyCount + '/' + pages.length + ')...');
+      let waited = 0;
+      while (waited < 180) {
+        await new Promise(r => setTimeout(r, 3000));
+        waited += 3;
+        const fresh = await loadBook();
+        images = fresh.fullImages || [];
+        book   = fresh;
+        const now = images.filter(Boolean).length;
+        p(6, 'Waiting for illustrations (' + now + '/' + pages.length + ')...');
+        if (now >= pages.length) break;
+      }
+    }
 
     p(12, 'Loading PDF engine...');
     if (!window.jspdf) {
