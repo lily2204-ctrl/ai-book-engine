@@ -230,7 +230,106 @@ app.get("/api/books/:bookId", async (req, res) => {
   }
 });
 
-// ─── Email helper ─────────────────────────────────────────────────────────────
+// ─── Email: Payment confirmation (sent immediately after payment) ─────────────
+async function sendPaymentConfirmationEmail(book) {
+  if (!book.customerEmail) return;
+
+  const appUrl    = process.env.APP_URL || "https://lifebooks.online";
+  const childName = book.childName || "your child";
+  const bookTitle = book.generatedBook?.title || `${childName}'s Magical Adventure`;
+
+  try {
+    await resend.emails.send({
+      from:    "Lifebook <books@lifebooks.online>",
+      to:      book.customerEmail,
+      subject: `✅ Payment confirmed — ${childName}'s book is being created!`,
+      html: `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"/></head>
+<body style="margin:0;padding:0;background:#fdf6ec;font-family:Georgia,serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fdf6ec;padding:40px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 8px 40px rgba(100,60,20,0.12);border:1px solid #ede0c8;">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#1a1008,#5c3d1e);padding:36px;text-align:center;">
+            <div style="font-family:Georgia,serif;font-size:28px;color:#f5d98a;letter-spacing:0.5px;">lifebook</div>
+            <div style="font-size:11px;color:#c4a87a;margin-top:5px;letter-spacing:2px;text-transform:uppercase;">AI Children's Storybooks</div>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:36px 40px;">
+            <p style="font-family:Georgia,serif;font-size:26px;color:#3a2810;margin:0 0 12px;line-height:1.2;">
+              Payment confirmed! ✅
+            </p>
+            <p style="font-size:15px;color:#7a6048;line-height:1.7;margin:0 0 24px;">
+              We received your payment and <strong>${childName}'s</strong> personalized storybook is now being created.
+              Our AI is writing the story and illustrating every page — this usually takes <strong>5–10 minutes</strong>.
+            </p>
+
+            <!-- Status box -->
+            <table cellpadding="0" cellspacing="0" width="100%" style="background:#fdf6ec;border-radius:14px;border:1px solid #ede0c8;margin-bottom:24px;">
+              <tr>
+                <td style="padding:18px 22px;">
+                  <p style="font-family:Georgia,serif;font-size:17px;color:#5c3d1e;margin:0 0 6px;">"${bookTitle}"</p>
+                  <p style="font-size:13px;color:#8a6240;margin:0 0 14px;">A personalized story for ${childName}</p>
+                  <table cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="padding-right:28px;">
+                        <span style="font-size:10px;color:#c8922a;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;">Status</span><br/>
+                        <span style="font-size:14px;color:#3a2810;">Creating illustrations...</span>
+                      </td>
+                      <td>
+                        <span style="font-size:10px;color:#c8922a;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;">Est. time</span><br/>
+                        <span style="font-size:14px;color:#3a2810;">5–10 minutes</span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <p style="font-size:14px;color:#7a6048;line-height:1.7;margin:0;">
+              You'll receive a second email as soon as your book is ready to read and download.
+              No need to keep this page open — we'll come to you! 📬
+            </p>
+
+            <hr style="border:none;border-top:1px solid #f0e4d0;margin:24px 0 18px;" />
+
+            <p style="font-size:12px;color:#b09070;line-height:1.6;margin:0;">
+              Questions? Just reply to this email and we'll help right away.<br/>
+              Thank you for creating with Lifebook 💛
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#fdf6ec;border-top:1px solid #ede0c8;padding:16px 40px;text-align:center;">
+            <p style="font-size:11px;color:#c4a87a;margin:0;">
+              © 2026 Lifebook · <a href="${appUrl}/contact.html" style="color:#c8922a;text-decoration:none;">Contact Us</a>
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+      `.trim()
+    });
+    console.log("Payment confirmation email sent to:", book.customerEmail);
+  } catch(err) {
+    console.error("Failed to send payment confirmation email:", err.message);
+  }
+}
+
+// ─── Email: Book ready (sent only after ALL images are generated) ─────────────
 async function sendBookReadyEmail(book) {
   if (!book.customerEmail) return;
 
@@ -483,9 +582,21 @@ app.post("/webhooks/stripe", async (req, res) => {
         });
         console.log(`Book ${bookId} unlocked via Stripe`);
 
+        // Send payment confirmation email immediately
+        // Book ready email will be sent later by generate-full when all images are done
         const paidBook = await getBook(bookId);
-        await sendBookReadyEmail(paidBook);
-        console.log(`Book ready email sent to: ${paidBook?.customerEmail}`);
+        await sendPaymentConfirmationEmail(paidBook);
+        console.log(`Payment confirmation email sent to: ${paidBook?.customerEmail}`);
+
+        // Edge case: if book was already fully generated before payment
+        // (e.g. user paid after generation completed), send book ready email now too
+        const pages      = paidBook?.generatedBook?.pages || [];
+        const images     = paidBook?.fullImages || [];
+        const allDone    = pages.length > 0 && images.filter(Boolean).length >= pages.length;
+        if (allDone) {
+          console.log(`Book ${bookId} was already complete at payment time — sending book ready email`);
+          await sendBookReadyEmail(paidBook);
+        }
       } catch (err) {
         console.error("Stripe post-payment processing failed:", err.message);
       }
@@ -506,13 +617,22 @@ app.post("/api/books/:bookId/unlock", async (req, res) => {
     });
     if (!updated) return res.status(404).json({ status: "error", message: "Book not found" });
 
-    // Send book ready email
     try {
       const unlockedBook = await getBook(req.params.bookId);
-      await sendBookReadyEmail(unlockedBook);
-      console.log(`Book ready email sent to: ${unlockedBook?.customerEmail}`);
+      // Send payment confirmation
+      await sendPaymentConfirmationEmail(unlockedBook);
+      // If book already fully generated, also send book ready email
+      const pages   = unlockedBook?.generatedBook?.pages || [];
+      const images  = unlockedBook?.fullImages || [];
+      const allDone = pages.length > 0 && images.filter(Boolean).length >= pages.length;
+      if (allDone) {
+        await sendBookReadyEmail(unlockedBook);
+        console.log(`Unlock: both emails sent to ${unlockedBook?.customerEmail}`);
+      } else {
+        console.log(`Unlock: payment confirmation sent, book ready will follow when generation completes`);
+      }
     } catch (emailErr) {
-      console.error("Failed to send book ready email on unlock:", emailErr.message);
+      console.error("Failed to send emails on unlock:", emailErr.message);
     }
 
     return res.json({ status: "ok", book: updated });
@@ -690,8 +810,21 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
         await updateBook(bookId, { fullImages });
       }
 
-      // ── STEP 5: Done — email will be sent after payment (Stripe webhook) ──────
+      // ── STEP 5: All done — send "book ready" email ───────────────────────────
       console.log("generate-full: completed for bookId:", bookId);
+      try {
+        const completedBook = await getBook(bookId);
+        // Only send if book was paid (user might not have paid yet — that's ok,
+        // email will be triggered again by Stripe webhook when they do pay)
+        if (completedBook?.purchaseUnlocked && completedBook?.customerEmail) {
+          await sendBookReadyEmail(completedBook);
+          console.log("generate-full: book ready email sent to:", completedBook.customerEmail);
+        } else {
+          console.log("generate-full: book not yet paid, skipping book ready email for now");
+        }
+      } catch (emailErr) {
+        console.error("generate-full: failed to send book ready email:", emailErr.message);
+      }
 
     } catch (err) {
       console.error("generate-full: fatal error for bookId:", bookId, err.message);
