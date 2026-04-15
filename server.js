@@ -164,7 +164,7 @@ function patchToDbFields(patch = {}) {
 }
 
 async function insertBook(book) {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("books")
     .insert({
       book_id:            book.bookId,
@@ -186,11 +186,9 @@ async function insertBook(book) {
       payment_status:     book.paymentStatus,
       purchase_unlocked:  book.purchaseUnlocked,
       stripe_session_id:  book.stripeSessionId
-    })
-    .select()
-    .single();
+    });
   if (error) throw error;
-  return dbRowToBook(data);
+  return book;
 }
 
 async function getBook(bookId) {
