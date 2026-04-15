@@ -716,7 +716,9 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
 
       // ── STEP 2: Generate story text ───────────────────────────────────────────
       if (!book.generatedBook?.pages?.length) {
-        const storyPrompt = `You are a premium personalized children's book writer.\n\nChild name: ${sanitizeBrandTerms(childName)}\nChild age: ${childAge}\nChild gender: ${childGender}\nStory direction: ${sanitizeBrandTerms(storyIdea)}\nIllustration style: ${safeStyle}\n\nCharacter summary:\n${sanitizeBrandTerms(characterSummary)}\n\nCharacter consistency instructions:\n${sanitizeBrandTerms(promptCore)}\n\nReturn ONLY JSON:\n{\n  "title": "string",\n  "subtitle": "string",\n  "pages": [\n    {\n      "text": "string",\n      "imagePrompt": "string"\n    }\n  ]\n}\n\nRules:\n- Exactly 16 story pages\n- Each page text must be 35-70 words\n- The child must clearly be the hero\n- imagePrompt must describe the same child consistently\n- No page numbers inside text\n- No brand names\n- Do not mention copyrighted characters or logos`;
+        const storyPrompt = `You are a premium personalized children's book writer.\n\nChild name: ${sanitizeBrandTerms(childName)}\nChild age: ${childAge}\nChild gender: ${childGender}\nStory direction: ${sanitizeBrandTerms(storyIdea)}\nIllustration style: ${safeStyle}\n\nCharacter summary:\n${sanitizeBrandTerms(characterSummary)}\n\nCharacter consistency instructions:\n${sanitizeBrandTerms(promptCore)}\n\nReturn ONLY JSON:\n{\n  "title": "string",\n  "subtitle": "string",\n  "pages": [\n    {\n      "text": "string",\n      "imagePrompt": "string"\n    }\n  ]\n}\n\nRules:\n- Exactly 16 story pages\n- Each page text must be 35-70 words\n- The child must clearly be the hero\n- imagePrompt must describe the same child consistently\n- No page numbers inside text\n- No brand names\n- Do not mention copyrighted characters or logos
+- If the child's name contains Hebrew characters, write the ENTIRE story in Hebrew (including title, subtitle, and all page text). Keep imagePrompt always in English for image generation.
+- If the name is in English or Latin characters, write in English\`;
 
         const storyCompletion = await openai.chat.completions.create({
           model: "gpt-4o-mini",
@@ -953,6 +955,22 @@ Rules:
 });
 
 // ─── Image generation progress check ─────────────────────────────────────────
+// ─── Resend book link email ───────────────────────────────────────────────────
+app.post("/api/books/:bookId/resend-email", async (req, res) => {
+  try {
+    const book = await getBook(req.params.bookId);
+    if (!book) return res.status(404).json({ ok: false, error: "Book not found" });
+    if (!book.customerEmail) return res.status(400).json({ ok: false, error: "No email on file" });
+    if (!book.purchaseUnlocked) return res.status(403).json({ ok: false, error: "Book not purchased" });
+    await sendBookReadyEmail(book);
+    console.log(`Resend email: book link sent to ${book.customerEmail}`);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("Resend email error:", err.message);
+    return res.status(500).json({ ok: false, error: "Failed to send email" });
+  }
+});
+
 app.get("/api/books/:bookId/image-status", async (req, res) => {
   try {
     const book = await getBook(req.params.bookId);
@@ -1404,6 +1422,16 @@ app.post("/api/contact", async (req, res) => {
     console.error("Contact form error:", err.message);
     return res.status(500).json({ ok: false, error: "Failed to send message" });
   }
+});
+
+// ─── 404 handler ─────────────────────────────────────────────────────────────
+app.use((req, res) => {
+  // API routes return JSON 404
+  if (req.path.startsWith("/api/") || req.path.startsWith("/webhooks/")) {
+    return res.status(404).json({ status: "error", message: "Not found" });
+  }
+  // HTML pages return 404.html
+  res.status(404).sendFile(path.join(__dirname, "public", "404.html"));
 });
 
 // ─── Start server ─────────────────────────────────────────────────────────────

@@ -226,6 +226,9 @@ if (generateBookBtn) {
       generateBookBtn.textContent = "Generating...";
       setStatus("Starting...");
 
+      // Start live timer
+      if (window.startGenTimer) window.startGenTimer();
+
       const bookId = await createBookRecord();
       await analyzePhoto();
       const storyResult = await generateStory(bookId);

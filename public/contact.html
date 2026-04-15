@@ -151,7 +151,7 @@
 <body>
 
 <nav>
-  <button class="nav-back" onclick="history.back()">← Back</button>
+  <button class="nav-back" onclick="history.back()" aria-label="חזרה לעמוד הקודם">← Back</button>
   <a class="nav-brand" href="index.html">
     <img src="assets/branding/logo.svg" alt="Lifebook" style="height:40px;width:auto;display:block" onerror="this.style.display='none'"/>
     <span class="nav-brand-name">lifebook</span>
@@ -310,5 +310,6 @@ async function submitForm() {
 }
 </script>
 
+<script src="accessibility.js"></script>
 </body>
 </html>

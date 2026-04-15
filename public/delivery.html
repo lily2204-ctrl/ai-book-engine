@@ -105,7 +105,7 @@
 <body>
 
 <nav>
-  <button class="nav-back" onclick="history.back()">← Back</button>
+  <button class="nav-back" onclick="history.back()" aria-label="חזרה לעמוד הקודם">← Back</button>
   <a class="nav-brand" href="index.html">
     <img src="assets/branding/logo.svg" alt="Lifebook" style="height:54px;width:auto;display:block"/>
   </a>
@@ -163,9 +163,9 @@
         </div>
 
         <div class="flipper-nav">
-          <button class="nav-btn" id="prevBtn" disabled title="Previous page (←)">←</button>
+          <button class="nav-btn" id="prevBtn" disabled title="Previous page (←)" aria-label="עמוד קודם">←</button>
           <div class="spread-dots" id="spreadDots"></div>
-          <button class="nav-btn" id="nextBtn" title="Next page (→)">→</button>
+          <button class="nav-btn" id="nextBtn" title="Next page (→)" aria-label="עמוד הבא">→</button>
         </div>
         <div style="text-align:center;margin-top:8px;font-size:11px;color:var(--text-muted);opacity:0.7">
           Use arrow keys or swipe to flip pages
@@ -231,7 +231,7 @@ function renderSpread(i) {
         const text = pages[pi]?.text || '';
         return `<div class="spread-${side} page-half">
           <div class="page-img">${img
-            ? `<img src="${img}" alt="Page ${pi+1}"/>`
+            ? `<img src="${img}" alt="איור עמוד ${pi+1}: ${(text||'').substring(0,60).replace(/"/g,"'")}..."/>`
             : `<div class="page-img-spin"><div class="mini-spin"></div><span>Illustrating...</span></div>`
           }</div>
           <div class="page-text"><p>${text}</p></div>
@@ -309,7 +309,20 @@ async function init() {
   if (ready < pages.length) {
     let n = 0;
     const iv = setInterval(async () => {
-      if (++n > 60) { clearInterval(iv); return; }
+      if (++n > 60) {
+        clearInterval(iv);
+        // After 2.5 min with no progress — show friendly message
+        const stillMissing = (book.fullImages||[]).filter(Boolean).length;
+        if (stillMissing < pages.length) {
+          const statusEl = document.createElement('div');
+          statusEl.setAttribute('role', 'alert');
+          statusEl.style.cssText = 'background:#fdf6ec;border:1.5px solid #ede0c8;border-radius:14px;padding:16px 20px;margin-top:12px;font-size:14px;color:#7a6048;line-height:1.7;';
+          statusEl.innerHTML = '⏳ <strong style="color:#5c3d1e">האיורים עדיין נוצרים</strong> — זה עשוי לקחת עוד כמה דקות.<br/>תוכלי לסגור את הדפדפן — <strong>נשלח לך מייל</strong> כשהספר מוכן לחלוטין.';
+          const flipCard = document.querySelector('.flipper-card');
+          if (flipCard) flipCard.appendChild(statusEl);
+        }
+        return;
+      }
       const b2 = await loadBook();
       const r2 = (b2.fullImages||[]).filter(Boolean).length;
       if (r2 > ready) {
@@ -630,5 +643,6 @@ async function generatePDF() {
 
 init();
 </script>
+<script src="accessibility.js"></script>
 </body>
 </html>
