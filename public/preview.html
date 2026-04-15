@@ -111,11 +111,11 @@
 
   <!-- LOADING SCREEN -->
   <div class="loading-screen" id="loadingScreen">
-    <div class="loading-title">יוצרים את הספר של <span id="loadingChildName">הילד שלך</span>...</div>
-    <div class="loading-sub">הבינה המלאכותית שלנו מכינה סיפור אישי במיוחד</div>
+    <div class="loading-title">Creating <span id="loadingChildName">your child</span>...</div>
+    <div class="loading-sub">Our AI is crafting a personalized story just for them</div>
 
     <div class="lb-timer-row">
-      <span class="lb-timer-label">זמן שחלף</span>
+      <span class="lb-timer-label">Time elapsed</span>
       <span class="lb-timer-val" id="lbTimer">0:00</span>
     </div>
     <div class="lb-bar-wrap"><div class="lb-bar" id="lbBar"></div></div>
@@ -124,39 +124,39 @@
       <div class="lb-step active" id="lstep1">
         <div class="lb-icon" id="lbIcon1">📷</div>
         <div class="lb-step-text">
-          <div class="lb-step-label">מנתח את התמונה</div>
-          <div class="lb-step-desc">מזהה את תווי הפנים הייחודיים</div>
+          <div class="lb-step-label">Analyzing photo</div>
+          <div class="lb-step-desc">Identifying your child's unique features</div>
         </div>
         <div class="lb-step-time" id="lbTime1">~30s</div>
       </div>
       <div class="lb-step" id="lstep2">
         <div class="lb-icon" id="lbIcon2">✍️</div>
         <div class="lb-step-text">
-          <div class="lb-step-label">כותב את הסיפור</div>
-          <div class="lb-step-desc">יוצר הרפתקה אישית</div>
+          <div class="lb-step-label">Writing the story</div>
+          <div class="lb-step-desc">Creating a personalized adventure</div>
         </div>
         <div class="lb-step-time" id="lbTime2">~45s</div>
       </div>
       <div class="lb-step" id="lstep3">
         <div class="lb-icon" id="lbIcon3">🎨</div>
         <div class="lb-step-text">
-          <div class="lb-step-label" id="lbLabel3">מצייר את האיורים</div>
-          <div class="lb-step-desc">כריכה + 2 תמונות פריוויו</div>
+          <div class="lb-step-label" id="lbLabel3">Illustrating first pages</div>
+          <div class="lb-step-desc">Cover + 2 preview illustrations</div>
         </div>
         <div class="lb-step-time" id="lbTime3">~60s</div>
       </div>
       <div class="lb-step" id="lstep4">
         <div class="lb-icon" id="lbIcon4">📖</div>
         <div class="lb-step-text">
-          <div class="lb-step-label">הפריוויו מוכן!</div>
-          <div class="lb-step-desc">מוכן לצפייה ולרכישה</div>
+          <div class="lb-step-label">Preview ready!</div>
+          <div class="lb-step-desc">Ready to view and unlock</div>
         </div>
         <div class="lb-step-time" id="lbTime4"></div>
       </div>
     </div>
 
     <div role="note" style="padding:11px 16px;background:rgba(200,146,42,0.07);border-radius:12px;border:1px solid rgba(200,146,42,0.18);font-size:12px;color:#7a6048;line-height:1.7;max-width:340px;text-align:center;">
-      📬 <strong style="color:#5c3d1e">אפשר לסגור את הדפדפן</strong> — נשלח מייל כשהספר מוכן
+      📬 <strong style="color:#5c3d1e">You can close this tab</strong> — we'll email you when your book is ready
     </div>
   </div>
 
@@ -311,7 +311,7 @@ var previewShown = false;
 
 async function pollBook() {
   var maxWait = 180, every = 3, elapsed = 0;
-  setStep(1, "מנתח את התמונה and building character...", 10);
+  setStep(1, "Analyzing photo and building character...", 10);
 
   while (elapsed < maxWait) {
     await new Promise(function(r){ setTimeout(r, every * 1000); });
@@ -333,7 +333,7 @@ async function pollBook() {
       var hasCover  = !!b.coverImage;
       var has2Imgs  = !!(b.fullImages && b.fullImages.filter(Boolean).length >= 2);
 
-      if      (!hasChar)  setStep(1, "מנתח את התמונה...", 15);
+      if      (!hasChar)  setStep(1, "Analyzing photo...", 15);
       else if (!hasStory) setStep(2, "Writing " + (b.childName||"your child") + "'s story...", 35);
       else if (!hasImgs)  setStep(3, "Illustrating the first pages...", 55);
       else if (!hasCover) setStep(4, "Creating the cover...", 78);
