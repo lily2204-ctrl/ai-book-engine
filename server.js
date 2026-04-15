@@ -215,6 +215,16 @@ async function updateBook(bookId, patch) {
   return dbRowToBook(data);
 }
 
+// ✅ Safe for large image payloads — no .select() so no Supabase row-size timeout
+async function updateBookField(bookId, patch) {
+  const dbPatch = patchToDbFields(patch);
+  const { error } = await supabase
+    .from("books")
+    .update(dbPatch)
+    .eq("book_id", bookId);
+  if (error) throw error;
+}
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
@@ -655,6 +665,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
       if (!book) { console.error("generate-full: book not found", bookId); return; }
 
       console.log(`generate-full [${bookId}]: START — child: ${book.childName}, style: ${book.illustrationStyle}`);
+      const _t0 = Date.now();
 
       const childName         = book.childName         || "The Child";
       const childAge          = book.childAge          || "5";
@@ -667,6 +678,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
       // ── STEP 1: Character reference (photo → DNA + prompt core) ──────────────
       let characterReference = book.characterReference || null;
 
+      console.log(`TIMER [${bookId}] photo-analysis start: ${Date.now()}`);
       if (!characterReference && croppedPhoto) {
         try {
           const dnaCompletion = await openai.chat.completions.create({
@@ -712,11 +724,13 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
 
       const promptCore       = characterReference?.characterPromptCore || `A young child aged ${childAge}.`;
       const characterSummary = characterReference?.characterSummary    || `A ${childAge}-year-old child hero.`;
+      console.log(`TIMER [${bookId}] photo-analysis end: ${Date.now()} — ${Date.now() - _t0}ms elapsed`);
       console.log(`generate-full [${bookId}]: STEP 1 done — character reference ready`);
 
       // ── STEP 2: Generate story text ───────────────────────────────────────────
+      console.log(`TIMER [${bookId}] story start: ${Date.now()}`);
       if (!book.generatedBook?.pages?.length) {
-        const storyPrompt = `You are a premium personalized children's book writer.\n\nChild name: ${sanitizeBrandTerms(childName)}\nChild age: ${childAge}\nChild gender: ${childGender}\nStory direction: ${sanitizeBrandTerms(storyIdea)}\nIllustration style: ${safeStyle}\n\nCharacter summary:\n${sanitizeBrandTerms(characterSummary)}\n\nCharacter consistency instructions:\n${sanitizeBrandTerms(promptCore)}\n\nReturn ONLY JSON:\n{\n  "title": "string",\n  "subtitle": "string",\n  "pages": [\n    {\n      "text": "string",\n      "imagePrompt": "string"\n    }\n  ]\n}\n\nRules:\n- Exactly 16 story pages\n- Each page text must be 35-70 words\n- The child must clearly be the hero\n- imagePrompt must describe the same child consistently\n- No page numbers inside text\n- No brand names\n- Do not mention copyrighted characters or logos
+        const storyPrompt = `You are a premium personalized children's book writer.\n\nChild name: ${sanitizeBrandTerms(childName)}\nChild age: ${childAge}\nChild gender: ${childGender}\nStory direction: ${sanitizeBrandTerms(storyIdea)}\nIllustration style: ${safeStyle}\n\nCharacter summary:\n${sanitizeBrandTerms(characterSummary)}\n\nCharacter consistency instructions:\n${sanitizeBrandTerms(promptCore)}\n\nReturn ONLY JSON:\n{\n  "title": "string",\n  "subtitle": "string",\n  "pages": [\n    {\n      "text": "string",\n      "imagePrompt": "string"\n    }\n  ]\n}\n\nRules:\n- Exactly 12 story pages\n- Each page text must be 35-70 words\n- The child must clearly be the hero\n- imagePrompt must describe the same child consistently\n- No page numbers inside text\n- No brand names\n- Do not mention copyrighted characters or logos
 - If the child's name contains Hebrew characters, write the ENTIRE story in Hebrew (including title, subtitle, and all page text). Keep imagePrompt always in English for image generation.
 - If the name is in English or Latin characters, write in English`;
 
@@ -733,17 +747,19 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
           title:    sanitizeBrandTerms(storyData.title    || `The Magical Adventure of ${childName}`),
           subtitle: sanitizeBrandTerms(storyData.subtitle || "A story where you are the hero"),
           pages:    Array.isArray(storyData.pages)
-            ? storyData.pages.slice(0, 16).map(p => ({
+            ? storyData.pages.slice(0, 12).map(p => ({
                 text:        sanitizeBrandTerms(String(p.text        || "").trim()),
                 imagePrompt: sanitizeImagePrompt(String(p.imagePrompt || "").trim())
               }))
             : []
         };
         await updateBook(bookId, { generatedBook });
+        console.log(`TIMER [${bookId}] story end: ${Date.now()} — story pages: ${generatedBook.pages.length}`);
       }
 
       // ── STEP 3+4a: Cover + first 2 page images IN PARALLEL ──────────────────
       // Running them together cuts the wait from ~2min to ~60s
+      console.log(`TIMER [${bookId}] cover-images start: ${Date.now()} — ${Date.now() - _t0}ms since start`);
       console.log(`generate-full [${bookId}]: STEP 2 done — story written, starting cover + priority images in parallel`);
 
       const bookBeforeImgs = await getBook(bookId);
@@ -754,11 +770,13 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
       const fullImages     = [...existingImages];
       while (fullImages.length < pages.length) fullImages.push(null);
 
-      // פונקציה ליצירת תמונה אחת
-      async function generatePageImage(pageIndex) {
+      // פונקציה ליצירת תמונה אחת — quality "low" for fast preview pages, default for rest
+      async function generatePageImage(pageIndex, quality) {
         const page = pages[pageIndex];
         const imgPrompt = `Create a premium children's storybook illustration.\n\nIllustration style: ${safeStyle}\n\nCharacter consistency:\n${sanitizeBrandTerms(promptCore)}\n\nScene:\n${sanitizeImagePrompt(page.imagePrompt || "")}\n\nRules:\n- same child identity\n- same face structure\n- same hair and skin tone\n- warm magical storybook aesthetic\n- no text\n- no watermark\n- elegant composition\n- no logos\n- no brand names\n- no copyrighted costume emblems`;
-        const imgResp = await openai.images.generate({ model: "gpt-image-1", prompt: imgPrompt, size: "1024x1024" });
+        const genOpts = { model: "gpt-image-1", prompt: imgPrompt, size: "1024x1024" };
+        if (quality) genOpts.quality = quality;
+        const imgResp = await openai.images.generate(genOpts);
         return await normalizeImageToBase64(imgResp?.data?.[0]);
       }
 
@@ -766,10 +784,11 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
       const coverPrompt = `Create a premium children's storybook COVER illustration.\n\nIllustration style: ${safeStyle}\n\nLOCKED CHILD CHARACTER:\n${sanitizeBrandTerms(promptCore)}\n\nSHORT CHARACTER SUMMARY:\n${sanitizeBrandTerms(characterSummary)}\n\nBOOK TITLE:\n${sanitizeBrandTerms(title)}\n\nBOOK SUBTITLE:\n${sanitizeBrandTerms(subtitle)}\n\nSTORY DIRECTION:\n${sanitizeBrandTerms(storyIdea)}\n\nRules:\n- create ONE beautiful single cover illustration\n- show the child as the hero\n- magical, premium, warm\n- no character sheet\n- no multiple poses\n- no text rendered into the image\n- no watermark\n- no logos\n- no copyrighted costume emblems`;
 
       // Run cover + pages 0 and 1 all at once in parallel
+      // quality:"low" on priority images = faster generation for the preview
       const [coverResult, page0Result, page1Result] = await Promise.allSettled([
-        bookBeforeImgs.coverImage ? Promise.resolve(null) : openai.images.generate({ model: "gpt-image-1", prompt: coverPrompt, size: "1024x1024" }),
-        fullImages[0] ? Promise.resolve(null) : generatePageImage(0),
-        fullImages[1] ? Promise.resolve(null) : generatePageImage(1),
+        bookBeforeImgs.coverImage ? Promise.resolve(null) : openai.images.generate({ model: "gpt-image-1", prompt: coverPrompt, size: "1024x1024", quality: "low" }),
+        fullImages[0] ? Promise.resolve(null) : generatePageImage(0, "low"),
+        fullImages[1] ? Promise.resolve(null) : generatePageImage(1, "low"),
       ]);
 
       // Save cover
@@ -788,6 +807,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
         await updateBookField(bookId, { fullImages: [...fullImages] });
       }
 
+      console.log(`TIMER [${bookId}] cover+priority-images end: ${Date.now()} — ${Date.now() - _t0}ms elapsed`);
       console.log(`generate-full [${bookId}]: STEP 3+4a done — cover + priority images saved`);
 
       // שלב 4ב: שאר התמונות (3-16) בbatches של 3
@@ -818,6 +838,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
       }
 
       // ── STEP 5: All done — send "book ready" email ───────────────────────────
+      console.log(`TIMER [${bookId}] all-images end: ${Date.now()} — total ${Date.now() - _t0}ms elapsed`);
       console.log("generate-full: completed for bookId:", bookId);
       try {
         const completedBook = await getBook(bookId);
