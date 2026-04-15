@@ -2,278 +2,165 @@
 *Last updated: April 15, 2026*
 
 ## ⚠️ DO NOT MODIFY — ALREADY DONE
-These things are COMPLETE. Do not revert, replace, or remove them:
-- `public/assets/branding/logo.svg` — new logo, correct viewBox `430 466 639 514`, transparent bg
-- All HTML pages use `<img src="assets/branding/logo.svg" style="height:48px;width:auto;display:block"/>` — NO mix-blend-mode, NO logo.png
-- `public/accessibility.js` — accessibility widget, already added to ALL html pages via `<script src="accessibility.js"></script>` before `</body>`
-- `public/404.html` — Hebrew 404 page, already exists
-- Two-email system in server.js — `sendPaymentConfirmationEmail` + `sendBookReadyEmail`
-- `updateBookField()` function — DO NOT replace with `updateBook()` for image saves
-- `CLAUDE.md` — this file, do not overwrite
+- `public/assets/branding/logo.svg` — new logo, viewBox `430 466 639 514`, transparent bg
+- All HTML pages: `<img src="assets/branding/logo.svg" style="height:48px;width:auto;display:block"/>` — NO mix-blend-mode, NO logo.png
+- `public/accessibility.js` — widget on ALL pages via `<script src="accessibility.js"></script>` before `</body>`
+- `public/404.html` — Hebrew error page
+- `server.js` two-email system — `sendPaymentConfirmationEmail` + `sendBookReadyEmail`
+- `server.js` `updateBookField()` — DO NOT replace with `updateBook()` for image saves
+- `public/preview.html` — new loading screen with step tracker + live timer (DO NOT revert to spinner)
 
 ---
 
 ## Project Overview
 AI-powered personalized children's storybook generator.
-User fills wizard → uploads photo → AI generates 15-page illustrated book → payment → PDF download + email.
+Wizard → photo upload → crop → AI generates illustrated book → payment → PDF + email.
 
 ## URLs
-- **Live site:** https://lifebooks.online
-- **Railway app:** https://romantic-patience-production.up.railway.app
+- **Live:** https://lifebooks.online
+- **Railway:** https://romantic-patience-production.up.railway.app
 
 ## Stack
-- **Backend:** Node.js / Express (`server.js`) — ES modules (`import`)
-- **Frontend:** Plain HTML/CSS/JS in `public/` folder
-- **DB:** Supabase (PostgreSQL) — Pro plan
-- **Payments:** Stripe (sandbox only — live not yet configured)
-- **Email:** Resend (`books@lifebooks.online`) — ✅ Verified
-- **AI:** OpenAI `gpt-4o-mini` (story) + `gpt-image-1` (images)
-- **Hosting:** Railway
+Node.js/Express (`server.js`, ES modules) · Supabase (PostgreSQL Pro) · OpenAI gpt-4o-mini + gpt-image-1 · Stripe (sandbox) · Resend (`books@lifebooks.online` ✅) · Railway
 
 ---
 
 ## User Flow
 ```
-index.html → wizard.html → crop.html → [setup.html] → preview.html → checkout.html → success.html → delivery.html → reader.html
+wizard.html → crop.html → preview.html → checkout.html → success.html → delivery.html → reader.html
 ```
-Both `crop.js` and `setup.js` call `/api/books/create` then kick `/api/books/:id/generate-full` (fire & forget), then redirect to `preview.html?bookId=...`
+Both `crop.js` and `setup.js`: call `/api/books/create` → kick `/api/books/:id/generate-full` (fire & forget) → redirect to `preview.html?bookId=...`
 
 ---
 
 ## Design System
 ```css
---cream:#fdf6ec; --cream-deep:#f5e9d4; --parchment:#ede0c8;
---gold:#c8922a; --gold-light:#e8b84b; --gold-pale:#f5d98a;
---brown:#5c3d1e; --text:#3a2810; --text-muted:#7a6048;
---shadow-warm:0 8px 40px rgba(100,60,20,0.12);
+--cream:#fdf6ec; --gold:#c8922a; --gold-light:#e8b84b; --brown:#5c3d1e;
+--text:#3a2810; --text-muted:#7a6048; --parchment:#ede0c8;
 ```
-- Fonts: Playfair Display (headings) + Lato (body)
-- Logo: `assets/branding/logo.svg` (viewBox: `430 466 639 514`, transparent bg, color `#8b6e6e`)
+Fonts: Playfair Display + Lato
 
 ---
 
-## Server Architecture
-
-### Key Endpoints
+## Key Endpoints
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/books/create` | POST | Creates book record in Supabase |
-| `/api/books/:id/generate-full` | POST | Full pipeline — background IIFE, returns immediately |
-| `/api/books/:id/generate-images` | POST | Page images only — background IIFE |
-| `/api/books/:id` | GET | Fetch book data (used for polling every 2.5s) |
-| `/api/books/:id/unlock` | POST | Manual unlock (dev/testing) |
-| `/api/books/:id/resend-email` | POST | Resend book link email |
-| `/api/books/:id/update-photo` | POST | Update cropped photo after early generation |
-| `/api/create-checkout-session` | POST | Creates Stripe checkout session |
-| `/webhooks/stripe` | POST | Stripe webhook — unlocks book + sends confirmation email |
+| `/api/books/:id/generate-full` | POST | Full pipeline — background, returns immediately |
+| `/api/books/:id` | GET | Fetch book (polling every 2.5s) |
+| `/api/books/:id/unlock` | POST | Manual unlock (dev) |
+| `/api/books/:id/resend-email` | POST | Resend book link |
+| `/api/books/:id/update-photo` | POST | Update cropped photo |
+| `/api/create-checkout-session` | POST | Stripe checkout |
+| `/webhooks/stripe` | POST | Unlock book + send confirmation email |
 | `/api/contact` | POST | Contact form |
 
-### generate-full Pipeline (background IIFE)
+---
+
+## generate-full Pipeline
 ```
-STEP 1: Analyze photo with Vision API → characterReference saved (~30s)
-STEP 2: Write story with GPT-4o-mini → generatedBook saved (~60s)
-STEP 3+4a: Cover + pages 0,1 IN PARALLEL → saved individually (~60s)
-STEP 4b: Remaining pages in batches of 5 → each saved immediately on completion (~5min)
-STEP 5: Send "book ready" email — ONLY if purchaseUnlocked === true
+STEP 1: Analyze photo → characterReference (~30s)
+STEP 2: Write story (12 pages) → generatedBook (~45s)
+STEP 3+4a: Cover + pages 0,1 IN PARALLEL → saved individually (~60s)  ← already implemented
+STEP 4b: Remaining pages, batches of 5, each saved immediately on completion (~5min)
+STEP 5: Send book-ready email ONLY if purchaseUnlocked === true
 ```
 
-### ⚠️ Critical: Image Saving
-**MUST use `updateBookField()` for saving images** — NOT `updateBook()`.
-`updateBook()` returns full row via `.select().maybeSingle()` → row up to 24MB → Supabase timeout.
-`updateBookField()` does update without `.select()` → safe for large data.
-
-### Email System
-- **Mail 1:** "Payment confirmed — book being created" → sent immediately on Stripe webhook
-- **Mail 2:** "Book ready!" → sent at end of generate-full ONLY when `purchaseUnlocked === true`
-- Edge case: if book already complete when payment arrives → both emails sent together
-- All from: `books@lifebooks.online`
-
-### Background IIFE Pattern
+## ⚠️ Critical DB Pattern
 ```javascript
-res.json({ status: "ok" }); // respond immediately
-(async () => {
-  try { /* heavy work */ }
-  catch (err) { console.error("error:", err.message); }
-})();
-return;
+// ✅ CORRECT — no .select(), safe for large images
+await updateBookField(bookId, { fullImages: [...fullImages] });
+
+// ❌ WRONG — returns full row → Supabase timeout with images
+await updateBook(bookId, { fullImages });
 ```
 
 ---
 
-## Image Generation
-- Model: `gpt-image-1`, size `1024x1024`
-- Compressed to JPEG ~40-80KB before saving (was PNG ~1.5MB)
-- Cover + pages 0,1 generated IN PARALLEL after story is done
-- Each image saved to DB immediately when ready (not batch)
-- BATCH_SIZE = 5 for remaining pages
-- Total time: ~7-8 minutes for full book
+## Email System
+- **Mail 1:** "Payment confirmed" → sent immediately on Stripe webhook
+- **Mail 2:** "Book ready" → sent at end of generate-full ONLY if `purchaseUnlocked === true`
+- Edge case: book already complete at payment → both emails sent together
 
 ---
 
-## Frontend — Key Behaviors
+## preview.html — Loading Screen
+New step tracker (DO NOT revert):
+- Live timer (0:00, 0:01...)
+- 4 steps with icons: 📷 Analyzing → ✍️ Writing → 🎨 Illustrating → 📖 Ready
+- Each step marks ✅ when done with actual elapsed time
+- Progress bar
+- "You can close this tab" note
 
-### preview.html
-- Polls every 2.5s for book updates
-- Shows story text immediately when `generatedBook` exists
-- Shows images as they arrive (placeholders "Illustrating..." until ready)
-- **Unlock button** enabled only after cover + 2 page images exist
+## preview.html — After Loading
+- Shows story text + shimmer placeholders immediately when generatedBook exists
+- Unlock button enabled only after cover + 2 page images exist
 - Progress counter: "✨ X/16 pages illustrated"
-- Message: "You can close this tab — we'll email you when ready"
 
-### delivery.html
+## delivery.html — After Payment
 - Live progress bar: "X/16 pages ready — ~N min remaining"
-- ETA = remaining pages × 25 seconds
-- Images fade in as they arrive via polling
-- "✅ Your book is complete!" when done, bar hides after 3s
-- Polls every 2.5s, up to 60 times (2.5 min)
-- After timeout: "Close the browser — we'll email you"
-
-### success.html
-- "Resend book link to my email" button
-- Calls `/api/books/:id/resend-email`
+- ETA = remaining × 25s
+- "✅ Your book is complete!" when done
 
 ---
 
-## Accessibility (public/accessibility.js)
-Floating widget on ALL pages with:
-- High contrast mode
-- Highlight links
-- Font size controls (12-24px)
-- Saves preferences to localStorage
-- All nav buttons have `aria-label`
+## Payments
+- **Stripe:** US sandbox only (no live — needs SSN)
+- **Payoneer:** ✅ Approved
+- **TODO:** LemonSqueezy (1 day, ~5%) or PayPlus (1 week, ~1-3%)
 
 ---
 
-## Hebrew Support
-- wizard.html has 🌐 language toggle with full RTL
-- If child's name contains Hebrew characters → story written entirely in Hebrew
-- `imagePrompt` always in English (required for image generation API)
+## Bugs Fixed
+1. ✅ Supabase timeout → `updateBookField()` + JPEG compression
+2. ✅ setup.js went to legacy generate.html → fixed to use generate-full
+3. ✅ Stripe webhook 21% errors → returns 200 immediately
+4. ✅ PDF emoji garbage → geometric shapes
+5. ✅ Logo invisible → SVG viewBox fixed
+6. ✅ SyntaxError crashes → fixed
+7. ✅ Cover + pages 0,1 now parallel → ~60s saved
+8. ✅ Each image saves immediately → user sees them appear one by one
+9. ✅ updateBookField was called but never defined → added
 
 ---
 
-## Payments — Current Status
-- **Stripe:** US account sandbox only — live requires SSN (not available)
-- **Payoneer:** ✅ Approved — will receive funds from future payment processor
-- **TODO:** Integrate LemonSqueezy OR PayPlus
-  - LemonSqueezy: ~1 day, ~5% fee, works immediately from Israel ← recommended for launch
-  - PayPlus: ~1 week, ~1-3% fee, Israeli, supports Bit
-
----
-
-## Known Issues Fixed
-1. ✅ Supabase statement timeout — `updateBookField()` + JPEG compression
-2. ✅ generate-full not triggered — `setup.js` was going to legacy `generate.html`
-3. ✅ Stripe webhook 21% errors — returns 200 immediately, works in background
-4. ✅ PDF emoji garbage (`Ø=ÜÖ`) — replaced with geometric shapes
-5. ✅ Logo invisible — SVG viewBox fixed to `430 466 639 514`
-6. ✅ SyntaxError crashes — orphaned `}`, broken backticks from Python edits
-7. ✅ Images stuck after cover — batch saving caused Supabase timeout
-8. ✅ Hebrew story — auto-detected from child name
-9. ✅ Cover + pages 0,1 now parallel — saves ~60s
-10. ✅ Each image saves immediately — user sees them appear one by one
-
----
-
-## TODO Before Launch
+## TODO
 ### 🔴 Critical
-- [ ] Payment system: LemonSqueezy (fast) or PayPlus (cheaper)
-- [ ] Reduce preview load time further (target <90s for first images)
+- [ ] Payment: LemonSqueezy or PayPlus
 - [ ] End-to-end test with real payment
 
 ### 🟡 Important
 - [ ] Terms & Refund policy page
-- [ ] Consider reducing to 12 pages for faster generation
+- [ ] Reduce preview time further if possible
 
 ### 🟢 Nice to have
-- [ ] More pages in Hebrew
-- [ ] Google Analytics / Meta Pixel
-- [ ] OpenAI fallback if API down
-- [ ] Voice narration
+- [ ] Hebrew on more pages
+- [ ] Analytics
+- [ ] OpenAI fallback
 
 ---
 
-## Railway Environment Variables
+## Railway Env Vars
 ```
-OPENAI_API_KEY=...
-STRIPE_SECRET_KEY=sk_test_... (sandbox only)
-STRIPE_WEBHOOK_SECRET=whsec_...
-SUPABASE_URL=...
-SUPABASE_ANON_KEY=...
-RESEND_API_KEY=...
-APP_URL=https://lifebooks.online
-ADMIN_EMAIL=books@lifebooks.online
+OPENAI_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET,
+SUPABASE_URL, SUPABASE_ANON_KEY, RESEND_API_KEY,
+APP_URL=https://lifebooks.online, ADMIN_EMAIL=books@lifebooks.online
 ```
 
 ---
 
 ## File Structure
 ```
-server.js                    — Express, ES modules
-CLAUDE.md                    — This file
-package.json
+server.js · CLAUDE.md · package.json
 public/
-  index.html                 — Landing page
-  wizard.html/js             — Child details + photo + style (Hebrew toggle)
-  crop.html/js               — Crop photo → create book → generate-full → preview
-  setup.html/js              — Review details → same flow as crop
-  generate.html/js           — Legacy (not used in normal flow)
-  preview.html               — Loading + 2 priority images + unlock CTA
-  checkout.html/js           — Payment page (Stripe)
-  success.html/js            — Post-payment + resend email button
-  delivery.html              — Flipbook + PDF + live progress bar
-  reader.html/js             — Full-screen reader
-  cover.html/js              — Cover display
-  contact.html               — Contact form
-  404.html                   — Hebrew error page ← DO NOT REMOVE
-  accessibility.js           — Accessibility widget ← DO NOT REMOVE
-  print.html
-  open-book.html
-  styles.css                 — Shared CSS variables
-  js/state.js                — sessionStorage state management
-  assets/
-    branding/
-      logo.svg               — Fixed SVG logo ← DO NOT REPLACE
-```
-
----
-
-## Critical Code Patterns
-
-### Supabase image save (CRITICAL — use this, not updateBook)
-```javascript
-// ✅ CORRECT — no .select(), won't timeout
-await updateBookField(bookId, { fullImages: [...fullImages] });
-
-// ❌ WRONG — returns full row, causes Supabase timeout with large images
-await updateBook(bookId, { fullImages });
-```
-
-### Cover + priority images parallel (already implemented)
-```javascript
-const [coverResult, page0Result, page1Result] = await Promise.allSettled([
-  openai.images.generate({ model: "gpt-image-1", prompt: coverPrompt, size: "1024x1024" }),
-  generatePageImage(0),
-  generatePageImage(1),
-]);
-// Save each immediately after
-```
-
-### Each remaining image saves immediately (already implemented)
-```javascript
-await Promise.allSettled(batch.map(async (pageIndex) => {
-  const base64 = await generatePageImage(pageIndex);
-  fullImages[pageIndex] = `data:image/jpeg;base64,${base64}`;
-  await updateBookField(bookId, { fullImages: [...fullImages] }); // save immediately
-}));
-```
-
-### Stripe webhook — return 200 immediately
-```javascript
-res.status(200).send("ok"); // MUST be first
-(async () => {
-  await updateBook(bookId, { purchaseUnlocked: true });
-  await sendPaymentConfirmationEmail(book);
-  // sendBookReadyEmail called by generate-full when complete
-})();
-return;
+  index.html · wizard.html/js · crop.html/js · setup.html/js
+  preview.html          ← new loading screen, DO NOT revert
+  checkout.html/js · success.html/js · delivery.html
+  reader.html/js · cover.html/js · contact.html
+  404.html              ← DO NOT REMOVE
+  accessibility.js      ← DO NOT REMOVE, already on all pages
+  generate.html/js      ← legacy, not used in normal flow
+  styles.css · print.html · open-book.html
+  js/state.js           ← sessionStorage state
+  assets/branding/logo.svg  ← DO NOT REPLACE
 ```
