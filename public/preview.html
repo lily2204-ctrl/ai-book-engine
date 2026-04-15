@@ -149,12 +149,20 @@
 
       <div class="pages-wrap" id="pagesWrap"></div>
 
+      <!-- Live progress counter -->
+      <div id="imgProgress" style="display:none;margin:12px 0;padding:12px 16px;background:linear-gradient(135deg,#fff8ed,#fdf3dc);border:1px solid var(--gold-pale);border-radius:12px;text-align:center;">
+        <div style="font-size:14px;font-weight:700;color:var(--brown);" id="imgProgressText">✨ 0/16 pages illustrated</div>
+        <div style="height:5px;background:rgba(200,146,42,0.1);border-radius:4px;margin-top:8px;overflow:hidden;">
+          <div id="imgProgressBar" style="height:100%;background:linear-gradient(90deg,var(--gold-light),var(--gold));border-radius:4px;transition:width 0.6s ease;width:0%;"></div>
+        </div>
+      </div>
+
       <div class="locked-section">
         <div></div>
         <p>The remaining pages are ready after payment.<br>Instant download included.</p>
       </div>
 
-      <button class="pay-btn" id="payBtn">Unlock Full Book  $39</button>
+      <button class="pay-btn" id="payBtn" disabled style="opacity:0.5;cursor:not-allowed;">⏳ Preparing your preview...</button>
 
       <div class="trust-row">
         <span class="trust-item"> Secure checkout</span>
@@ -277,6 +285,26 @@ async function pollBook() {
       }
 
       if (previewShown) updateLiveImages(b);
+
+      // Update progress counter
+      var totalPages = (b.generatedBook && b.generatedBook.pages) ? b.generatedBook.pages.length : 16;
+      var readyCount = b.fullImages ? b.fullImages.filter(Boolean).length : 0;
+      var progressEl = document.getElementById('imgProgress');
+      var progressText = document.getElementById('imgProgressText');
+      var progressBar = document.getElementById('imgProgressBar');
+      if (progressEl && readyCount > 0) {
+        progressEl.style.display = 'block';
+        progressText.textContent = '✨ ' + readyCount + '/' + totalPages + ' pages illustrated';
+        progressBar.style.width = Math.round((readyCount / totalPages) * 100) + '%';
+      }
+
+      // Unlock button — enable as soon as cover + 2 images ready
+      if (hasCover && has2Imgs && payBtn) {
+        payBtn.disabled = false;
+        payBtn.style.opacity = '1';
+        payBtn.style.cursor = 'pointer';
+        payBtn.textContent = 'Unlock Full Book — $39';
+      }
 
       if (hasCover && has2Imgs) {
         setStep(4, "Ready!", 100);

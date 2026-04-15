@@ -114,6 +114,20 @@
 
 <main class="shell">
 
+  <!-- Live generation progress (shown only while images still generating) -->
+  <div id="genProgress" style="display:none;background:linear-gradient(135deg,#fff8ed,#fdf3dc);border:1.5px solid var(--gold-pale);border-radius:16px;padding:16px 22px;margin-bottom:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+      <span style="font-size:15px;font-weight:700;color:var(--brown);" id="genProgressText">✨ Illustrating your book...</span>
+      <span style="font-size:13px;color:var(--text-muted);" id="genETA"></span>
+    </div>
+    <div style="height:7px;background:rgba(200,146,42,0.12);border-radius:8px;overflow:hidden;">
+      <div id="genProgressBar" style="height:100%;background:linear-gradient(90deg,var(--gold-light),var(--gold));border-radius:8px;transition:width 0.8s ease;width:0%;"></div>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:8px;text-align:center;">
+      📬 You can close this tab — we'll email you when your book is complete
+    </div>
+  </div>
+
   <div class="hero">
     <div class="hero-text">
       <strong id="heroBannerTitle">🎉 Your book is ready!</strong>
@@ -306,6 +320,24 @@ async function init() {
 
   // Poll for missing images — check every 2.5s, up to 60 times (2.5 min)
   let ready = (book.fullImages||[]).filter(Boolean).length;
+
+  // Show progress card immediately if not all images ready
+  if (ready < pages.length) {
+    const genProg = document.getElementById('genProgress');
+    const genText = document.getElementById('genProgressText');
+    const genBar  = document.getElementById('genProgressBar');
+    const genETA  = document.getElementById('genETA');
+    if (genProg) {
+      genProg.style.display = 'block';
+      if (genText) genText.textContent = `✨ ${ready}/${pages.length} pages illustrated`;
+      if (genBar)  genBar.style.width = Math.round((ready / pages.length) * 100) + '%';
+      if (genETA) {
+        const etaMins = Math.ceil(((pages.length - ready) * 25) / 60);
+        genETA.textContent = etaMins <= 1 ? 'Almost done!' : `~${etaMins} min remaining`;
+      }
+    }
+  }
+
   if (ready < pages.length) {
     let n = 0;
     const iv = setInterval(async () => {
@@ -328,13 +360,32 @@ async function init() {
       if (r2 > ready) {
         ready = r2;
         book  = b2;
-        renderSpread(idx); // refresh current spread
-        // Also refresh side panel cover if just loaded
+        renderSpread(idx);
         if (b2.coverImage && $('coverImg3d') && !$('coverImg3d').src) {
           $('coverImg3d').src = b2.coverImage;
         }
       }
-      if (ready >= pages.length) clearInterval(iv);
+
+      // Update live progress bar
+      const totalPgs = (book.generatedBook?.pages?.length) || 16;
+      const genProg = document.getElementById('genProgress');
+      const genText = document.getElementById('genProgressText');
+      const genBar  = document.getElementById('genProgressBar');
+      const genETA  = document.getElementById('genETA');
+      if (genProg && ready < totalPgs) {
+        genProg.style.display = 'block';
+        genText.textContent = `✨ ${ready}/${totalPgs} pages illustrated`;
+        genBar.style.width = Math.round((ready / totalPgs) * 100) + '%';
+        const remaining = totalPgs - ready;
+        const etaSecs = remaining * 25;
+        const etaMins = Math.ceil(etaSecs / 60);
+        genETA.textContent = etaMins <= 1 ? 'Less than a minute remaining' : `~${etaMins} min remaining`;
+      }
+      if (ready >= totalPgs && genProg) {
+        genProg.innerHTML = '<div style="text-align:center;font-size:15px;font-weight:700;color:#2d7a2d;">✅ Your book is complete!</div>';
+        setTimeout(() => { genProg.style.display = 'none'; }, 3000);
+        clearInterval(iv);
+      }
     }, 2500);
   }
 
