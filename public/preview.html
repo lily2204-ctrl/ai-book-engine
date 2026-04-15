@@ -71,8 +71,6 @@
     .page-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
     .page-img-loading{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text-muted);font-size:13px;padding:16px}
     .mini-spinner{width:28px;height:28px;border-radius:50%;border:2.5px solid rgba(200,146,42,0.1);border-top-color:var(--gold-light);animation:spin 0.9s linear infinite}
-    .img-skeleton{width:100%;height:100%;background:linear-gradient(90deg,var(--cream-deep) 25%,var(--parchment) 50%,var(--cream-deep) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text-muted);font-size:13px}
-    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
     .page-text{font-family:'Playfair Display',serif;font-size:16px;line-height:1.65;color:var(--brown);padding:10px 14px 14px}
 
     /* LOCKED */
@@ -228,7 +226,7 @@ function createPageCard(page, i, imgSrc) {
   card.className = "page-card";
   var imgHtml = imgSrc
     ? '<img src="' + imgSrc + '" alt="Page ' + (i+1) + '"/>'
-    : '<div class="img-skeleton"><div class="mini-spinner"></div><span>Illustrating...</span></div>';
+    : '<div class="page-img-loading"><div class="mini-spinner"></div><span>Illustrating...</span></div>';
   card.innerHTML =
     '<div class="page-num">Page ' + (i+1) + '</div>' +
     '<div class="page-img-wrap" id="pimg-' + i + '">' + imgHtml + '</div>' +
