@@ -22,20 +22,27 @@
 
     /* LOADING SCREEN */
     .loading-screen{min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px}
-    .loading-spinner{width:60px;height:60px;border-radius:50%;border:4px solid rgba(200,146,42,0.15);border-top-color:var(--gold-light);animation:spin 1s linear infinite;margin-bottom:24px}
+    .loading-title{font-family:'Playfair Display',serif;font-size:clamp(22px,4vw,32px);color:var(--brown);margin-bottom:6px}
+    .loading-sub{font-size:14px;color:var(--text-muted);margin-bottom:28px}
+    .lb-timer-row{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:360px;margin-bottom:12px}
+    .lb-timer-label{font-size:13px;color:var(--text-muted)}
+    .lb-timer-val{font-size:22px;font-weight:700;color:var(--brown);font-variant-numeric:tabular-nums}
+    .lb-bar-wrap{width:100%;max-width:360px;height:7px;background:rgba(200,146,42,0.12);border-radius:8px;overflow:hidden;margin-bottom:22px}
+    .lb-bar{height:100%;background:linear-gradient(90deg,var(--gold-light),var(--gold));border-radius:8px;transition:width 0.8s ease;width:0%}
+    .lb-steps{display:flex;flex-direction:column;gap:9px;width:100%;max-width:360px;margin-bottom:22px}
+    .lb-step{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:14px;background:var(--white);border:1.5px solid var(--parchment);font-size:14px;color:var(--text-muted);transition:all 0.35s ease}
+    .lb-step.active{border-color:var(--gold-light);background:linear-gradient(135deg,rgba(232,184,75,0.08),var(--white));color:var(--brown)}
+    .lb-step.done{border-color:rgba(200,146,42,0.3);background:linear-gradient(135deg,rgba(200,146,42,0.05),var(--white));color:var(--text-muted)}
+    .lb-icon{width:30px;height:30px;border-radius:50%;background:var(--cream-deep);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:all 0.3s}
+    .lb-step.done .lb-icon{background:var(--gold);font-size:13px}
+    .lb-step.active .lb-icon{background:var(--gold-light);animation:pulse-icon 1.2s ease infinite}
+    @keyframes pulse-icon{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+    .lb-step-text{flex:1;text-align:left}
+    .lb-step-label{font-weight:700;font-size:13px;margin-bottom:1px}
+    .lb-step-desc{font-size:11px;opacity:0.7}
+    .lb-step-time{font-size:11px;color:var(--gold);font-weight:700;min-width:28px;text-align:right}
+    .lb-step.done .lb-step-time{color:var(--text-muted)}
     @keyframes spin{to{transform:rotate(360deg)}}
-    .loading-title{font-family:'Playfair Display',serif;font-size:clamp(22px,4vw,34px);color:var(--brown);margin-bottom:10px}
-    .loading-status{font-size:15px;color:var(--text-muted);line-height:1.6;max-width:400px;margin-bottom:18px}
-    .progress-wrap{width:260px;height:7px;background:rgba(200,146,42,0.1);border-radius:8px;overflow:hidden;margin:0 auto}
-    .progress-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--gold-light),var(--gold));border-radius:8px;transition:width 0.8s ease}
-    .loading-steps{display:flex;flex-direction:column;gap:8px;margin-top:22px;width:100%;max-width:320px}
-    .lstep{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;background:var(--white);border:1px solid var(--parchment);font-size:14px;color:var(--text-muted)}
-    .lstep.active{border-color:var(--gold-light);color:var(--brown);background:linear-gradient(135deg,rgba(232,184,75,0.06),var(--white))}
-    .lstep.done{border-color:var(--parchment);color:var(--text-muted)}
-    .lstep.done .ldot{background:var(--gold-light)}
-    .lstep.active .ldot{background:var(--gold-light);animation:pulse-dot 1s ease infinite}
-    .ldot{width:8px;height:8px;border-radius:50%;background:var(--parchment);flex-shrink:0}
-    @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.7)}}
 
     /* MAIN LAYOUT */
     .main-layout{display:none;grid-template-columns:360px 1fr;gap:22px;align-items:start}
@@ -104,18 +111,52 @@
 
   <!-- LOADING SCREEN -->
   <div class="loading-screen" id="loadingScreen">
-    <div class="loading-spinner"></div>
     <div class="loading-title">Creating <span id="loadingChildName">your child</span>'s book...</div>
-    <div class="loading-status" id="loadingStatus">Analyzing the photo and building the character...</div>
-    <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
-    <div class="loading-steps">
-      <div class="lstep active" id="lstep1"><div class="ldot"></div>Analyzing photo</div>
-      <div class="lstep" id="lstep2"><div class="ldot"></div>Writing the story</div>
-      <div class="lstep" id="lstep3"><div class="ldot"></div>Illustrating first pages</div>
-      <div class="lstep" id="lstep4"><div class="ldot"></div>Creating the cover</div>
+    <div class="loading-sub">Our AI is crafting a personalized story just for them</div>
+
+    <div class="lb-timer-row">
+      <span class="lb-timer-label">Time elapsed</span>
+      <span class="lb-timer-val" id="lbTimer">0:00</span>
     </div>
-    <div role="note" style="margin-top:18px;padding:12px 18px;background:rgba(200,146,42,0.08);border-radius:12px;border:1px solid rgba(200,146,42,0.2);font-size:13px;color:#7a6048;line-height:1.7;max-width:340px;text-align:center;">
-      📬 <strong style="color:#5c3d1e">You can close this tab</strong> — we'll email you when your book is ready. Usually 5–7 minutes.
+    <div class="lb-bar-wrap"><div class="lb-bar" id="lbBar"></div></div>
+
+    <div class="lb-steps">
+      <div class="lb-step active" id="lstep1">
+        <div class="lb-icon" id="lbIcon1">📷</div>
+        <div class="lb-step-text">
+          <div class="lb-step-label">Analyzing photo</div>
+          <div class="lb-step-desc">Identifying your child's unique features</div>
+        </div>
+        <div class="lb-step-time" id="lbTime1">~30s</div>
+      </div>
+      <div class="lb-step" id="lstep2">
+        <div class="lb-icon" id="lbIcon2">✍️</div>
+        <div class="lb-step-text">
+          <div class="lb-step-label">Writing the story</div>
+          <div class="lb-step-desc">Creating a personalized adventure</div>
+        </div>
+        <div class="lb-step-time" id="lbTime2">~45s</div>
+      </div>
+      <div class="lb-step" id="lstep3">
+        <div class="lb-icon" id="lbIcon3">🎨</div>
+        <div class="lb-step-text">
+          <div class="lb-step-label" id="lbLabel3">Illustrating first pages</div>
+          <div class="lb-step-desc">Cover + 2 preview illustrations</div>
+        </div>
+        <div class="lb-step-time" id="lbTime3">~60s</div>
+      </div>
+      <div class="lb-step" id="lstep4">
+        <div class="lb-icon" id="lbIcon4">📖</div>
+        <div class="lb-step-text">
+          <div class="lb-step-label">Preview ready!</div>
+          <div class="lb-step-desc">Ready to view and unlock</div>
+        </div>
+        <div class="lb-step-time" id="lbTime4"></div>
+      </div>
+    </div>
+
+    <div role="note" style="padding:11px 16px;background:rgba(200,146,42,0.07);border-radius:12px;border:1px solid rgba(200,146,42,0.18);font-size:12px;color:#7a6048;line-height:1.7;max-width:340px;text-align:center;">
+      📬 <strong style="color:#5c3d1e">You can close this tab</strong> — we'll email you when your book is ready
     </div>
   </div>
 
@@ -186,8 +227,6 @@ if (!bookId) { window.location.href = "wizard.html"; }
 
 var loadingScreen = document.getElementById("loadingScreen");
 var mainLayout    = document.getElementById("mainLayout");
-var loadingStatus = document.getElementById("loadingStatus");
-var progressBar   = document.getElementById("progressBar");
 var loadingChildName = document.getElementById("loadingChildName");
 var coverImage    = document.getElementById("coverImage");
 var coverPlaceholder = document.getElementById("coverPlaceholder");
@@ -204,18 +243,41 @@ var steps = [
   document.getElementById("lstep4")
 ];
 
+// Live timer
+var lbTimerEl = document.getElementById("lbTimer");
+var lbBarEl   = document.getElementById("lbBar");
+var lbStart   = Date.now();
+var lbTimerInterval = setInterval(function() {
+  var elapsed = Math.floor((Date.now() - lbStart) / 1000);
+  var m = Math.floor(elapsed / 60);
+  var s = elapsed % 60;
+  if (lbTimerEl) lbTimerEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+}, 1000);
+
+var stepIcons  = ['📷','✍️','🎨','📖'];
+var doneIcons  = ['✅','✅','✅','🎉'];
+var stepTimes  = ['28s','44s','58s',''];
+var barPcts    = [15, 40, 75, 100];
+
 function setStep(n, text, pct) {
-  steps.forEach(function(s,i){
-    if(!s) return;
-    s.classList.remove("active","done");
-    if(i+1 < n) s.classList.add("done");
-    else if(i+1 === n) s.classList.add("active");
+  steps.forEach(function(s, i) {
+    if (!s) return;
+    s.classList.remove("active", "done");
+    if (i + 1 < n) {
+      s.classList.add("done");
+      var ic = document.getElementById("lbIcon" + (i+1));
+      if (ic) ic.textContent = doneIcons[i];
+      var tm = document.getElementById("lbTime" + (i+1));
+      if (tm && stepTimes[i]) tm.textContent = stepTimes[i];
+    } else if (i + 1 === n) {
+      s.classList.add("active");
+    }
   });
-  if(loadingStatus) loadingStatus.textContent = text;
-  if(progressBar) progressBar.style.width = pct + "%";
+  if (lbBarEl) lbBarEl.style.width = (barPcts[n-1] || pct) + "%";
 }
 
 function showPreview() {
+  clearInterval(lbTimerInterval);
   loadingScreen.style.display = "none";
   mainLayout.style.display = "grid";
   mainLayout.classList.add("visible");
