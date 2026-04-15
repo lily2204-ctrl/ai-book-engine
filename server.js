@@ -952,6 +952,18 @@ Rules:
 });
 
 // ─── Image generation progress check ─────────────────────────────────────────
+// ─── Update cropped photo (after early generation started) ───────────────────
+app.post("/api/books/:bookId/update-photo", async (req, res) => {
+  try {
+    const { croppedPhoto } = req.body;
+    if (!croppedPhoto) return res.status(400).json({ ok: false });
+    await updateBookField(req.params.bookId, { croppedPhoto });
+    return res.json({ ok: true });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // ─── Resend book link email ───────────────────────────────────────────────────
 app.post("/api/books/:bookId/resend-email", async (req, res) => {
   try {
