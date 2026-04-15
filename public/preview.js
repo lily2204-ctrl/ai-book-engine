@@ -79,10 +79,24 @@ payBtn && payBtn.addEventListener("click", function() {
   window.location.href = "checkout.html?bookId=" + encodeURIComponent(bookId);
 });
 
+// Progress counter (matches inline version in preview.html)
+var ppFill_js       = document.getElementById("ppFill");
+var ppCount_js      = document.getElementById("ppCount");
+var afterPayNote_js = document.getElementById("afterPayNote");
+function updateProgressCounter(readyCount, totalPages) {
+  if (!totalPages) totalPages = 16;
+  if (ppCount_js) ppCount_js.textContent = readyCount + "/" + totalPages;
+  if (ppFill_js)  ppFill_js.style.width  = Math.min(100, (readyCount / totalPages) * 100) + "%";
+  if (afterPayNote_js) {
+    var remaining = Math.max(0, totalPages - readyCount);
+    afterPayNote_js.innerHTML = 'Remaining <strong>' + remaining + ' pages</strong> will be illustrated right after payment — usually 5–7 minutes. You\'ll get an email the moment your book is ready.';
+  }
+}
+
 // --- Main polling loop ---------------------------------------------------------
 async function pollForBook() {
-  var maxWait    = 180;  // 3 minutes max
-  var pollEvery  = 3;    // seconds
+  var maxWait    = 240;  // 4 minutes max
+  var pollEvery  = 2.5;  // seconds — matches delivery.html cadence
   var elapsed    = 0;
   var previewShown = false;
 
@@ -98,6 +112,11 @@ async function pollForBook() {
 
       if (!res.ok || !data.book) continue;
       var book = data.book;
+
+      // Update live progress counter
+      var _total = (book.generatedBook && book.generatedBook.pages) ? book.generatedBook.pages.length : 16;
+      var _ready = book.fullImages ? book.fullImages.filter(Boolean).length : 0;
+      updateProgressCounter(_ready, _total);
 
       // Update loading steps based on what's ready
       var hasCharRef     = !!(book.characterReference && book.characterReference.characterPromptCore);
@@ -131,17 +150,14 @@ async function pollForBook() {
         updateLiveImages(book);
       }
 
-      // If cover + 2 page images ready, we're done polling
+      // If cover + 2 page images ready, preview is viewable — keep polling for progress counter
       if (hasCover && hasTwoImages) {
         setLoadingStep(4, "Ready!", 100);
-
-        // Check if full book still being generated
-        var totalPages = book.generatedBook && book.generatedBook.pages ? book.generatedBook.pages.length : 0;
-        var readyImages = book.fullImages ? book.fullImages.filter(Boolean).length : 0;
-        if (readyImages < totalPages && stillGenerating) {
-          stillGenerating.style.display = "flex";
+        if (_ready < _total && stillGenerating) stillGenerating.style.display = "flex";
+        if (_ready >= _total) {
+          if (stillGenerating) stillGenerating.style.display = "none";
+          break;
         }
-        break;
       }
 
     } catch(err) {

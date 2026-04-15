@@ -98,6 +98,27 @@
     .prog-track{height:6px;border-radius:8px;background:rgba(200,146,42,0.1);overflow:hidden}
     .prog-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--gold-light),var(--gold));border-radius:8px;transition:width 0.5s ease}
 
+    /* LIVE GENERATION PROGRESS */
+    .gen-progress{background:var(--white);border-radius:22px;padding:18px 22px;box-shadow:var(--shadow-warm);border:1px solid var(--parchment);margin-bottom:16px;position:relative;overflow:hidden;transition:opacity 0.6s ease,max-height 0.6s ease}
+    .gen-progress::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold-light),var(--gold))}
+    .gen-progress.done{background:linear-gradient(135deg,rgba(232,184,75,0.12),rgba(245,217,138,0.18));border-color:rgba(200,146,42,0.35)}
+    .gen-progress.hiding{opacity:0;max-height:0;padding:0 22px;margin-bottom:0;border-width:0}
+    .gp-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+    .gp-title{display:flex;align-items:center;gap:10px;font-family:'Playfair Display',serif;font-size:16px;color:var(--brown)}
+    .gp-title .gp-dot{width:10px;height:10px;border-radius:50%;background:var(--gold-light);animation:pulse-gp 1.2s ease infinite;flex-shrink:0}
+    .gen-progress.done .gp-title .gp-dot{background:#4caf50;animation:none}
+    @keyframes pulse-gp{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)}}
+    .gp-count{font-size:13px;color:var(--text-muted)}
+    .gp-count strong{color:var(--brown);font-weight:700}
+    .gp-track{height:7px;border-radius:8px;background:rgba(200,146,42,0.12);overflow:hidden;margin-bottom:8px}
+    .gp-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--gold-light),var(--gold));border-radius:8px;transition:width 0.6s ease}
+    .gp-meta{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--text-muted);flex-wrap:wrap}
+    .gp-meta .gp-eta{display:inline-flex;align-items:center;gap:5px}
+
+    /* Image fade-in animation */
+    .page-img img,.spread-cover-full img{animation:fadeInImg 0.6s ease}
+    @keyframes fadeInImg{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:scale(1)}}
+
     @media(max-width:860px){.layout{grid-template-columns:1fr}.side-panel{position:static}.book-spread{max-width:380px}.spread-left{border-right:none;border-bottom:1px solid var(--parchment)}.spread-cover-full{grid-column:1/2}}
     @media(max-width:600px){nav{padding:0 4vw}.shell{padding:18px 10px 60px}.hero{flex-direction:column}.flipper-card{padding:14px}.download-card{flex-direction:column}}
   </style>
@@ -105,9 +126,9 @@
 <body>
 
 <nav>
-  <button class="nav-back" onclick="history.back()" aria-label="חזרה לעמוד הקודם">← Back</button>
+  <button class="nav-back" onclick="history.back()">← Back</button>
   <a class="nav-brand" href="index.html">
-    <img src="assets/branding/logo.svg" alt="Lifebook" style="height:54px;width:auto;display:block"/>
+    <img src="assets/branding/logo.svg" alt="Lifebook" style="height:48px;width:auto;display:block"/>
   </a>
   <div style="width:80px"></div>
 </nav>
@@ -149,6 +170,18 @@
     </div>
 
     <div>
+      <div class="gen-progress" id="genProgress" style="display:none">
+        <div class="gp-head">
+          <div class="gp-title"><span class="gp-dot"></span><span id="gpTitle">Illustrating your book...</span></div>
+          <div class="gp-count"><strong id="gpCount">0/16</strong> pages ready</div>
+        </div>
+        <div class="gp-track"><div class="gp-fill" id="gpFill"></div></div>
+        <div class="gp-meta">
+          <span class="gp-eta" id="gpEta">⏱ Estimating time...</span>
+          <span style="opacity:0.7">New illustrations will appear automatically.</span>
+        </div>
+      </div>
+
       <div class="flipper-card">
         <div class="flipper-header">
           <h2>📖 Preview your book</h2>
@@ -163,9 +196,9 @@
         </div>
 
         <div class="flipper-nav">
-          <button class="nav-btn" id="prevBtn" disabled title="Previous page (←)" aria-label="עמוד קודם">←</button>
+          <button class="nav-btn" id="prevBtn" disabled title="Previous page (←)">←</button>
           <div class="spread-dots" id="spreadDots"></div>
-          <button class="nav-btn" id="nextBtn" title="Next page (→)" aria-label="עמוד הבא">→</button>
+          <button class="nav-btn" id="nextBtn" title="Next page (→)">→</button>
         </div>
         <div style="text-align:center;margin-top:8px;font-size:11px;color:var(--text-muted);opacity:0.7">
           Use arrow keys or swipe to flip pages
@@ -231,7 +264,7 @@ function renderSpread(i) {
         const text = pages[pi]?.text || '';
         return `<div class="spread-${side} page-half">
           <div class="page-img">${img
-            ? `<img src="${img}" alt="איור עמוד ${pi+1}: ${(text||'').substring(0,60).replace(/"/g,"'")}..."/>`
+            ? `<img src="${img}" alt="Page ${pi+1}"/>`
             : `<div class="page-img-spin"><div class="mini-spin"></div><span>Illustrating...</span></div>`
           }</div>
           <div class="page-text"><p>${text}</p></div>
@@ -304,37 +337,69 @@ async function init() {
   buildDots();
   renderSpread(0);
 
-  // Poll for missing images — check every 2.5s, up to 60 times (2.5 min)
+  // ── Live generation progress ────────────────────────────────────────────
+  const gpCard  = $('genProgress');
+  const gpTitle = $('gpTitle');
+  const gpCount = $('gpCount');
+  const gpFill  = $('gpFill');
+  const gpEta   = $('gpEta');
+  const SEC_PER_IMAGE = 25;
+  const startAt = Date.now();
+
+  function fmtEta(sec) {
+    if (sec <= 0) return 'almost done';
+    const m = Math.floor(sec / 60), s = Math.round(sec % 60);
+    if (m <= 0) return '~' + s + 's remaining';
+    if (s < 10) return '~' + m + ' min remaining';
+    return '~' + m + ' min ' + s + 's remaining';
+  }
+
+  function renderProgress(ready, total) {
+    if (!gpCard) return;
+    const pct = total ? (ready / total) * 100 : 0;
+    gpCount.innerHTML = '<strong>' + ready + '/' + total + '</strong> pages ready';
+    gpFill.style.width = pct + '%';
+
+    if (ready >= total && total > 0) {
+      gpCard.classList.add('done');
+      gpTitle.textContent = '✅ Your book is complete!';
+      gpEta.textContent = 'All ' + total + ' illustrations ready';
+      // Fade out + remove after a moment
+      setTimeout(() => {
+        if (gpCard) gpCard.classList.add('hiding');
+        setTimeout(() => { if (gpCard) gpCard.style.display = 'none'; }, 700);
+      }, 2500);
+    } else {
+      gpCard.style.display = 'block';
+      gpTitle.textContent = 'Illustrating your book...';
+      const remainingImgs = total - ready;
+      const etaSec = Math.max(15, remainingImgs * SEC_PER_IMAGE);
+      gpEta.textContent = '⏱ ' + fmtEta(etaSec);
+    }
+  }
+
   let ready = (book.fullImages||[]).filter(Boolean).length;
+  renderProgress(ready, pages.length);
+
+  // Poll for missing images — every 2.5s, up to 60 times (~2.5 min)
   if (ready < pages.length) {
     let n = 0;
     const iv = setInterval(async () => {
-      if (++n > 60) {
-        clearInterval(iv);
-        // After 2.5 min with no progress — show friendly message
-        const stillMissing = (book.fullImages||[]).filter(Boolean).length;
-        if (stillMissing < pages.length) {
-          const statusEl = document.createElement('div');
-          statusEl.setAttribute('role', 'alert');
-          statusEl.style.cssText = 'background:#fdf6ec;border:1.5px solid #ede0c8;border-radius:14px;padding:16px 20px;margin-top:12px;font-size:14px;color:#7a6048;line-height:1.7;';
-          statusEl.innerHTML = '⏳ <strong style="color:#5c3d1e">האיורים עדיין נוצרים</strong> — זה עשוי לקחת עוד כמה דקות.<br/>תוכלי לסגור את הדפדפן — <strong>נשלח לך מייל</strong> כשהספר מוכן לחלוטין.';
-          const flipCard = document.querySelector('.flipper-card');
-          if (flipCard) flipCard.appendChild(statusEl);
+      if (++n > 60) { clearInterval(iv); return; }
+      try {
+        const b2 = await loadBook();
+        const r2 = (b2.fullImages||[]).filter(Boolean).length;
+        if (r2 > ready) {
+          ready = r2;
+          book  = b2;
+          renderSpread(idx); // refresh current spread → new images fade in via CSS
+          if (b2.coverImage && $('coverImg3d') && !$('coverImg3d').src) {
+            $('coverImg3d').src = b2.coverImage;
+          }
         }
-        return;
-      }
-      const b2 = await loadBook();
-      const r2 = (b2.fullImages||[]).filter(Boolean).length;
-      if (r2 > ready) {
-        ready = r2;
-        book  = b2;
-        renderSpread(idx); // refresh current spread
-        // Also refresh side panel cover if just loaded
-        if (b2.coverImage && $('coverImg3d') && !$('coverImg3d').src) {
-          $('coverImg3d').src = b2.coverImage;
-        }
-      }
-      if (ready >= pages.length) clearInterval(iv);
+        renderProgress(ready, pages.length);
+        if (ready >= pages.length) clearInterval(iv);
+      } catch (e) { console.warn('poll:', e.message); }
     }, 2500);
   }
 
@@ -643,6 +708,5 @@ async function generatePDF() {
 
 init();
 </script>
-<script src="accessibility.js"></script>
 </body>
 </html>

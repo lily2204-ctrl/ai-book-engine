@@ -11,7 +11,7 @@
     body{font-family:'Lato',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;overflow-x:hidden}
     nav{position:sticky;top:0;z-index:100;background:rgba(253,246,236,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--parchment);padding:0 5vw;height:68px;display:flex;align-items:center;justify-content:space-between}
     .nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
-    .nav-brand img{height:36px;width:auto;}
+    .nav-brand img{height:36px;width:auto;mix-blend-mode:multiply}
     .nav-brand-name{font-family:'Playfair Display',serif;font-size:24px;color:var(--gold)}
     .nav-back{background:var(--white);color:var(--brown);border:1.5px solid var(--parchment);border-radius:50px;padding:9px 22px;font-family:'Lato',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all 0.2s}
     .nav-back:hover{border-color:var(--gold-light)}
@@ -63,7 +63,7 @@
 <nav>
   <button class="nav-back" id="backToCropBtn" type="button">← Back</button>
   <a class="nav-brand" href="index.html">
-    <img src="assets/branding/logo.svg" alt="Lifebook" onerror="this.style.display='none'"/>
+    <img src="assets/branding/logo.svg" alt="Lifebook" style="height:48px;width:auto;display:block"/>
     <span class="nav-brand-name">lifebook</span>
   </a>
   <div style="width:80px"></div>
@@ -73,44 +73,9 @@
   <div class="gen-layout">
 
     <div class="card">
-      <div class=\"step-badge\">✨ Step 3 of 3</div>
-      <h2 class=\"card-title\">Creating your magical book</h2>
-      <p class=\"card-sub\">Our AI is writing a personalized story and illustrating every page just for your child. This usually takes <strong>5–10 minutes</strong>.</p>
-
-      <!-- Time indicator -->
-      <div id="timeIndicator" style="display:none;margin-bottom:18px;padding:14px 18px;background:linear-gradient(135deg,#fff8ed,#fdf3dc);border:1px solid var(--gold-pale);border-radius:14px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <span style="font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.5px;">Time elapsed</span>
-          <span id="liveTimer" style="font-size:18px;font-weight:700;color:var(--brown);font-variant-numeric:tabular-nums;">0:00</span>
-        </div>
-        <!-- Mini timeline -->
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:10px;" aria-label="שלבי היצירה">
-          <div class="tl-step" id="tl1" style="text-align:center;">
-            <div style="height:4px;border-radius:4px;background:var(--parchment);margin-bottom:4px;" class="tl-bar"></div>
-            <span style="font-size:10px;color:var(--text-muted);">~30s</span>
-          </div>
-          <div class="tl-step" id="tl2" style="text-align:center;">
-            <div style="height:4px;border-radius:4px;background:var(--parchment);margin-bottom:4px;" class="tl-bar"></div>
-            <span style="font-size:10px;color:var(--text-muted);">~1min</span>
-          </div>
-          <div class="tl-step" id="tl3" style="text-align:center;">
-            <div style="height:4px;border-radius:4px;background:var(--parchment);margin-bottom:4px;" class="tl-bar"></div>
-            <span style="font-size:10px;color:var(--text-muted);">~1min</span>
-          </div>
-          <div class="tl-step" id="tl4" style="text-align:center;">
-            <div style="height:4px;border-radius:4px;background:var(--parchment);margin-bottom:4px;" class="tl-bar"></div>
-            <span style="font-size:10px;color:var(--text-muted);">~5min</span>
-          </div>
-          <div class="tl-step" id="tl5" style="text-align:center;">
-            <div style="height:4px;border-radius:4px;background:var(--parchment);margin-bottom:4px;" class="tl-bar"></div>
-            <span style="font-size:10px;color:var(--text-muted);">~30s</span>
-          </div>
-        </div>
-        <!-- Close tab message -->
-        <div role="note" style="font-size:12px;color:var(--text-muted);text-align:center;padding-top:6px;border-top:1px solid var(--parchment);">
-          📬 You can close this tab — we'll <strong style="color:var(--brown)">email you</strong> when your book is ready
-        </div>
-      </div>
+      <div class="step-badge">✨ Step 3 of 3</div>
+      <h2 class="card-title">Creating your magical book</h2>
+      <p class="card-sub">Our AI is writing a personalized story and illustrating every page just for your child. This usually takes 5–10 minutes.</p>
 
       <div class="prog-wrap" id="progWrap">
         <div class="prog-label"><span>Progress</span><span id="progPct">0%</span></div>
@@ -217,45 +182,7 @@ setInterval(() => {
   fi = (fi + 1) % facts.length;
   fe.innerHTML = `<strong>✦ Did you know?</strong>${facts[fi]}`;
 }, 9000);
-
-// ── Live timer + timeline ─────────────────────────────────────────────────────
-let genStartTime = null;
-
-window.startGenTimer = function() {
-  genStartTime = Date.now();
-  const indicator = document.getElementById('timeIndicator');
-  if (indicator) indicator.style.display = 'block';
-
-  setInterval(function() {
-    if (!genStartTime) return;
-    const elapsed = Math.floor((Date.now() - genStartTime) / 1000);
-    const mins = Math.floor(elapsed / 60);
-    const secs = elapsed % 60;
-    const timerEl = document.getElementById('liveTimer');
-    if (timerEl) timerEl.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
-  }, 1000);
-};
-
-// Color timeline bars as steps complete
-window.advanceTimeline = function(stepNum) {
-  for (var i = 1; i <= stepNum; i++) {
-    var tl = document.getElementById('tl' + i);
-    if (tl) {
-      var bar = tl.querySelector('.tl-bar');
-      if (bar) bar.style.background = 'linear-gradient(90deg,var(--gold-light),var(--gold))';
-    }
-  }
-};
-
-// Hook into existing setGenStep to drive timeline
-var _origSetGenStep = window.setGenStep;
-window.setGenStep = function(id, state) {
-  if (_origSetGenStep) _origSetGenStep(id, state);
-  var map = {stepAnalyze:1, stepStory:2, stepCover:3, stepImages:4, stepDone:5};
-  if (map[id]) window.advanceTimeline(map[id]);
-};
 </script>
 
-<script src="accessibility.js"></script>
 </body>
 </html>

@@ -7,6 +7,7 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import sharp from "sharp";
 
 const app = express();
 app.use(cors());
@@ -111,6 +112,17 @@ async function normalizeImageToBase64(imageItem) {
   return null;
 }
 
+// Compress a base64 image: resize to 512×512 JPEG quality 70.
+// Reduces ~1.5 MB PNG → ~40-80 KB JPEG so fullImages array stays small in Supabase.
+async function compressImage(base64Str) {
+  const buf = Buffer.from(base64Str, "base64");
+  const compressed = await sharp(buf)
+    .resize(512, 512)
+    .jpeg({ quality: 70 })
+    .toBuffer();
+  return compressed.toString("base64");
+}
+
 // ─── DB helpers ───────────────────────────────────────────────────────────────
 function dbRowToBook(row) {
   if (!row) return null;
@@ -213,6 +225,17 @@ async function updateBook(bookId, patch) {
     .maybeSingle();
   if (error) throw error;
   return dbRowToBook(data);
+}
+
+// Lightweight update that does NOT return the full row.
+// Use this for saving large data (base64 images) to avoid PostgREST response size limits.
+async function updateBookField(bookId, patch) {
+  const dbPatch = patchToDbFields(patch);
+  const { error } = await supabase
+    .from("books")
+    .update(dbPatch)
+    .eq("book_id", bookId);
+  if (error) throw error;
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -716,9 +739,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
 
       // ── STEP 2: Generate story text ───────────────────────────────────────────
       if (!book.generatedBook?.pages?.length) {
-        const storyPrompt = `You are a premium personalized children's book writer.\n\nChild name: ${sanitizeBrandTerms(childName)}\nChild age: ${childAge}\nChild gender: ${childGender}\nStory direction: ${sanitizeBrandTerms(storyIdea)}\nIllustration style: ${safeStyle}\n\nCharacter summary:\n${sanitizeBrandTerms(characterSummary)}\n\nCharacter consistency instructions:\n${sanitizeBrandTerms(promptCore)}\n\nReturn ONLY JSON:\n{\n  "title": "string",\n  "subtitle": "string",\n  "pages": [\n    {\n      "text": "string",\n      "imagePrompt": "string"\n    }\n  ]\n}\n\nRules:\n- Exactly 16 story pages\n- Each page text must be 35-70 words\n- The child must clearly be the hero\n- imagePrompt must describe the same child consistently\n- No page numbers inside text\n- No brand names\n- Do not mention copyrighted characters or logos
-- If the child's name contains Hebrew characters, write the ENTIRE story in Hebrew (including title, subtitle, and all page text). Keep imagePrompt always in English for image generation.
-- If the name is in English or Latin characters, write in English`;
+        const storyPrompt = `You are a premium personalized children's book writer.\n\nChild name: ${sanitizeBrandTerms(childName)}\nChild age: ${childAge}\nChild gender: ${childGender}\nStory direction: ${sanitizeBrandTerms(storyIdea)}\nIllustration style: ${safeStyle}\n\nCharacter summary:\n${sanitizeBrandTerms(characterSummary)}\n\nCharacter consistency instructions:\n${sanitizeBrandTerms(promptCore)}\n\nReturn ONLY JSON:\n{\n  "title": "string",\n  "subtitle": "string",\n  "pages": [\n    {\n      "text": "string",\n      "imagePrompt": "string"\n    }\n  ]\n}\n\nRules:\n- Exactly 16 story pages\n- Each page text must be 35-70 words\n- The child must clearly be the hero\n- imagePrompt must describe the same child consistently\n- No page numbers inside text\n- No brand names\n- Do not mention copyrighted characters or logos`;
 
         const storyCompletion = await openai.chat.completions.create({
           model: "gpt-4o-mini",
@@ -760,9 +781,10 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
             size:  "1024x1024"
           });
 
-          const coverBase64 = await normalizeImageToBase64(coverResp?.data?.[0]);
-          if (coverBase64) {
-            await updateBook(bookId, { coverImage: `data:image/png;base64,${coverBase64}` });
+          const coverRaw = await normalizeImageToBase64(coverResp?.data?.[0]);
+          if (coverRaw) {
+            const coverCompressed = await compressImage(coverRaw);
+            await updateBookField(bookId, { coverImage: `data:image/jpeg;base64,${coverCompressed}` });
           }
         } catch (err) {
           console.warn("generate-full: cover generation failed:", err.message);
@@ -776,48 +798,75 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
       const fullImages      = [...existingImages];
       while (fullImages.length < pages.length) fullImages.push(null);
 
-      // פונקציה ליצירת תמונה אחת
+      // Generate a single page image (with 1 retry on failure)
       async function generatePageImage(pageIndex) {
         const page = pages[pageIndex];
+        if (!page) throw new Error(`No page data at index ${pageIndex}`);
         const imgPrompt = `Create a premium children's storybook illustration.\n\nIllustration style: ${safeStyle}\n\nCharacter consistency:\n${sanitizeBrandTerms(promptCore)}\n\nScene:\n${sanitizeImagePrompt(page.imagePrompt || "")}\n\nRules:\n- same child identity\n- same face structure\n- same hair and skin tone\n- warm magical storybook aesthetic\n- no text\n- no watermark\n- elegant composition\n- no logos\n- no brand names\n- no copyrighted costume emblems`;
-        const imgResp = await openai.images.generate({ model: "gpt-image-1", prompt: imgPrompt, size: "1024x1024" });
-        return await normalizeImageToBase64(imgResp?.data?.[0]);
+
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            const imgResp = await openai.images.generate({ model: "gpt-image-1", prompt: imgPrompt, size: "1024x1024" });
+            const rawB64 = await normalizeImageToBase64(imgResp?.data?.[0]);
+            if (!rawB64) {
+              console.warn(`generate-full [${bookId}]: page ${pageIndex} returned empty image (attempt ${attempt})`);
+              continue;
+            }
+            // Compress before storing: 1024px PNG (~1.5 MB) → 512px JPEG (~40-80 KB)
+            const compressed = await compressImage(rawB64);
+            return compressed;
+          } catch (err) {
+            console.error(`generate-full [${bookId}]: page ${pageIndex} image failed (attempt ${attempt}):`, err.message);
+            if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
+          }
+        }
+        return null;
       }
 
-      // שלב 4א: 2 תמונות ראשונות במקביל (preview צריך אותן מהר)
+      // Helper: save one image to DB immediately after it's generated
+      async function savePageImage(pageIndex, base64) {
+        fullImages[pageIndex] = `data:image/jpeg;base64,${base64}`;
+        await updateBookField(bookId, { fullImages });
+        const doneCount = fullImages.filter(Boolean).length;
+        console.log(`generate-full [${bookId}]: page ${pageIndex} saved — ${doneCount}/${pages.length} images done`);
+      }
+
+      // Step 4a: first 2 pages in parallel (preview needs them quickly)
       const priorityResults = await Promise.allSettled([
         fullImages[0] ? null : generatePageImage(0),
         fullImages[1] ? null : generatePageImage(1),
       ]);
+      // Save each priority image individually
       for (let i = 0; i < 2; i++) {
         const r = priorityResults[i];
         if (r?.status === "fulfilled" && r.value) {
-          fullImages[i] = `data:image/png;base64,${r.value}`;
+          await savePageImage(i, r.value);
+        } else if (r?.status === "rejected") {
+          console.error(`generate-full [${bookId}]: priority image ${i} rejected:`, r.reason?.message || r.reason);
         }
       }
-      await updateBook(bookId, { fullImages });
       console.log(`generate-full [${bookId}]: STEP 4a done — priority images (0-1) saved`);
 
-      // שלב 4ב: שאר התמונות (3-16) בbatches של 3
+      // Step 4b: remaining pages in batches of 3 — save each image individually
       const remaining = [];
       for (let i = 2; i < pages.length; i++) {
         if (!fullImages[i]) remaining.push(i);
       }
-      const BATCH_SIZE = 5;
+      const BATCH_SIZE = 3;
       for (let batchStart = 0; batchStart < remaining.length; batchStart += BATCH_SIZE) {
         const batch = remaining.slice(batchStart, batchStart + BATCH_SIZE);
         const results = await Promise.allSettled(batch.map(async (pageIndex) => {
           const base64 = await generatePageImage(pageIndex);
           return { pageIndex, base64 };
         }));
+        // Save each image from the batch individually (one DB write per image)
         for (const result of results) {
           if (result.status === "fulfilled" && result.value?.base64) {
-            fullImages[result.value.pageIndex] = `data:image/png;base64,${result.value.base64}`;
+            await savePageImage(result.value.pageIndex, result.value.base64);
+          } else if (result.status === "rejected") {
+            console.error(`generate-full [${bookId}]: batch image rejected:`, result.reason?.message || result.reason);
           }
         }
-        await updateBook(bookId, { fullImages });
-        const doneCount = fullImages.filter(Boolean).length;
-        console.log(`generate-full [${bookId}]: STEP 4b batch done — ${doneCount}/${pages.length} images saved`);
       }
 
       // ── STEP 5: All done — send "book ready" email ───────────────────────────
@@ -881,7 +930,7 @@ app.post("/api/books/:bookId/generate-images", async (req, res) => {
           if (!fullImages[i]) toGenerate.push(i);
         }
 
-        const BATCH_SIZE = 3; // 3 parallel — stable, not too aggressive
+        const BATCH_SIZE = 3;
         let savedCount = 0;
 
         for (let batchStart = 0; batchStart < toGenerate.length; batchStart += BATCH_SIZE) {
@@ -919,24 +968,23 @@ Rules:
                 size:   "1024x1024"
               });
 
-              const base64 = await normalizeImageToBase64(imgResp?.data?.[0]);
-              return { pageIndex, base64 };
+              const rawB64 = await normalizeImageToBase64(imgResp?.data?.[0]);
+              if (!rawB64) return { pageIndex, base64: null };
+              const compressed = await compressImage(rawB64);
+              return { pageIndex, base64: compressed };
             })
           );
 
-          let batchHadNew = false;
+          // Save each image individually (one DB write per image)
           for (const result of results) {
             if (result.status === "fulfilled" && result.value?.base64) {
-              fullImages[result.value.pageIndex] = `data:image/png;base64,${result.value.base64}`;
+              fullImages[result.value.pageIndex] = `data:image/jpeg;base64,${result.value.base64}`;
               savedCount++;
-              batchHadNew = true;
+              await updateBookField(bookId, { fullImages });
+              console.log(`generate-images: page ${result.value.pageIndex} saved — ${savedCount}/${toGenerate.length} for book ${bookId}`);
+            } else if (result.status === "rejected") {
+              console.error(`generate-images: image rejected:`, result.reason?.message || result.reason);
             }
-          }
-
-          // Save after every batch so polling clients see progress
-          if (batchHadNew) {
-            await updateBook(bookId, { fullImages });
-            console.log(`generate-images: saved ${savedCount}/${toGenerate.length} images for book ${bookId}`);
           }
         }
 
@@ -955,22 +1003,6 @@ Rules:
 });
 
 // ─── Image generation progress check ─────────────────────────────────────────
-// ─── Resend book link email ───────────────────────────────────────────────────
-app.post("/api/books/:bookId/resend-email", async (req, res) => {
-  try {
-    const book = await getBook(req.params.bookId);
-    if (!book) return res.status(404).json({ ok: false, error: "Book not found" });
-    if (!book.customerEmail) return res.status(400).json({ ok: false, error: "No email on file" });
-    if (!book.purchaseUnlocked) return res.status(403).json({ ok: false, error: "Book not purchased" });
-    await sendBookReadyEmail(book);
-    console.log(`Resend email: book link sent to ${book.customerEmail}`);
-    return res.json({ ok: true });
-  } catch (err) {
-    console.error("Resend email error:", err.message);
-    return res.status(500).json({ ok: false, error: "Failed to send email" });
-  }
-});
-
 app.get("/api/books/:bookId/image-status", async (req, res) => {
   try {
     const book = await getBook(req.params.bookId);
@@ -1422,16 +1454,6 @@ app.post("/api/contact", async (req, res) => {
     console.error("Contact form error:", err.message);
     return res.status(500).json({ ok: false, error: "Failed to send message" });
   }
-});
-
-// ─── 404 handler ─────────────────────────────────────────────────────────────
-app.use((req, res) => {
-  // API routes return JSON 404
-  if (req.path.startsWith("/api/") || req.path.startsWith("/webhooks/")) {
-    return res.status(404).json({ status: "error", message: "Not found" });
-  }
-  // HTML pages return 404.html
-  res.status(404).sendFile(path.join(__dirname, "public", "404.html"));
 });
 
 // ─── Start server ─────────────────────────────────────────────────────────────
