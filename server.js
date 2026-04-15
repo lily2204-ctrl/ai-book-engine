@@ -742,38 +742,16 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
         await updateBook(bookId, { generatedBook });
       }
 
-      // Re-fetch to get latest state
-      const bookAfterStory = await getBook(bookId);
-      const pages          = bookAfterStory.generatedBook?.pages || [];
-      const title          = bookAfterStory.generatedBook?.title    || `The Magical Adventure of ${childName}`;
-      const subtitle       = bookAfterStory.generatedBook?.subtitle || "A story where you are the hero";
-      console.log(`generate-full [${bookId}]: STEP 2 done — story written, ${pages.length} pages`);
+      // ── STEP 3+4a: Cover + first 2 page images IN PARALLEL ──────────────────
+      // Running them together cuts the wait from ~2min to ~60s
+      console.log(`generate-full [${bookId}]: STEP 2 done — story written, starting cover + priority images in parallel`);
 
-      // ── STEP 3: Cover image ───────────────────────────────────────────────────
-      if (!bookAfterStory.coverImage) {
-        try {
-          const coverPrompt = `Create a premium children's storybook COVER illustration.\n\nIllustration style: ${safeStyle}\n\nLOCKED CHILD CHARACTER:\n${sanitizeBrandTerms(promptCore)}\n\nSHORT CHARACTER SUMMARY:\n${sanitizeBrandTerms(characterSummary)}\n\nBOOK TITLE:\n${sanitizeBrandTerms(title)}\n\nBOOK SUBTITLE:\n${sanitizeBrandTerms(subtitle)}\n\nSTORY DIRECTION:\n${sanitizeBrandTerms(storyIdea)}\n\nRules:\n- create ONE beautiful single cover illustration\n- show the child as the hero\n- magical, premium, warm\n- no character sheet\n- no multiple poses\n- no text rendered into the image\n- no watermark\n- no logos\n- no copyrighted costume emblems`;
-
-          const coverResp = await openai.images.generate({
-            model: "gpt-image-1",
-            prompt: coverPrompt,
-            size:  "1024x1024"
-          });
-
-          const coverBase64 = await normalizeImageToBase64(coverResp?.data?.[0]);
-          if (coverBase64) {
-            await updateBook(bookId, { coverImage: `data:image/png;base64,${coverBase64}` });
-          }
-        } catch (err) {
-          console.warn("generate-full: cover generation failed:", err.message);
-        }
-      }
-
-      // ── STEP 4: Page images — priority first (pages 0-1), then rest ────────
-      console.log(`generate-full [${bookId}]: STEP 3 done — cover ready, starting page images`);
-      const bookBeforeImgs  = await getBook(bookId);
-      const existingImages  = bookBeforeImgs.fullImages || [];
-      const fullImages      = [...existingImages];
+      const bookBeforeImgs = await getBook(bookId);
+      const pages          = bookBeforeImgs.generatedBook?.pages || [];
+      const title          = bookBeforeImgs.generatedBook?.title    || `The Magical Adventure of ${childName}`;
+      const subtitle       = bookBeforeImgs.generatedBook?.subtitle || "A story where you are the hero";
+      const existingImages = bookBeforeImgs.fullImages || [];
+      const fullImages     = [...existingImages];
       while (fullImages.length < pages.length) fullImages.push(null);
 
       // פונקציה ליצירת תמונה אחת
@@ -784,40 +762,59 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
         return await normalizeImageToBase64(imgResp?.data?.[0]);
       }
 
-      // שלב 4א: 2 תמונות ראשונות במקביל (preview צריך אותן מהר)
-      const priorityResults = await Promise.allSettled([
-        fullImages[0] ? null : generatePageImage(0),
-        fullImages[1] ? null : generatePageImage(1),
+      // Cover prompt
+      const coverPrompt = `Create a premium children's storybook COVER illustration.\n\nIllustration style: ${safeStyle}\n\nLOCKED CHILD CHARACTER:\n${sanitizeBrandTerms(promptCore)}\n\nSHORT CHARACTER SUMMARY:\n${sanitizeBrandTerms(characterSummary)}\n\nBOOK TITLE:\n${sanitizeBrandTerms(title)}\n\nBOOK SUBTITLE:\n${sanitizeBrandTerms(subtitle)}\n\nSTORY DIRECTION:\n${sanitizeBrandTerms(storyIdea)}\n\nRules:\n- create ONE beautiful single cover illustration\n- show the child as the hero\n- magical, premium, warm\n- no character sheet\n- no multiple poses\n- no text rendered into the image\n- no watermark\n- no logos\n- no copyrighted costume emblems`;
+
+      // Run cover + pages 0 and 1 all at once in parallel
+      const [coverResult, page0Result, page1Result] = await Promise.allSettled([
+        bookBeforeImgs.coverImage ? Promise.resolve(null) : openai.images.generate({ model: "gpt-image-1", prompt: coverPrompt, size: "1024x1024" }),
+        fullImages[0] ? Promise.resolve(null) : generatePageImage(0),
+        fullImages[1] ? Promise.resolve(null) : generatePageImage(1),
       ]);
-      for (let i = 0; i < 2; i++) {
-        const r = priorityResults[i];
-        if (r?.status === "fulfilled" && r.value) {
-          fullImages[i] = `data:image/png;base64,${r.value}`;
-        }
+
+      // Save cover
+      if (coverResult?.status === "fulfilled" && coverResult.value) {
+        const coverBase64 = await normalizeImageToBase64(coverResult.value?.data?.[0]);
+        if (coverBase64) await updateBookField(bookId, { coverImage: `data:image/jpeg;base64,${coverBase64}` });
       }
-      await updateBook(bookId, { fullImages });
-      console.log(`generate-full [${bookId}]: STEP 4a done — priority images (0-1) saved`);
+
+      // Save priority pages
+      if (page0Result?.status === "fulfilled" && page0Result.value) {
+        fullImages[0] = `data:image/jpeg;base64,${page0Result.value}`;
+        await updateBookField(bookId, { fullImages: [...fullImages] });
+      }
+      if (page1Result?.status === "fulfilled" && page1Result.value) {
+        fullImages[1] = `data:image/jpeg;base64,${page1Result.value}`;
+        await updateBookField(bookId, { fullImages: [...fullImages] });
+      }
+
+      console.log(`generate-full [${bookId}]: STEP 3+4a done — cover + priority images saved`);
 
       // שלב 4ב: שאר התמונות (3-16) בbatches של 3
+      // שלב 4ב: שאר התמונות — 5 במקביל, כל תמונה נשמרת מיד כשמוכנה
       const remaining = [];
       for (let i = 2; i < pages.length; i++) {
         if (!fullImages[i]) remaining.push(i);
       }
+
       const BATCH_SIZE = 5;
       for (let batchStart = 0; batchStart < remaining.length; batchStart += BATCH_SIZE) {
         const batch = remaining.slice(batchStart, batchStart + BATCH_SIZE);
-        const results = await Promise.allSettled(batch.map(async (pageIndex) => {
-          const base64 = await generatePageImage(pageIndex);
-          return { pageIndex, base64 };
-        }));
-        for (const result of results) {
-          if (result.status === "fulfilled" && result.value?.base64) {
-            fullImages[result.value.pageIndex] = `data:image/png;base64,${result.value.base64}`;
+
+        // כל תמונה שומרת מיד לDB ברגע שמוכנה — לא מחכה לסוף הbatch
+        await Promise.allSettled(batch.map(async (pageIndex) => {
+          try {
+            const base64 = await generatePageImage(pageIndex);
+            if (base64) {
+              fullImages[pageIndex] = `data:image/jpeg;base64,${base64}`;
+              await updateBookField(bookId, { fullImages: [...fullImages] });
+              const doneCount = fullImages.filter(Boolean).length;
+              console.log(`generate-full [${bookId}]: image ${pageIndex} saved — ${doneCount}/${pages.length} total`);
+            }
+          } catch (err) {
+            console.error(`generate-full [${bookId}]: image ${pageIndex} failed:`, err.message);
           }
-        }
-        await updateBook(bookId, { fullImages });
-        const doneCount = fullImages.filter(Boolean).length;
-        console.log(`generate-full [${bookId}]: STEP 4b batch done — ${doneCount}/${pages.length} images saved`);
+        }));
       }
 
       // ── STEP 5: All done — send "book ready" email ───────────────────────────

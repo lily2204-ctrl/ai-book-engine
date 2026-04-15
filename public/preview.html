@@ -277,8 +277,8 @@ async function pollBook() {
       else if (!hasCover) setStep(4, "Creating the cover...", 78);
       else                setStep(4, "Almost ready...", 92);
 
-      // Show preview as soon as we have story + at least 1 image
-      if (!previewShown && hasStory && (hasImgs || hasCover)) {
+      // Show preview AS SOON AS story is ready — no need to wait for images
+      if (!previewShown && hasStory) {
         previewShown = true;
         renderPreview(b);
         showPreview();
