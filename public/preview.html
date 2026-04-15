@@ -87,21 +87,6 @@
     .still-gen{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);margin-top:10px;justify-content:center}
     .mini-spin2{width:13px;height:13px;border-radius:50%;border:2px solid rgba(200,146,42,0.1);border-top-color:var(--gold-light);animation:spin 0.8s linear infinite}
 
-    /* Preview progress counter */
-    .preview-progress{display:flex;align-items:center;gap:10px;background:var(--cream-deep);border:1px solid var(--parchment);border-radius:14px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--text-muted)}
-    .preview-progress .pp-dot{width:8px;height:8px;border-radius:50%;background:var(--gold-light);animation:pulse-dot 1.2s ease infinite;flex-shrink:0}
-    .preview-progress .pp-bar{flex:1;height:5px;background:rgba(200,146,42,0.13);border-radius:8px;overflow:hidden}
-    .preview-progress .pp-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--gold-light),var(--gold));border-radius:8px;transition:width 0.6s ease}
-    .preview-progress strong{color:var(--brown);font-weight:700}
-
-    /* After-payment note */
-    .after-pay-note{background:linear-gradient(135deg,rgba(232,184,75,0.09),rgba(245,217,138,0.14));border:1px solid rgba(200,146,42,0.25);border-radius:14px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:var(--brown);line-height:1.55;display:flex;align-items:flex-start;gap:10px}
-    .after-pay-note .apn-icon{font-size:16px;flex-shrink:0;margin-top:1px}
-
-    /* Page image fade-in */
-    .page-img-wrap img{animation:fadeIn 0.55s ease}
-    @keyframes fadeIn{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:scale(1)}}
-
     @media(max-width:900px){.main-layout{grid-template-columns:1fr}.cover-panel{position:static}}
     @media(max-width:480px){.shell{padding:20px 12px 60px;width:100%}.content-panel{padding:18px}.unlock-banner{flex-direction:column}}
   </style>
@@ -110,7 +95,7 @@
 <nav>
   <button class="nav-back" onclick="history.back()"> Back</button>
   <a class="nav-brand" href="index.html">
-    <img src="assets/branding/logo.svg" alt="Lifebook" style="height:48px;width:auto;display:block"/>
+    <img src="assets/branding/logo.svg" alt="Lifebook" style="height:54px;width:auto;display:block"/>
   </a>
   <div style="width:80px"></div>
 </nav>
@@ -128,6 +113,9 @@
       <div class="lstep" id="lstep2"><div class="ldot"></div>Writing the story</div>
       <div class="lstep" id="lstep3"><div class="ldot"></div>Illustrating first pages</div>
       <div class="lstep" id="lstep4"><div class="ldot"></div>Creating the cover</div>
+    </div>
+    <div role="note" style="margin-top:18px;padding:12px 18px;background:rgba(200,146,42,0.08);border-radius:12px;border:1px solid rgba(200,146,42,0.2);font-size:13px;color:#7a6048;line-height:1.7;max-width:340px;text-align:center;">
+      📬 <strong style="color:#5c3d1e">You can close this tab</strong> — we'll email you when your book is ready. Usually 5–7 minutes.
     </div>
   </div>
 
@@ -159,22 +147,11 @@
         <div class="unlock-price">$39</div>
       </div>
 
-      <div class="preview-progress" id="previewProgress">
-        <div class="pp-dot"></div>
-        <div class="pp-bar"><div class="pp-fill" id="ppFill"></div></div>
-        <strong id="ppCount">0/16</strong> <span>pages illustrated</span>
-      </div>
-
       <div class="pages-wrap" id="pagesWrap"></div>
 
       <div class="locked-section">
         <div></div>
         <p>The remaining pages are ready after payment.<br>Instant download included.</p>
-      </div>
-
-      <div class="after-pay-note">
-        <span class="apn-icon">✨</span>
-        <span id="afterPayNote">Remaining <strong>14 pages</strong> will be illustrated right after payment — usually 5–7 minutes. You'll get an email the moment your book is ready.</span>
       </div>
 
       <button class="pay-btn" id="payBtn">Unlock Full Book  $39</button>
@@ -211,19 +188,6 @@ var bookSubtitleEl= document.getElementById("bookSubtitle");
 var pagesWrap     = document.getElementById("pagesWrap");
 var payBtn        = document.getElementById("payBtn");
 var stillGen      = document.getElementById("stillGen");
-var ppFill        = document.getElementById("ppFill");
-var ppCount       = document.getElementById("ppCount");
-var afterPayNote  = document.getElementById("afterPayNote");
-
-function updateProgressCounter(readyCount, totalPages) {
-  if (!totalPages) totalPages = 16;
-  if (ppCount) ppCount.textContent = readyCount + "/" + totalPages;
-  if (ppFill)  ppFill.style.width  = Math.min(100, (readyCount / totalPages) * 100) + "%";
-  if (afterPayNote) {
-    var remaining = Math.max(0, totalPages - readyCount);
-    afterPayNote.innerHTML = 'Remaining <strong>' + remaining + ' pages</strong> will be illustrated right after payment — usually 5–7 minutes. You\'ll get an email the moment your book is ready.';
-  }
-}
 
 var steps = [
   document.getElementById("lstep1"),
@@ -276,7 +240,7 @@ payBtn && payBtn.addEventListener("click", function() {
 var previewShown = false;
 
 async function pollBook() {
-  var maxWait = 240, every = 2.5, elapsed = 0;
+  var maxWait = 180, every = 3, elapsed = 0;
   setStep(1, "Analyzing photo and building character...", 10);
 
   while (elapsed < maxWait) {
@@ -291,11 +255,6 @@ async function pollBook() {
 
       // Update child name
       if (b.childName && loadingChildName) loadingChildName.textContent = b.childName;
-
-      // Update live progress counter
-      var totalPages = (b.generatedBook && b.generatedBook.pages) ? b.generatedBook.pages.length : 16;
-      var readyCount = b.fullImages ? b.fullImages.filter(Boolean).length : 0;
-      updateProgressCounter(readyCount, totalPages);
 
       // Update steps
       var hasChar   = !!(b.characterReference && b.characterReference.characterPromptCore);
@@ -321,12 +280,10 @@ async function pollBook() {
 
       if (hasCover && has2Imgs) {
         setStep(4, "Ready!", 100);
-        if (readyCount < totalPages && stillGen) stillGen.style.display = "flex";
-        // Keep polling to update progress counter until all pages done
-        if (readyCount >= totalPages) {
-          if (stillGen) stillGen.style.display = "none";
-          break;
-        }
+        var total = b.generatedBook && b.generatedBook.pages ? b.generatedBook.pages.length : 0;
+        var ready = b.fullImages ? b.fullImages.filter(Boolean).length : 0;
+        if (ready < total && stillGen) stillGen.style.display = "flex";
+        break;
       }
 
     } catch(e) { console.warn("poll:", e.message); }
@@ -369,5 +326,6 @@ function updateLiveImages(b) {
 
 pollBook();
 </script>
+<script src="accessibility.js"></script>
 </body>
 </html>

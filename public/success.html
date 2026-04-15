@@ -45,7 +45,7 @@
 <body>
 <nav>
   <a class="nav-brand" href="index.html">
-    <img src="assets/branding/logo.svg" alt="Lifebook" style="height:48px;width:auto;display:block"/>
+    <img src="assets/branding/logo.svg" alt="Lifebook" style="height:54px;width:auto;display:block"/>
   </a>
 </nav>
 <main class="shell">
@@ -66,6 +66,11 @@
     <button class="btn-primary" id="openBookBtn">📖 Open My Book</button>
     <button class="btn-secondary" id="goHomeBtn">Back to home</button>
     <div class="status" id="statusMsg">Verifying your order...</div>
+    <div id="resendWrap" style="display:none;margin-top:8px;">
+      <button id="resendEmailBtn" style="background:none;border:none;color:var(--gold);font-size:13px;cursor:pointer;text-decoration:underline;font-family:'Lato',sans-serif;">
+        📬 Resend book link to my email
+      </button>
+    </div>
   </div>
 </main>
 <script type="module">
@@ -88,6 +93,23 @@ openBtn.onclick = () => {
   window.location.href = "reader.html?bookId=" + encodeURIComponent(bookId);
 };
 homeBtn.onclick = () => { window.location.href = "index.html"; };
+
+// Resend email button
+const resendBtn  = document.getElementById("resendEmailBtn");
+const resendWrap = document.getElementById("resendWrap");
+if (resendBtn && bookId) {
+  resendBtn.addEventListener("click", async function() {
+    resendBtn.textContent = "Sending...";
+    resendBtn.disabled = true;
+    try {
+      const r = await fetch(API + "/api/books/" + bookId + "/resend-email", { method: "POST" });
+      const d = await r.json();
+      resendBtn.textContent = d.ok ? "✅ Sent! Check your inbox" : "❌ " + (d.error || "Try again");
+    } catch(e) {
+      resendBtn.textContent = "❌ Network error";
+    }
+  });
+}
 
 async function loadBook() {
   const r = await fetch(API + "/api/books/" + bookId);
@@ -127,6 +149,7 @@ async function init() {
     if (book.purchaseUnlocked) {
       statusEl.textContent = "✅ Payment confirmed — your book is ready!";
       statusEl.style.color = "#2d7a2d";
+      if (resendWrap) resendWrap.style.display = "block";
     } else {
       statusEl.textContent = "⚠ Still confirming payment. Your book will unlock shortly.";
       statusEl.style.color = "#c8922a";
@@ -139,5 +162,6 @@ async function init() {
 
 init();
 </script>
+<script src="accessibility.js"></script>
 </body>
 </html>

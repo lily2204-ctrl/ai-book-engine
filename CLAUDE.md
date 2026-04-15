@@ -1,6 +1,16 @@
 # Lifebook AI — Project Context & Status
 *Last updated: April 15, 2026*
 
+## ⚠️ DO NOT MODIFY — ALREADY DONE
+These things are COMPLETE. Do not revert, replace, or remove them:
+- `public/assets/branding/logo.svg` — new logo, correct viewBox, transparent bg
+- All HTML pages use `<img src="assets/branding/logo.svg" style="height:48px;width:auto;display:block"/>` — NO mix-blend-mode, NO logo.png
+- `public/accessibility.js` — accessibility widget, already added to ALL html pages
+- `public/404.html` — Hebrew 404 page, already exists
+- `<script src="accessibility.js"></script>` — already in every HTML page before `</body>`
+- Two-email system in server.js — sendPaymentConfirmationEmail + sendBookReadyEmail
+- `updateBookField()` function — DO NOT replace with `updateBook()` for image saves
+
 ---
 
 ## Project Overview
