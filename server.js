@@ -706,7 +706,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
             characterPromptCore: promptCore,
             characterSummary: characterDNA.summary || "A warm curious child hero."
           };
-          await updateBook(bookId, { characterReference });
+          await updateBookField(bookId, { characterReference });
         } catch (err) {
           console.warn("generate-full: character reference failed, continuing without it:", err.message);
           characterReference = {
@@ -714,7 +714,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
             characterPromptCore: `A young child aged ${childAge}, warm storybook style.`,
             characterSummary: `A ${childAge}-year-old child hero.`
           };
-          await updateBook(bookId, { characterReference });
+          await updateBookField(bookId, { characterReference });
         }
       }
 
@@ -747,7 +747,7 @@ app.post("/api/books/:bookId/generate-full", async (req, res) => {
               }))
             : []
         };
-        await updateBook(bookId, { generatedBook });
+        await updateBookField(bookId, { generatedBook });
       }
 
       // ── STEP 3+4a: Cover + first 2 page images IN PARALLEL ──────────────────
@@ -940,7 +940,7 @@ Rules:
 
           // Save after every batch so polling clients see progress
           if (batchHadNew) {
-            await updateBook(bookId, { fullImages });
+            await updateBookField(bookId, { fullImages: [...fullImages] });
             console.log(`generate-images: saved ${savedCount}/${toGenerate.length} images for book ${bookId}`);
           }
         }
